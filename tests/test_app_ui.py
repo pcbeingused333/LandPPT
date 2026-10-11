@@ -3,11 +3,14 @@
 Render actual frontend files with fixture GET responses; no app/database or AI.
 """
 
+import ast
 import json
 import mimetypes
+import re
 from datetime import datetime
 from pathlib import Path
 from types import SimpleNamespace
+from typing import Any
 from urllib.parse import unquote, urlsplit
 
 import pytest
@@ -15,6 +18,25 @@ from jinja2 import Environment, FileSystemLoader
 
 ROOT = Path(__file__).resolve().parents[1]
 STATIC = ROOT / "src/landppt/web/static"
+
+
+def template_environment(directory):
+    """Use the real presentation filter without starting database/AI services."""
+    source = ROOT / "src/landppt/web/route_modules/support.py"
+    tree = ast.parse(source.read_text(encoding="utf-8"))
+    formatter = next(
+        node
+        for node in tree.body
+        if isinstance(node, ast.FunctionDef) and node.name == "_strftime_filter"
+    )
+    namespace = {"datetime": datetime, "Any": Any}
+    exec(
+        compile(ast.Module(body=[formatter], type_ignores=[]), str(source), "exec"),
+        namespace,
+    )
+    env = Environment(loader=FileSystemLoader(directory), autoescape=True)
+    env.filters["strftime"] = namespace["_strftime_filter"]
+    return env
 
 
 @pytest.fixture(scope="module")
@@ -33,10 +55,8 @@ def browser():
 def ui_page(browser):
     context = browser.new_context(viewport={"width": 1440, "height": 900})
     page = context.new_page()
-    env = Environment(
-        loader=FileSystemLoader(ROOT / "src/landppt/web/templates"), autoescape=True
-    )
-    env.filters["strftime"] = lambda value, fmt: value.strftime(fmt)
+    page.set_default_timeout(5000)
+    env = template_environment(ROOT / "src/landppt/web/templates")
     user = dict(
         id=1,
         username="ui-test",
@@ -52,7 +72,7 @@ def ui_page(browser):
         scenario="general",
         status="completed",
         todo_board=None,
-        updated_at=datetime(2026, 10, 2),
+        updated_at=datetime(2026, 10, 2).timestamp(),
         project_metadata={},
         outline={"slides": [{"title": "封面", "content": []}]},
         slides_data=[
@@ -161,27 +181,25 @@ def test_mobile_menu_keeps_all_role_links_reachable(ui_page, width, height, role
     user = None if role == "guest" else dict(username="test", is_admin=role == "admin")
     load("pages/project/projects_list.html", user=user)
     assert page.locator("#appMain").bounding_box()["y"] < 140
-    assert not page.locator("#appNavigation").is_visible()
-    toggle = page.get_by_role("button", name="菜单")
+    toggle = page.get_by_role("button", name="菜单", exact=True)
     toggle.click()
+    drawer = page.get_by_role("dialog", name="导航", exact=True)
     assert toggle.get_attribute("aria-expanded") == "true"
-    assert page.locator('#appNavigation a[href="/admin"]').count() == (role == "admin")
-    assert page.locator(
-        '#appNavigation a[href="/auth/login?tab=register"]'
-    ).count() == (role == "guest")
-    for link in page.locator("#appNavigation a").all():
+    assert drawer.locator('a[href="/admin"]').count() == (role == "admin")
+    assert drawer.locator('a[href="/auth/login?tab=register"]').count() == (
+        role == "guest"
+    )
+    for link in drawer.locator("nav a").all():
+        link.scroll_into_view_if_needed()
         box = link.bounding_box()
         assert box["x"] >= 0 and box["x"] + box["width"] <= width
         assert box["height"] >= 44
         assert link.evaluate(
             "e => {const r=e.getBoundingClientRect();const hit=document.elementFromPoint(r.x+r.width/2,r.y+r.height/2);return !!hit && e.contains(hit)}"
         )
-    assert (
-        page.locator('#appNavigation a[href="/projects"]').get_attribute("aria-current")
-        == "page"
-    )
+    assert drawer.locator('a[href="/projects"]').get_attribute("aria-current") == "page"
     page.keyboard.press("Escape")
-    assert not page.locator("#appNavigation").is_visible()
+    assert not drawer.is_visible()
     assert toggle.evaluate("e => e === document.activeElement")
 
 
@@ -198,6 +216,7 @@ def test_profile_tabs_and_long_email_stay_inside_mobile_panel(ui_page, width):
     )
     page.get_by_role("tab", name="基本信息").focus()
     page.keyboard.press("ArrowRight")
+    page.keyboard.press("Enter")
     assert (
         page.get_by_role("tab", name="我的积分").get_attribute("aria-selected")
         == "true"
@@ -226,7 +245,7 @@ def test_dashboard_summary_keeps_projects_near_top_without_overflow(
                 title="长项目名称与研发团队的跨部门协作计划" * 4,
                 scenario="general",
                 status="completed",
-                updated_at=datetime(2026, 10, 2),
+                updated_at=datetime(2026, 10, 2).timestamp(),
             )
         ],
     )
@@ -247,7 +266,7 @@ def test_dashboard_summary_keeps_projects_near_top_without_overflow(
     assert create.get_attribute("href") == "/scenarios"
     assert all_projects.get_attribute("href") == "/projects"
     for action in (create, all_projects):
-        assert action.bounding_box()["height"] >= (44 if width <= 600 else 40)
+        assert action.bounding_box()["height"] >= (44 if width <= 600 else 32)
         assert action.evaluate(
             "e => {const r=e.getBoundingClientRect();"
             "return e.contains(document.elementFromPoint(r.x+r.width/2,r.y+r.height/2))}"
@@ -264,7 +283,7 @@ def detail_project():
         status="completed",
         version=3,
         requirements="优先呈现关键进度和可执行操作。",
-        created_at=datetime(2026, 10, 2),
+        created_at=datetime(2026, 10, 2).timestamp(),
         slides_html="<html><body>Original slide</body></html>",
         outline=dict(
             title="产品体验与交付计划",
@@ -329,13 +348,23 @@ def test_project_detail_compact_layout_keeps_stage_and_outline_actions_reachable
         for description in page.locator(".stage-description").all():
             assert description.is_visible()
             assert description.evaluate("e => e.scrollWidth <= e.clientWidth + 1")
-    disclosure = page.locator(".detail-stage-list")
-    assert disclosure.evaluate("e => e.open") == (status == "in_progress")
-    disclosure.locator("summary").focus()
+    disclosure = page.locator(".detail-stage-list").get_by_role(
+        "button", name=re.compile("阶段状态")
+    )
+    assert (
+        disclosure.get_attribute("aria-expanded")
+        == str(status == "in_progress").lower()
+    )
+    disclosure.focus()
     page.keyboard.press("Enter")
-    assert disclosure.evaluate("e => e.open") == (status == "completed")
+    assert (
+        disclosure.get_attribute("aria-expanded") == str(status == "completed").lower()
+    )
     page.keyboard.press("Enter")
-    assert disclosure.evaluate("e => e.open") == (status == "in_progress")
+    assert (
+        disclosure.get_attribute("aria-expanded")
+        == str(status == "in_progress").lower()
+    )
     assert page.get_by_role("link", name="预览 PPT").is_visible() == (
         status == "completed"
     )
@@ -350,7 +379,7 @@ def test_project_detail_compact_layout_keeps_stage_and_outline_actions_reachable
             box = card.bounding_box()
             assert box["x"] >= surface["x"]
             assert box["x"] + box["width"] <= surface["x"] + surface["width"]
-        for button in page.locator("#compactView .outline-tool-btn").all():
+        for button in page.locator("#compactView .outline-slide-actions button").all():
             box = button.bounding_box()
             assert box["width"] >= 44 and box["height"] >= 44
             assert button.evaluate(
@@ -365,9 +394,10 @@ def test_project_detail_compact_layout_keeps_stage_and_outline_actions_reachable
     page.get_by_role("button", name="切换为简洁视图").click()
     assert page.locator("#compactView").is_visible()
     page.locator("#compactView [aria-label='查看详情']").first.click()
-    page.locator("div.modal").wait_for(state="visible")
-    page.get_by_role("button", name="关闭", exact=True).last.click()
-    assert not page.locator("div.modal").count()
+    dialog = page.get_by_role("dialog", name="第 1 页详情")
+    dialog.wait_for(state="visible")
+    dialog.get_by_role("button", name="关闭", exact=True).last.click()
+    assert not dialog.is_visible()
 
 
 @pytest.mark.parametrize("width", [1440, 320])
@@ -407,32 +437,32 @@ def test_project_dialog_traps_focus_and_restores_trigger(ui_page, template):
     load(f"pages/project/{template}.html")
     trigger = page.get_by_role("button", name="重命名").first
     trigger.click()
-    page.locator("#renameProjectTitle").wait_for()
-    page.wait_for_timeout(70)
-    assert page.locator("#renameModal").get_attribute("aria-modal") == "true"
+    dialog = page.get_by_role("dialog", name="重命名项目")
+    dialog.wait_for()
+    field = dialog.get_by_role("textbox", name="项目名称")
+    field.fill("")
+    dialog.get_by_role("button", name="保存", exact=True).click()
+    page.get_by_text("项目名称不能为空", exact=True).wait_for()
     for key in ("Tab", "Tab", "Tab", "Shift+Tab", "Shift+Tab"):
         page.keyboard.press(key)
-        assert page.evaluate("!!document.activeElement.closest('#renameModal')")
-    page.get_by_role("button", name="保存", exact=True).focus()
-    page.locator("#renameProjectTitle").fill("")
-    page.get_by_role("button", name="保存", exact=True).click()
-    assert page.get_by_role("alert").inner_text() == "项目名称不能为空"
+        assert page.evaluate("!!document.activeElement.closest('.ant-modal-wrap')")
     page.keyboard.press("Escape")
-    assert not page.locator("#renameModal").is_visible()
+    assert not dialog.is_visible()
     assert trigger.evaluate("e => e === document.activeElement")
 
 
 def test_config_tabs_support_keyboard_selection(ui_page):
     page, load = ui_page
     load("pages/settings/ai_config.html", path="/ai-config")
-    tabs = page.get_by_role("tablist", name="系统配置分类")
+    tabs = page.get_by_role("tablist")
     tabs.get_by_role("tab", name="AI 提供者", exact=True).focus()
     page.keyboard.press("ArrowRight")
-    selected = tabs.get_by_role("tab", name="生成参数", exact=True)
+    page.keyboard.press("Enter")
+    selected = tabs.get_by_role("tab", name=re.compile("生成参数$"))
     assert selected.get_attribute("aria-selected") == "true"
     assert selected.evaluate("e => e === document.activeElement")
     assert page.locator("#generation-params").is_visible()
-    page.keyboard.press("Home")
+    tabs.get_by_role("tab", name="AI 提供者", exact=True).click()
     assert (
         tabs.get_by_role("tab", name="AI 提供者", exact=True).get_attribute(
             "aria-selected"
@@ -452,7 +482,7 @@ def test_shared_confirm_can_open_above_project_dialog(ui_page):
         page.keyboard.press("Tab")
         assert page.evaluate("!!document.activeElement.closest('.ln-dialog-overlay')")
     page.locator(".ln-dialog-overlay").get_by_role("button", name="取消").click()
-    assert page.evaluate("!!document.activeElement.closest('#renameModal')")
+    assert page.evaluate("!!document.activeElement.closest('.ant-modal-wrap')")
 
 
 @pytest.mark.parametrize("width,height", [(390, 844), (844, 390)])
@@ -463,19 +493,19 @@ def test_shared_confirm_can_open_above_project_dialog(ui_page):
             "pages/template/global_master_templates.html",
             "/global-master-templates",
             "#createTemplateBtn",
-            "#templateModal",
+            ".ant-modal",
         ),
         (
             "pages/image/image_gallery.html",
             "/image-gallery",
             "#upload-trigger",
-            "#upload-modal",
+            ".ant-modal",
         ),
         (
             "pages/admin/users.html",
             "/admin",
-            'button[onclick="showCreateModal()"]',
-            "#userModal",
+            "#createUserBtn",
+            ".ant-modal",
         ),
     ],
 )
@@ -500,7 +530,7 @@ def test_existing_modal_can_close_and_reopen_with_focus_restored(
             assert page.evaluate(
                 "selector => !!document.activeElement.closest(selector)", modal
             )
-        content = dialog.locator(".modal-content").bounding_box()
+        content = dialog.locator(".ant-modal-container").bounding_box()
         assert content["y"] >= 0 and content["y"] + content["height"] <= height + 1
         page.keyboard.press("Escape")
         dialog.wait_for(state="hidden")
@@ -542,24 +572,19 @@ def test_long_template_card_fits_mobile_without_changing_preview_document(ui_pag
     card = page.locator(".template-card")
     card.wait_for()
     assert card.evaluate("e => e.scrollWidth <= e.clientWidth + 1")
-    assert card.locator("button:visible").count() == 1
-    for button in card.locator("button:visible, summary").all():
+    assert card.locator("button:visible").count() == 3
+    for button in card.locator("button:visible").all():
         box = button.bounding_box()
         assert box["x"] >= 0 and box["x"] + box["width"] <= 320
-    summary = card.locator("summary")
+    summary = card.get_by_role("button", name=template["template_name"] + "更多操作")
     summary.click()
-    assert card.locator("button:visible").count() == 6
-    page.keyboard.press("Tab")
-    assert card.locator('.ui-action-menu button[data-action="duplicate"]').evaluate(
-        "e => e === document.activeElement"
-    )
+    assert page.get_by_role("menuitem").count() == 5
+    page.get_by_role("menuitem", name="复制", exact=True).focus()
     page.keyboard.press("Escape")
-    assert not card.locator("details").evaluate("e => e.open")
+    page.get_by_role("menu").wait_for(state="hidden")
     assert summary.evaluate("e => e === document.activeElement")
-    summary.click()
-    card.locator('button[data-action="edit"]').click()
-    assert not card.locator("details").evaluate("e => e.open")
-    page.locator("#templateModal").wait_for()
+    card.get_by_role("button", name="编辑", exact=True).click()
+    page.locator(".template-editor-modal").wait_for()
     page.keyboard.press("Escape")
     frame = page.frame_locator(".template-preview-iframe")
     assert (
@@ -580,16 +605,20 @@ def test_admin_menu_keeps_navigation_and_keyboard_exit_reachable(
     page, load = ui_page
     page.set_viewport_size({"width": width, "height": height})
     load("pages/admin/users.html", path="/admin/users")
-    nav = page.get_by_role("navigation", name="后台导航")
-    assert not nav.is_visible()
-    toggle = page.get_by_role("button", name="菜单", exact=True)
-    toggle.click()
+    nav = page.get_by_role("navigation", name="管理后台", exact=True)
+    assert nav.is_visible()
     for link in nav.locator("a").all():
         box = link.bounding_box()
         assert 0 <= box["x"] <= width - box["width"]
         assert box["height"] >= 44
+    assert nav.locator('[aria-current="page"]').get_attribute("href") == "/admin/users"
+    toggle = page.get_by_role("button", name="菜单", exact=True)
+    toggle.click()
+    drawer = page.get_by_role("dialog", name="导航", exact=True)
+    drawer.get_by_role("link", name="管理后台", exact=True).wait_for()
     page.keyboard.press("Escape")
-    assert not nav.is_visible()
+    assert not drawer.is_visible()
+    assert nav.is_visible()
     assert toggle.evaluate("e => e === document.activeElement")
 
 
@@ -601,19 +630,19 @@ def test_admin_menu_keeps_navigation_and_keyboard_exit_reachable(
             "pages/project/projects_list.html",
             "/projects",
             "#renameProjectTitle",
-            "#renameModal button.btn-primary",
+            ".ant-modal button.ant-btn-primary",
         ),
         (
             "pages/settings/ai_config.html",
             "/ai-config",
             'input[name="openai_api_key"]',
-            ".provider-header button.btn-primary",
+            "button.ant-btn-primary:visible",
         ),
         (
             "pages/admin/users.html",
             "/admin/users",
             "#userUsername",
-            "#userModal button[type=submit]",
+            ".ant-modal button.ant-btn-primary",
         ),
         (
             "pages/auth/login.html",
@@ -632,20 +661,22 @@ def test_primary_controls_share_scale_across_app_shells(
     if path == "/projects":
         page.get_by_role("button", name="重命名").first.click()
     elif path == "/ai-config":
-        page.evaluate("toggleProviderAccordion('openai')")
+        page.locator("#field-openai_api_key").wait_for()
     elif path == "/admin/users":
-        page.locator('button[onclick="showCreateModal()"]').click()
+        page.get_by_role("button", name="新建用户", exact=True).click()
     control = page.locator(field)
     assert control.is_visible()
     assert control.evaluate("e => getComputedStyle(e).fontSize") == (
         "16px" if width < 600 else "14px"
     )
-    assert control.bounding_box()["height"] >= (44 if width < 600 else 40)
-    visible_control = control.locator("..") if path == "/auth/login" else control
+    visible_control = (
+        control.locator("..") if path in ("/auth/login", "/ai-config") else control
+    )
+    assert visible_control.bounding_box()["height"] >= (44 if width < 600 else 32)
     assert visible_control.bounding_box()["height"] <= (46 if width < 600 else 42)
     primary = page.locator(button).first
     assert primary.evaluate("e => getComputedStyle(e).fontSize") == "14px"
-    assert primary.evaluate("e => getComputedStyle(e).borderRadius") == "8px"
+    assert primary.evaluate("e => getComputedStyle(e).borderRadius") == "6px"
     assert (
         primary.evaluate("e => getComputedStyle(e).backgroundColor")
         == "rgb(17, 17, 17)"
@@ -671,15 +702,17 @@ def test_mobile_auth_has_brand_and_single_input_boundary(ui_page, width, height)
     page, load = ui_page
     page.set_viewport_size({"width": width, "height": height})
     load("pages/auth/login.html", path="/auth/login")
-    assert page.locator(".auth-mobile-brand").is_visible()
-    assert not page.locator(".brand-panel").is_visible()
+    assert page.locator(".app-brand").is_visible()
+    assert page.locator(".brand-panel").count() == 0
     assert (
         page.locator("#username").evaluate("e => getComputedStyle(e).borderTopWidth")
-        == "0px"
+        == "1px"
     )
     panel = page.locator(".form-shell").bounding_box()
     assert panel["x"] >= 0 and panel["x"] + panel["width"] <= width
-    toggle = page.locator('#loginFormElement button[data-target="password"]')
+    toggle = page.locator("#loginFormElement").get_by_role(
+        "button", name="显示", exact=True
+    )
     box = toggle.bounding_box()
     assert box["width"] >= 44 and box["height"] >= 44
     assert toggle.evaluate(
@@ -742,49 +775,38 @@ def test_every_settings_tab_keeps_form_fields_inside_page(ui_page, width, tab):
     page, load = ui_page
     page.set_viewport_size({"width": width, "height": 844})
     load("pages/settings/ai_config.html", path="/ai-config")
-    page.locator(f'.config-tabs [data-tab="{tab}"]').click()
+    labels = {
+        "ai-providers": "AI 提供者",
+        "generation-params": "生成参数",
+        "jev-config": "决策模型配置",
+        "app-config": "应用配置",
+        "image-service": "图片服务",
+    }
+    page.get_by_role("tab", name=labels[tab], exact=True).click()
     panel = page.locator("#" + tab)
     if tab == "ai-providers":
-        for provider in ["landppt", "openai", "anthropic", "google"]:
-            page.locator(
-                f'.provider-header[aria-controls="provider_content_{provider}"]'
-            ).locator("span").first.click()
-        page.locator("#model-role-toggle-btn").click()
-        assert (
-            page.locator("#model-role-toggle-btn").get_attribute("aria-expanded")
-            == "true"
-        )
+        for provider in ["LandPPT", "Anthropic Claude", "Google Gemini"]:
+            panel.locator(".ant-collapse-header").filter(has_text=provider).click()
+        panel.locator(".ant-collapse-header").filter(has_text="模型任务配置").click()
     elif tab == "image-service":
-        page.locator('.toggle-label:has(input[name="enable_image_service"])').click()
         for name in [
+            "enable_image_service",
             "enable_local_images",
             "enable_network_search",
             "enable_ai_generation",
         ]:
-            panel.locator(f'input[name="{name}"]').check()
-        for row in panel.locator(".toggle-label").all():
-            if row.is_visible():
-                assert row.evaluate("e=>getComputedStyle(e).display") == "flex"
-                switch = row.locator(".toggle-switch").bounding_box()
-                copy = row.locator(":scope > div:last-child").bounding_box()
-                assert copy["x"] >= switch["x"] + switch["width"]
+            panel.locator("#field-" + name).click()
     elif tab == "app-config":
-        field = panel.locator('input[name="reload"]')
-        assert field.bounding_box()["width"] == 18
-        assert field.bounding_box()["height"] == 18
-        initial = field.is_checked()
-        field.focus()
+        control = panel.locator("#field-reload")
+        initial = control.get_attribute("aria-checked")
+        control.focus()
         page.keyboard.press("Space")
-        assert field.is_checked() != initial
+        assert control.get_attribute("aria-checked") != initial
         page.keyboard.press("Space")
-        assert field.is_checked() == initial
-    page.wait_for_timeout(100)
+        assert control.get_attribute("aria-checked") == initial
     assert page.evaluate("document.documentElement.scrollWidth") <= width
-    fields = panel.locator(
-        "input:not([type=hidden]):not([type=checkbox]):not([type=radio]):not([type=range]),select,textarea"
-    )
     visible = 0
-    for field in fields.all():
+    for field in panel.locator("input,textarea,button[role=switch]").all():
         if not field.is_visible():
             continue
         visible += 1
@@ -800,9 +822,12 @@ def test_generation_save_stays_clickable_while_editing_last_section(
     page, load = ui_page
     page.set_viewport_size({"width": width, "height": height})
     load("pages/settings/ai_config.html", path="/ai-config")
-    page.locator('[data-tab="generation-params"]').click()
-    page.locator("#generation-params .config-section").last.scroll_into_view_if_needed()
-    assert page.locator("#generation-params .save-bar").bounding_box()["height"] < 100
+    page.get_by_role("tab", name="生成参数", exact=True).click()
+    page.locator("#generation-params .ant-card").last.scroll_into_view_if_needed()
+    assert (
+        page.locator("#generation-params .settings-savebar").bounding_box()["height"]
+        < 100
+    )
     save = page.get_by_role("button", name="保存生成参数", exact=True)
     box = save.bounding_box()
     assert box["y"] >= 0 and box["y"] + box["height"] <= height
@@ -814,12 +839,15 @@ def test_generation_save_stays_clickable_while_editing_last_section(
 def test_generation_slider_and_number_still_synchronize(ui_page):
     page, load = ui_page
     load("pages/settings/ai_config.html", path="/ai-config")
-    page.locator('[data-tab="generation-params"]').click()
-    number = page.locator('input[name="temperature"]')
-    number.fill("1.3")
-    assert page.locator('[data-range-for="temperature"]').input_value() == "1.3"
-    assert "1.3" in page.locator('[data-value-for="temperature"]').inner_text()
-    assert number.get_attribute("aria-labelledby")
+    page.get_by_role("tab", name="生成参数", exact=True).click()
+    page.locator("#field-temperature").fill("1.3")
+    slider = page.get_by_role("slider", name="温度 TEMPERATURE滑块")
+    if not slider.count():
+        slider = page.get_by_role("slider").nth(1)
+    assert slider.get_attribute("aria-valuenow") == "1.3"
+    slider.focus()
+    page.keyboard.press("ArrowRight")
+    assert page.locator("#field-temperature").input_value() == "1.4"
 
 
 @pytest.mark.parametrize("width", [1440, 320])
@@ -837,21 +865,19 @@ def test_provider_switches_share_size_and_keep_keyboard_linkage(
     page, load = ui_page
     page.set_viewport_size({"width": width, "height": 844})
     load("pages/settings/ai_config.html", path="/ai-config")
-    page.locator(
-        f'.provider-header[aria-controls="provider_content_{provider}"]'
-    ).locator("span").first.click()
-    field = page.locator(f'input[name="{name}"]')
-    assert field.bounding_box()["width"] == 44
-    assert field.bounding_box()["height"] == 26
-    initial = field.is_checked()
+    if provider == "anthropic":
+        page.locator(".ant-collapse-header").filter(has_text="Anthropic Claude").click()
+    field = page.locator("#field-" + name)
+    assert field.bounding_box()["width"] >= 44
+    initial = field.get_attribute("aria-checked")
     field.focus()
     page.keyboard.press("Space")
-    assert field.is_checked() != initial
+    assert field.get_attribute("aria-checked") != initial
     if name.endswith("enable_reasoning"):
-        effort = page.locator(f'select[name="{provider}_reasoning_effort"]')
-        assert effort.is_disabled() == (not field.is_checked())
+        effort = page.locator("#field-" + provider + "_reasoning_effort")
+        assert effort.is_disabled() == (field.get_attribute("aria-checked") != "true")
     page.keyboard.press("Space")
-    assert field.is_checked() == initial
+    assert field.get_attribute("aria-checked") == initial
 
 
 @pytest.mark.parametrize("width", [390, 320])
@@ -859,21 +885,21 @@ def test_image_source_keyboard_toggle_and_json_field_remain_usable(ui_page, widt
     page, load = ui_page
     page.set_viewport_size({"width": width, "height": 844})
     load("pages/settings/ai_config.html", path="/ai-config")
-    page.locator('[data-tab="image-service"]').click()
-    page.locator('.toggle-label:has(input[name="enable_image_service"])').click()
-    for name, panel in [
-        ("enable_local_images", "local-images-config"),
-        ("enable_network_search", "network-search-config"),
-        ("enable_ai_generation", "ai-generation-config"),
+    page.get_by_role("tab", name="图片服务", exact=True).click()
+    page.locator("#field-enable_image_service").click()
+    for name, dependent in [
+        ("enable_local_images", "max_local_images_per_slide"),
+        ("enable_network_search", "max_network_images_per_slide"),
+        ("enable_ai_generation", "max_ai_images_per_slide"),
     ]:
-        field = page.locator(f'input[name="{name}"]')
-        field.check()
-        assert page.locator("#" + panel).is_visible()
-        field.focus()
+        control = page.locator("#field-" + name)
+        control.click()
+        assert page.locator("#field-" + dependent).is_visible()
+        control.focus()
         page.keyboard.press("Space")
-        assert not page.locator("#" + panel).is_visible()
+        assert page.locator("#field-" + dependent).count() == 0
         page.keyboard.press("Space")
-        assert page.locator("#" + panel).is_visible()
+        assert page.locator("#field-" + dependent).is_visible()
     resolution = page.locator('textarea[name="ai_image_resolution_presets"]')
     resolution.fill(json.dumps({"openai_image": ["1536x1024"] * 80}))
     box = resolution.bounding_box()
@@ -893,15 +919,17 @@ def test_admin_settings_tabs_and_long_form_save_are_accessible(ui_page, width, h
     assert save.evaluate(
         "e=>{const r=e.getBoundingClientRect();return e.contains(document.elementFromPoint(r.x+r.width/2,r.y+r.height/2))}"
     )
-    tab = page.locator('.community-tab[data-tab-target="system-defaults"]')
+    tab = page.get_by_role("tab", name="系统默认配置", exact=True)
     tab.focus()
     page.keyboard.press("End")
-    assert page.locator("#panel-sponsors").is_visible()
-    last = page.locator('.community-tab[data-tab-target="sponsors"]')
+    page.keyboard.press("Enter")
+    page.locator(".community-sponsors").wait_for()
+    last = page.get_by_role("tab", name=re.compile("赞助感谢页$"))
     assert last.get_attribute("aria-selected") == "true"
     assert last.evaluate("e=>e===document.activeElement")
     page.keyboard.press("Home")
-    assert page.locator("#panel-system-defaults").is_visible()
+    page.keyboard.press("Enter")
+    assert page.locator(".community-system").is_visible()
     assert page.evaluate("document.documentElement.scrollWidth") <= width
 
 
@@ -919,7 +947,11 @@ def test_mail_settings_provider_and_secret_toggle_keep_values(ui_page, width, pr
         "#resend_api_key" if provider == "resend" else "#smtp_password"
     )
     field.fill("fixture-secret")
-    button = field.locator("..").locator("button")
+    button = (
+        field.locator("..")
+        .get_by_role("button", name="显示", exact=True)
+        .element_handle()
+    )
     assert button.get_attribute("aria-label")
     button.click()
     assert field.get_attribute("type") == "text"
@@ -938,15 +970,12 @@ def test_oauth_switches_keep_keyboard_and_visible_track(ui_page, width):
     load("pages/admin/oauth.html", path="/admin/oauth")
     for provider in ["github", "linuxdo"]:
         field = page.locator(f"#{provider}_enabled")
-        was_checked = field.is_checked()
+        was_checked = field.get_attribute("aria-checked")
         field.focus()
         page.keyboard.press("Space")
-        assert field.is_checked() != was_checked
-        track = page.locator(
-            f'.oauth-switch[for="{provider}_enabled"] .oauth-switch-track'
-        )
-        box = track.bounding_box()
-        assert box["width"] == 44 and box["height"] == 26
+        assert field.get_attribute("aria-checked") != was_checked
+        box = field.bounding_box()
+        assert box["width"] >= 44 and box["height"] >= 22
         assert box["x"] >= 0 and box["x"] + box["width"] <= width
 
 
@@ -998,9 +1027,15 @@ def test_settings_layout_keeps_original_save_payload(
 
     page.route("**/api/config/" + category, capture)
     load("pages/settings/ai_config.html", path="/ai-config")
-    page.locator(f'[data-tab="{tab}"]').click()
+    labels = {
+        "generation-params": "生成参数",
+        "app-config": "应用配置",
+        "image-service": "图片服务",
+        "ai-providers": "AI 提供者",
+    }
+    page.get_by_role("tab", name=labels[tab], exact=True).click()
     if category == "model_roles":
-        page.locator("#model-role-toggle-btn").click()
+        page.locator(".ant-collapse-header").filter(has_text="模型任务配置").click()
     page.locator(f'input[name="{field}"]').fill(value)
     page.get_by_role("button", name=button, exact=True).click()
     page.wait_for_timeout(100)
@@ -1012,21 +1047,22 @@ def test_settings_layout_keeps_original_save_payload(
 def test_settings_test_result_dialog_fits_and_restores_focus(ui_page, width, height):
     page, load = ui_page
     page.set_viewport_size({"width": width, "height": height})
-    load("pages/settings/ai_config.html", path="/ai-config")
-    trigger = page.locator('.provider-header button[title="测试连接"]').first
-    trigger.focus()
-    page.evaluate(
-        "document.getElementById('testResults').textContent='隔离测试结果';document.getElementById('testModal').style.display='flex'"
+    page.route(
+        "**/api/ai/providers/test",
+        lambda route: route.fulfill(json={"success": True, "message": "隔离测试结果"}),
     )
-    page.wait_for_timeout(50)
-    dialog = page.locator("#testModal")
+    load("pages/settings/ai_config.html", path="/ai-config")
+    trigger = page.get_by_role("button", name="测试连接", exact=True).first
+    trigger.click()
+    dialog = page.get_by_role("dialog").filter(has_text="连接测试")
+    dialog.wait_for()
     assert dialog.get_attribute("aria-modal") == "true"
-    close = page.get_by_role("button", name="关闭测试结果")
+    close = dialog.get_by_role("button", name="关闭测试结果")
     box = close.bounding_box()
     assert box["x"] >= 0 and box["x"] + box["width"] <= width
     assert box["y"] >= 0 and box["y"] + box["height"] <= height
     page.keyboard.press("Escape")
-    assert not dialog.is_visible()
+    dialog.wait_for(state="hidden")
     assert trigger.evaluate("e=>e===document.activeElement")
 
 
@@ -1037,7 +1073,7 @@ def test_settings_admin_fields_remain_hidden_for_regular_user(ui_page):
         path="/ai-config",
         user=dict(username="reader", is_admin=False),
     )
-    assert page.locator('[data-tab="app-config"]').count() == 0
+    assert page.get_by_role("tab", name="应用配置", exact=True).count() == 0
     assert page.locator('input[name="apryse_license_key"]').count() == 0
     assert page.locator('select[name="unattended_default_stop_stage"]').count() == 0
 
@@ -1049,19 +1085,26 @@ def test_settings_notifications_share_component_and_bound_long_messages(
 ):
     page, load = ui_page
     page.set_viewport_size({"width": width, "height": 844})
+    message = "隔离回归提示：https://" + "service-endpoint-" * 12 + ".invalid"
+    page.route(
+        "**/api/config/generation_params",
+        lambda route: route.fulfill(
+            status=503 if kind == "error" else 200,
+            json={"detail": message} if kind == "error" else {"success": True},
+        ),
+    )
     load("pages/settings/ai_config.html", path="/ai-config")
-    message = "隔离回归提示：" + "https://" + "service-endpoint-" * 12 + ".invalid"
-    page.evaluate("args => showNotification(args[0], args[1])", [message, kind])
-    toast = page.locator(".ln-toast--" + kind)
-    assert toast.inner_text().startswith(message)
-    if kind == "error":
-        assert toast.get_attribute("role") == "alert"
-    page.wait_for_timeout(250)
-    box = toast.bounding_box()
+    page.get_by_role("tab", name="生成参数", exact=True).click()
+    page.get_by_role("button", name="保存生成参数", exact=True).click()
+    notice = (
+        page.get_by_role("alert").filter(has_text=message)
+        if kind == "error"
+        else page.get_by_text("配置已保存，已实时生效", exact=True)
+    )
+    notice.wait_for()
+    box = notice.bounding_box()
     assert box["x"] >= 0 and box["x"] + box["width"] <= width
     assert page.evaluate("document.documentElement.scrollWidth") <= width
-    toast.get_by_role("button").click()
-    assert toast.evaluate("e=>e.classList.contains('ln-out')")
 
 
 @pytest.fixture
@@ -1076,7 +1119,7 @@ def gallery_page(ui_page):
             file_size=35840,
             description="示例素材说明",
             tags="network, abstract",
-            category="technology",
+            category="ai_generated",
             width=400,
             height=300,
             format="png",
@@ -1107,7 +1150,11 @@ def gallery_page(ui_page):
                     {
                         "success": True,
                         "images": images,
-                        "pagination": {"current_page": 1, "total_pages": 1},
+                        "pagination": {
+                            "current_page": 1,
+                            "total_pages": 1,
+                            "total_count": 3,
+                        },
                     }
                 ),
                 content_type="application/json",
@@ -1115,7 +1162,7 @@ def gallery_page(ui_page):
 
     page.route("**/api/image/**", forward)
     load("pages/image/image_gallery.html", path="/image-gallery")
-    page.locator(".image-item").first.wait_for()
+    page.locator(".image-card").first.wait_for()
     return page, images, requests
 
 
@@ -1124,19 +1171,21 @@ def test_gallery_long_titles_and_card_actions_fit_their_cards(gallery_page, widt
     page, images, _ = gallery_page
     page.set_viewport_size({"width": width, "height": 844})
     assert page.evaluate("document.documentElement.scrollWidth") <= width
-    for card in page.locator(".image-item").all():
+    for card in page.locator(".image-card").all():
         box = card.bounding_box()
-        title = card.locator(".image-title")
+        title = card.locator(".image-card-body h2")
         assert title.inner_text() == images[0]["title"]
         assert title.bounding_box()["height"] <= 42
-        for button in card.locator(".image-actions button").all():
+        for button in card.locator(".image-card-actions button").all():
             bounds = button.bounding_box()
             assert bounds["x"] >= box["x"]
             assert bounds["x"] + bounds["width"] <= box["x"] + box["width"]
-            assert bounds["height"] >= (44 if width <= 600 else 36)
+            assert bounds["height"] >= (44 if width <= 600 else 32)
         assert card.get_by_role("button", name="复制链接").is_visible()
         assert card.get_by_role("button", name="下载", exact=True).is_visible()
-        assert card.get_by_role("button", name="删除图片", exact=True).is_visible()
+        assert card.get_by_role(
+            "button", name="删除 " + images[0]["title"], exact=True
+        ).is_visible()
 
 
 @pytest.mark.parametrize("width", [1440, 320])
@@ -1144,14 +1193,18 @@ def test_gallery_long_titles_and_card_actions_fit_their_cards(gallery_page, widt
 def test_gallery_thumbnail_opens_detail_with_keyboard(gallery_page, width, key):
     page, images, requests = gallery_page
     page.set_viewport_size({"width": width, "height": 844})
-    thumbnail = page.locator(".image-thumbnail").first
+    thumbnail = page.locator(".image-card-preview").first
     thumbnail.focus()
     page.keyboard.press(key)
-    page.locator("#image-detail-modal").wait_for(state="visible")
-    assert page.locator("#display-title").inner_text() == images[0]["title"]
+    page.get_by_role("dialog", name="图片详情", exact=True).wait_for(state="visible")
+    assert (
+        page.get_by_role("dialog")
+        .get_by_text(images[0]["title"], exact=True)
+        .is_visible()
+    )
     assert any(url.endswith("/detail/gallery-0") for _, url in requests)
     page.keyboard.press("Escape")
-    assert not page.locator("#image-detail-modal").is_visible()
+    assert not page.get_by_role("dialog", name="图片详情", exact=True).is_visible()
     assert thumbnail.evaluate("e=>e===document.activeElement")
 
 
@@ -1159,29 +1212,31 @@ def test_gallery_thumbnail_opens_detail_with_keyboard(gallery_page, width, key):
 def test_gallery_batch_selection_keeps_state_and_clears_on_exit(gallery_page, width):
     page, _, _ = gallery_page
     page.set_viewport_size({"width": width, "height": 844})
-    trigger = page.locator("#batch-mode-btn")
+    trigger = page.get_by_role("button", name="批量选择", exact=True)
     trigger.click()
     assert trigger.get_attribute("aria-pressed") == "true"
-    assert page.locator("#batch-toolbar").is_visible()
-    page.locator(".batch-checkbox").first.check()
-    assert page.locator("#selected-count").inner_text() == "1"
-    assert page.locator(".image-item.selected").count() == 1
+    assert page.locator(".image-batch-toolbar").is_visible()
+    page.locator(".image-card-check input").first.check()
+    assert page.get_by_text("已选择 1 张", exact=True).is_visible()
+    assert page.locator(".image-card-selected").count() == 1
     trigger.click()
     assert trigger.get_attribute("aria-pressed") == "false"
-    assert page.locator(".batch-checkbox").count() == 0
-    assert page.locator(".image-item.selected").count() == 0
+    assert page.locator(".image-card-check input").count() == 0
+    assert page.locator(".image-card-selected").count() == 0
     assert page.evaluate("document.documentElement.scrollWidth") <= width
 
 
 def test_gallery_delete_still_requires_confirmation_and_cancel_does_not_write(
     gallery_page,
 ):
-    page, _, requests = gallery_page
-    page.get_by_role("button", name="删除图片", exact=True).first.click()
-    dialog = page.locator(".ln-dialog-overlay")
+    page, images, requests = gallery_page
+    page.get_by_role(
+        "button", name="删除 " + images[0]["title"], exact=True
+    ).first.click()
+    dialog = page.get_by_role("dialog", name="删除图片", exact=True)
     dialog.wait_for(state="visible")
     dialog.get_by_role("button", name="取消").click()
-    assert page.locator(".image-item").count() == 3
+    assert page.locator(".image-card").count() == 3
     assert all(method == "GET" for method, _ in requests)
 
 
@@ -1297,7 +1352,7 @@ def test_generator_completed_workspace_fits_and_preserves_preview_content(
     open_workspace()
     assert not errors
     assert page.evaluate("document.documentElement.scrollWidth") <= width
-    assert page.locator("#connectionStatus").inner_text() == "生成完成"
+    assert page.locator("#generatorStatusUI .ant-badge-status-text").inner_text() == "生成完成"
     assert not page.locator(".lu-monitor-details").evaluate("e => e.open")
     assert not page.locator("#generationProgress").is_visible()
     assert page.locator("#unattendedMonitor").evaluate(
@@ -1351,7 +1406,7 @@ def test_generator_monitor_keeps_status_errors_and_details_reachable(
     assert not errors
     if task_status == "idle":
         assert not page.locator("#unattendedMonitor").is_visible()
-        assert page.locator("#startBtn").is_visible()
+        assert page.get_by_role("button", name="开始生成", exact=True).is_visible()
         return
     details = page.locator(".lu-monitor-details")
     assert details.evaluate("e => e.open") == (task_status == "failed")

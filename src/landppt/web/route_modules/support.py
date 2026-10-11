@@ -38,10 +38,12 @@ def _timestamp_to_datetime(timestamp: Any) -> str:
 
 def _strftime_filter(timestamp: Any, format_string: str = "%Y-%m-%d %H:%M") -> str:
     try:
+        if isinstance(timestamp, datetime):
+            return timestamp.strftime(format_string)
         if isinstance(timestamp, (int, float)):
             return datetime.fromtimestamp(timestamp).strftime(format_string)
         return str(timestamp)
-    except (ValueError, OSError):
+    except (ValueError, OverflowError, OSError):
         return "Invalid timestamp"
 
 

@@ -115,3 +115,16 @@ build-backend = "hatchling.build"
 [tool.hatch.build.targets.wheel]
 packages = ["src/landppt"]
 sources = ["src"]
+exclude = ["/src/landppt/web/static/antd"]
+
+[tool.hatch.build.targets.sdist]
+exclude = ["/src/landppt/web/static/antd"]
+
+# Built with `npm ci --prefix frontend && npm run build --prefix frontend`.
+# Include exactly once, including when building a wheel from the sdist.
+# Force inclusion also fails clearly if the frontend has not been built.
+[tool.hatch.build.targets.wheel.force-include]
+"src/landppt/web/static/antd" = "landppt/web/static/antd"
+
+[tool.hatch.build.targets.sdist.force-include]
+"src/landppt/web/static/antd" = "src/landppt/web/static/antd"

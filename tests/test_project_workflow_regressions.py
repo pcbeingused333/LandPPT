@@ -1,4 +1,5 @@
 import ast
+import json
 import time
 from pathlib import Path
 from types import SimpleNamespace
@@ -87,6 +88,45 @@ async def test_rename_project_rejects_blank_title():
 
     assert excinfo.value.status_code == 422
     assert excinfo.value.detail == "Project title is required"
+
+
+@pytest.mark.asyncio
+async def test_dashboard_renders_model_timestamp_without_falling_back_to_error(monkeypatch):
+    from fastapi import Request
+    from landppt.api.models import PPTProject, ProjectListResponse
+    from landppt.web.route_modules import project_lifecycle_routes
+
+    project = PPTProject(
+        project_id="timestamp-regression",
+        title="真实时间戳项目",
+        topic="Dashboard",
+        scenario="general",
+        status="completed",
+    )
+    calls = []
+
+    class ProjectManager:
+        async def list_projects(self, **query):
+            calls.append(query)
+            return ProjectListResponse(projects=[project], total=1, page=1, page_size=100)
+
+    monkeypatch.setattr(
+        project_lifecycle_routes, "ppt_service",
+        SimpleNamespace(project_manager=ProjectManager()),
+    )
+    request = Request({"type": "http", "path": "/dashboard", "headers": []})
+    user = SimpleNamespace(id=17, username="timestamp-user", is_admin=False)
+    request.state.user = user
+    response = await project_lifecycle_routes.web_dashboard(request, user=user)
+    assert response.template.name == "pages/project/project_dashboard.html"
+    html = response.body.decode()
+    payload = json.loads(
+        html.split('<script id="antdData" type="application/json">', 1)[1].split("</script>", 1)[0]
+    )
+    assert payload["projects"][0]["project_id"] == project.project_id
+    assert payload["projects"][0]["updated"]
+    assert payload["stats"] == [1, 1, 0, 0]
+    assert calls == [{"page": 1, "page_size": 100, "user_id": 17}]
 
 
 @pytest.mark.asyncio
@@ -297,30 +337,8 @@ def test_outline_operations_send_structure_operation_payload():
     assert "await saveSingleSlideToServer(" in script
 
 
-def test_project_detail_outline_supports_drag_delete_and_duplicate():
-    content = _read("src/landppt/web/templates/components/project/detail/content_1.html")
-    script = _read("src/landppt/web/templates/components/project/detail/extra_js_1.html")
-
-    assert 'draggable="true"' in content
-    assert "deleteOutlineSlide(" in content
-    assert "duplicateProject()" in content
-    assert "function initializeOutlineDragAndDrop()" in script
-    assert "async function persistProjectOutline(operation)" in script
-
-
-def test_project_detail_outline_uses_icon_only_toolbar():
-    content = _read("src/landppt/web/templates/components/project/detail/content_1.html")
-    css = _read("src/landppt/web/templates/components/project/detail/extra_css_1.html")
-    script = _read("src/landppt/web/templates/components/project/detail/extra_js_1.html")
-
-    assert "outline-panel__header" in content
-    assert "outline-tool-btn" in content
-    assert 'data-tooltip="编辑大纲"' in content
-    assert 'id="outlineViewToggleBtn"' in content
-    assert "outline-slide-card__actions" in content
-    assert ".outline-tool-btn[data-tooltip]::after" in css
-    assert "setOutlineToggleState(isDetailView)" in script
-    assert "toggleIcon.className = 'fas fa-th-large'" in script
+# Project detail actions are covered by built-browser regressions in
+# test_antd_projects_ui.py and test_app_ui.py.
 
 
 def test_editor_sidebar_thumbnail_refresh_recalculates_scale_without_overriding_load_handler():
@@ -340,7 +358,6 @@ def test_editor_sidebar_thumbnail_refresh_recalculates_scale_without_overriding_
 def test_ai_optimize_modals_settle_safely_and_use_scoped_dom():
     sources = [
         _read("src/landppt/web/templates/components/project/todo_board/extra_js_1.html"),
-        _read("src/landppt/web/templates/components/project/detail/extra_js_1.html"),
         _read(
             "src/landppt/web/static/js/pages/project/slides_editor/"
             "projectSlidesEditor.aiOptimize.js"
@@ -363,4 +380,3 @@ def test_ai_optimize_modals_settle_safely_and_use_scoped_dom():
         assert "onclick=\"this.closest('.ai-optimize-modal').remove()\"" not in source
 
     assert "document.head.appendChild(style)" not in sources[0]
-    assert "document.head.appendChild(style)" not in sources[1]

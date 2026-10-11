@@ -220,6 +220,10 @@ powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | ie
 # macOS / Linux
 curl -LsSf https://astral.sh/uv/install.sh | sh
 
+# Build Ant Design browser assets first (Node.js 22.12+)
+npm ci --prefix frontend
+npm run build --prefix frontend
+
 uv sync --extra dev
 cp .env.example .env
 # Edit .env — configure at least one AI API key
@@ -238,6 +242,8 @@ python -m venv venv
 # Windows: venv\Scripts\activate
 # macOS / Linux: source venv/bin/activate
 
+npm ci --prefix frontend
+npm run build --prefix frontend
 pip install -e .
 cp .env.example .env
 # Edit .env with AI API keys
@@ -290,11 +296,24 @@ Web, Worker, and the renderer exchange PPTX rendering jobs through a shared dire
 
 ```bash
 cp .env.example .env
+
+# Source mounts need locally built browser assets (Node.js 22.12+)
+npm ci --prefix frontend
+npm run build --prefix frontend
 docker compose -f docker-compose-dev.yaml up -d --build
 docker compose -f docker-compose-dev.yaml logs -f landppt
 ```
 
 Builds from the local Dockerfile, mounts sources, enables hot reload; bootstraps `admin` / `admin123` by default.
+
+Ant Design source lives in `frontend/`; Vite builds into `src/landppt/web/static/antd/`. Use `npm run dev --prefix frontend` to watch and rebuild, then refresh the browser. Generated assets, dependencies, and screenshots are git-ignored. Docker compiles assets in a separate build stage and does not require Node.js at runtime. Build the frontend before publishing Python wheel/sdist packages so they contain the compiled assets.
+
+Browser regressions use isolated API data and do not modify real projects, accounts, or credits. Build the assets and install Chromium before running:
+
+```bash
+uv run --extra dev python -m playwright install chromium
+uv run --extra dev pytest tests/test_app_ui.py tests/test_antd_ui.py tests/test_antd_projects_ui.py tests/test_antd_account_ui.py tests/test_antd_admin_ui.py tests/test_antd_admin_management_ui.py tests/test_antd_community_ui.py tests/test_antd_images_ui.py tests/test_antd_templates_ui.py tests/test_antd_creation_research_ui.py tests/test_antd_home_generator_ui.py tests/test_antd_presentation_ui.py tests/test_template_package_workspace_ui.py -q
+```
 
 ---
 

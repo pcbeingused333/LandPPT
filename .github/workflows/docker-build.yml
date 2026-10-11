@@ -17,6 +17,7 @@ on:
       - 'docker-healthcheck.sh'
       - 'run.py'
       - 'src/**'
+      - 'frontend/**'
       - 'scripts/pptx-renderer/**'
       - 'scripts/update_argocd_images.py'
       - 'template_examples/**'

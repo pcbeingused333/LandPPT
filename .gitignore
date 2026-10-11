@@ -6,6 +6,8 @@ build/
 dist/
 lib/
 artifacts/
+node_modules/
+/src/landppt/web/static/antd/
 temp/
 temp_inspect/
 research_reports/

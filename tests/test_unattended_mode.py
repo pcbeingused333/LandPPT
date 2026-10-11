@@ -6,12 +6,21 @@ would silently break the feature (handler registration, route mounting, form
 field plumbing, monitor markup).
 """
 
+import json
 from pathlib import Path
 
 import pytest
 
 REPO = Path(__file__).resolve().parents[1]
 SRC = REPO / "src" / "landppt"
+
+
+def creation_page_data(html):
+    return json.loads(
+        html.split('<script id="antdData" type="application/json">', 1)[1].split(
+            "</script>", 1
+        )[0]
+    )
 
 
 # --------------------------------------------------------------------------- plan
@@ -1497,69 +1506,58 @@ def test_config_defaults_cover_every_schema_key():
 
 
 class TestCreationFormPlumbing:
-    """The composer has no real named inputs; anything not hand-appended is dropped."""
+    """The React form consumes explicit public JSON; browser tests cover controls."""
 
     @pytest.fixture(scope="class")
-    def scenarios_html(self):
-        return (
-            SRC / "web" / "templates" / "pages" / "project" / "scenarios.html"
-        ).read_text(encoding="utf-8")
+    def render(self):
+        from types import SimpleNamespace
+        from jinja2 import Environment, FileSystemLoader
 
-    def test_unattended_controls_exist(self, scenarios_html):
-        assert 'id="unattended_mode"' in scenarios_html
-        assert 'id="stop_at_stage"' in scenarios_html
-        assert 'id="unattended_notify_in_app"' in scenarios_html
-        assert 'id="unattended_notify_email"' in scenarios_html
-
-    def test_unattended_controls_are_hidden_for_non_admins(self, scenarios_html):
-        assert (
-            '<div class="pill-wrap" {% if not current_user or not current_user.is_admin %}hidden{% endif %}>'
-            in scenarios_html
+        env = Environment(
+            loader=FileSystemLoader(SRC / "web" / "templates"), autoescape=True
         )
 
-        settings = (
-            SRC / "web" / "templates" / "components" / "settings" / "ai_config" / "content_1.html"
-        ).read_text(encoding="utf-8")
-        unattended_title = settings.index("无人值守")
-        assert settings.rfind("{% if user and user.is_admin %}", 0, unattended_title) > settings.rfind(
-            "{% endif %}", 0, unattended_title
-        )
-
-    def test_every_stop_stage_is_offered(self, scenarios_html):
-        from landppt.services.unattended_service import STAGE_IDS
-
-        select_block = scenarios_html[scenarios_html.index('id="stop_at_stage"'):]
-        select_block = select_block[: select_block.index("</select>")]
-        for stage_id in STAGE_IDS:
-            assert f'value="{stage_id}"' in select_block
-
-    def test_fields_are_appended_to_the_form_data(self, scenarios_html):
-        for field in (
-            "unattended_mode",
-            "stop_at_stage",
-            "unattended_notify_in_app",
-            "unattended_notify_email",
-        ):
-            assert f"fd.append('{field}'" in scenarios_html, (
-                f"{field} must be hand-appended; FormData(form) would drop it"
+        def render(**values):
+            user = values.pop("user", dict(username="admin", is_admin=True))
+            return creation_page_data(
+                env.get_template("pages/project/scenarios.html").render(
+                    request=SimpleNamespace(state=SimpleNamespace(user=user)), **values
+                )
             )
 
-    def test_state_is_bound_so_the_controls_are_not_inert(self, scenarios_html):
-        assert "unattendedMode: false" in scenarios_html
-        assert "stopAtStage:" in scenarios_html
-        assert "$('unattended_mode').addEventListener" in scenarios_html
-        assert "$('stop_at_stage').addEventListener" in scenarios_html
+        return render
 
-    def test_controls_are_seeded_from_saved_settings(self, scenarios_html):
-        """Otherwise the settings page's unattended defaults are dead config."""
-        assert "unattended_defaults.stop_after" in scenarios_html
-        assert "unattended_defaults.notify_in_app" in scenarios_html
-        assert "unattended_defaults.notify_email" in scenarios_html
-
-        route = (SRC / "web" / "route_modules" / "project_lifecycle_routes.py").read_text(
-            encoding="utf-8"
+    def test_unattended_defaults_fall_back_without_saved_configuration(self, render):
+        data = render()
+        assert data["createDefaults"] == dict(
+            stop_at_stage="ppt",
+            unattended_notify_in_app=True,
+            unattended_notify_email=False,
         )
-        assert '"unattended_defaults": unattended_defaults' in route
+
+    def test_request_user_role_reaches_frontend_without_private_fields(self, render):
+        data = render(
+            user=dict(username="member", is_admin=False, password_hash="private")
+        )
+        assert data["user"] == dict(username="member", is_admin=False)
+
+    def test_every_saved_stop_stage_reaches_frontend(self, render):
+        from landppt.services.unattended_service import STAGE_IDS
+
+        for stage_id in STAGE_IDS:
+            data = render(
+                unattended_defaults=dict(
+                    stop_after=stage_id,
+                    notify_in_app=False,
+                    notify_email=True,
+                    private_key="private",
+                )
+            )
+            assert data["createDefaults"] == dict(
+                stop_at_stage=stage_id,
+                unattended_notify_in_app=False,
+                unattended_notify_email=True,
+            )
 
 
 class TestBothConfirmEndpointsAcceptTheFields:
@@ -1690,29 +1688,39 @@ class TestTemplatesRender:
     def test_creation_page_seeds_controls_from_saved_settings(self, env, fixtures):
         html = env.get_template("pages/project/scenarios.html").render(
             request=fixtures.request,
-            scenarios=[{"id": "general", "name": "通用", "description": "d", "icon": "📚"}],
+            scenarios=[
+                {"id": "general", "name": "通用", "description": "d", "icon": "📚"}
+            ],
             selected_scenario="general",
             unattended_defaults={
-                "stop_after": "video", "notify_in_app": True, "notify_email": True,
-                "language": "zh", "template_id": None, "tts_provider": "edge_tts",
-                "tts_voice": None, "tts_rate": "+0%", "fps": 30,
-                "render_mode": "live", "embed_subtitles": True,
+                "stop_after": "video",
+                "notify_in_app": True,
+                "notify_email": True,
+                "language": "zh",
+                "template_id": None,
+                "tts_provider": "edge_tts",
+                "tts_voice": None,
+                "tts_rate": "+0%",
+                "fps": 30,
+                "render_mode": "live",
+                "embed_subtitles": True,
             },
         )
-        assert 'value="video" selected' in html
-        assert 'stopAtStage: "video"' in html
-        assert "fd.append('stop_at_stage'" in html
-        assert (
-            '<div class="pill-wrap" hidden>\n'
-            '                    <button type="button" class="pill" data-pop="unattended"'
-            not in html
+        data = creation_page_data(html)
+        assert data["createDefaults"] == dict(
+            stop_at_stage="video",
+            unattended_notify_in_app=True,
+            unattended_notify_email=True,
         )
+        assert data["user"]["is_admin"] is True
 
     def test_creation_page_offers_the_template_choice(self, env, fixtures):
         """Unattended skips the template-selection page, so the choice must be here."""
         html = env.get_template("pages/project/scenarios.html").render(
             request=fixtures.request,
-            scenarios=[{"id": "general", "name": "通用", "description": "d", "icon": "📚"}],
+            scenarios=[
+                {"id": "general", "name": "通用", "description": "d", "icon": "📚"}
+            ],
             selected_scenario="general",
             template_options=[
                 {"id": 3, "name": "商务简约", "is_default": True},
@@ -1720,29 +1728,34 @@ class TestTemplatesRender:
             ],
             user=fixtures.user,
         )
-        assert 'id="unattended_template_mode"' in html
-        assert 'value="free"' in html
-        assert 'id="unattended_template_id"' in html
-        assert 'value="3"' in html and "商务简约" in html
-        assert 'value="9"' in html and "科技风" in html
-        assert "fd.append('unattended_template_mode'" in html
-        assert "fd.append('unattended_template_id'" in html
+        assert creation_page_data(html)["templateOptions"] == [
+            {"id": 3, "name": "商务简约", "is_default": True},
+            {"id": 9, "name": "科技风", "is_default": False},
+        ]
 
     def test_creation_page_survives_an_empty_template_list(self, env, fixtures):
         """Template listing failures must not break project creation."""
         html = env.get_template("pages/project/scenarios.html").render(
             request=fixtures.request,
-            scenarios=[{"id": "general", "name": "通用", "description": "d", "icon": "📚"}],
+            scenarios=[
+                {"id": "general", "name": "通用", "description": "d", "icon": "📚"}
+            ],
             selected_scenario="general",
             template_options=[],
             user=fixtures.user,
         )
-        assert 'id="unattended_template_mode"' in html
-        assert "（暂无可用模板）" in html
+        assert creation_page_data(html)["templateOptions"] == []
 
-    def test_workspace_shows_an_honest_placeholder_not_a_fake_skeleton(self, env, fixtures):
+    def test_workspace_shows_an_honest_placeholder_not_a_fake_skeleton(
+        self, env, fixtures
+    ):
         js = (
-            SRC / "web" / "templates" / "components" / "project" / "todo_board"
+            SRC
+            / "web"
+            / "templates"
+            / "components"
+            / "project"
+            / "todo_board"
             / "extra_js_1.html"
         ).read_text(encoding="utf-8")
         assert "renderUnattendedOutlinePlaceholder" in js
@@ -1781,18 +1794,24 @@ class TestTemplatesRender:
     def test_creation_page_falls_back_when_no_defaults_are_passed(self, env, fixtures):
         html = env.get_template("pages/project/scenarios.html").render(
             request=fixtures.request,
-            scenarios=[{"id": "general", "name": "通用", "description": "d", "icon": "📚"}],
+            scenarios=[
+                {"id": "general", "name": "通用", "description": "d", "icon": "📚"}
+            ],
             selected_scenario="general",
             user=fixtures.user,
         )
-        assert 'value="ppt" selected' in html
-        assert 'id="unattended_mode"' in html
+        assert creation_page_data(html)["createDefaults"]["stop_at_stage"] == "ppt"
 
     @pytest.mark.parametrize("active,expected", [(True, "true"), (False, "false")])
-    def test_todo_board_exposes_the_unattended_flag(self, env, fixtures, active, expected):
+    def test_todo_board_exposes_the_unattended_flag(
+        self, env, fixtures, active, expected
+    ):
         html = env.get_template("pages/project/todo_board.html").render(
-            request=fixtures.request, todo_board=fixtures.todo_board,
-            project=fixtures.project, unattended_active=active, user=fixtures.user,
+            request=fixtures.request,
+            todo_board=fixtures.todo_board,
+            project=fixtures.project,
+            unattended_active=active,
+            user=fixtures.user,
         )
         assert f"const unattendedActive = {expected};" in html
         assert 'id="unattendedMonitor"' in html
@@ -1877,7 +1896,11 @@ class TestTemplatesRender:
             request=fixtures.request, todo_board=fixtures.todo_board,
             project=fixtures.project, unattended_active=True, user=fixtures.user, **extra
         )
-        blocks = re.findall(r"<script(?![^>]*\bsrc=)[^>]*>(.*?)</script>", html, re.S)
+        blocks = re.findall(
+            r'<script(?![^>]*\bsrc=)(?![^>]*type="application/json")[^>]*>(.*?)</script>',
+            html,
+            re.S,
+        )
         assert blocks, f"{page} rendered no inline script"
 
         with tempfile.NamedTemporaryFile(

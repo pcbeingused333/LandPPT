@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}LandPPT{% endblock %}</title>
+    <link rel="icon" href="/static/images/favicon.ico">
+    <link rel="stylesheet" href="/static/antd/app.css?v=20261011">
+    <link rel="stylesheet" href="/static/css/shared/site_notice.css">
+    <link rel="stylesheet" href="/static/css/shared/notify.css">
+    <link rel="stylesheet" href="/static/css/shared/notification_center.css">
+</head>
+<body>
+    {% set current_user = user if user is defined else (request.state.user if request and request.state and request.state.user else none) %}
+    {% block blueprint %}{% endblock %}
+    <script id="antdData" type="application/json">{
+        "user": {% if current_user %}{"username": {{ current_user.username | tojson }}, "is_admin": {{ current_user.is_admin | tojson }}}{% else %}null{% endif %},
+        "creditsEnabled": {{ (credits_enabled | default(false)) | tojson }},
+        {% block page_data %}{% endblock %}
+    }</script>
+    <div id="antdRoot"><p role="status">正在加载 LandPPT…</p></div>
+    <noscript>请启用 JavaScript 后使用 LandPPT。</noscript>
+    <script src="/static/js/shared/notify.js?v=20260726"></script>
+    <script src="/static/js/shared/site_notice.js?v=20260322"></script>
+    <script src="/static/js/shared/notification_center.js?v=20260727"></script>
+    <script type="module" src="/static/antd/app.js"></script>
+</body>
+</html>

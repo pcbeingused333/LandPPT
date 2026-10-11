@@ -1,21 +1,13 @@
-{% extends "base.html" %}
-
+{% extends "antd_base.html" %}
 {% block title %}系统配置管理 - LandPPT{% endblock %}
-
-{% block content %}
-{% include "components/settings/ai_config/content_1.html" %}
+{% block blueprint %}
+<template id="settingsBlueprint">
+    {% include "components/settings/ai_config/content_1.html" %}
+</template>
 {% endblock %}
-
-{% block extra_css %}
-<style>
-{% include "components/settings/ai_config/extra_css_1.html" %}
-</style>
-<link rel="stylesheet" href="/static/css/pages/settings/settings.css?v=20261003-black">
-<script src="/static/js/pages/settings/settings.js?v=20261002-settings" defer></script>
-{% endblock %}
-
-{% block extra_js %}
-<script>
-{% include "components/settings/ai_config/extra_js_1.html" %}
-</script>
+{% block page_data %}
+"page": "settings",
+"config": {{ current_config | tojson }},
+"currentProvider": {{ current_provider | tojson }},
+"providerStatus": {{ provider_status | tojson }}
 {% endblock %}

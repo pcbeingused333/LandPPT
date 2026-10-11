@@ -224,6 +224,10 @@ powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | ie
 # macOS / Linux
 curl -LsSf https://astral.sh/uv/install.sh | sh
 
+# 前端需要 Node.js 22.12+；先编译 Ant Design 页面资源
+npm ci --prefix frontend
+npm run build --prefix frontend
+
 uv sync --extra dev
 cp .env.example .env
 # 编辑 .env，至少配置一个 AI API Key
@@ -242,6 +246,8 @@ python -m venv venv
 # Windows: venv\Scripts\activate
 # macOS / Linux: source venv/bin/activate
 
+npm ci --prefix frontend
+npm run build --prefix frontend
 pip install -e .
 cp .env.example .env
 # 编辑 .env，配置 AI API Key
@@ -294,11 +300,24 @@ Web、Worker 和渲染器通过共享目录交换 PPTX 渲染任务，渲染器�
 
 ```bash
 cp .env.example .env
+
+# 开发编排挂载本地源码，需要本地编译前端资源（Node.js 22.12+）
+npm ci --prefix frontend
+npm run build --prefix frontend
 docker compose -f docker-compose-dev.yaml up -d --build
 docker compose -f docker-compose-dev.yaml logs -f landppt
 ```
 
 开发编排基于本地 Dockerfile 构建，挂载源码并热重载；默认初始化管理员 `admin` / `admin123`。
+
+Ant Design 前端源码位于 `frontend/`，通过 Vite 编译到 `src/landppt/web/static/antd/`。修改前端时可运行 `npm run dev --prefix frontend` 持续编译，刷新浏览器查看变化。生成资源、依赖和回归截图不提交到 Git；Docker 在构建阶段自动编译，运行镜像不需要 Node.js。发布 Python wheel/sdist 前先执行前端构建，发布包会包含编译资源。
+
+前端回归使用隔离的 API 数据，不写入真实项目、账户或积分；先构建资源并安装 Chromium，然后执行：
+
+```bash
+uv run --extra dev python -m playwright install chromium
+uv run --extra dev pytest tests/test_app_ui.py tests/test_antd_ui.py tests/test_antd_projects_ui.py tests/test_antd_account_ui.py tests/test_antd_admin_ui.py tests/test_antd_admin_management_ui.py tests/test_antd_community_ui.py tests/test_antd_images_ui.py tests/test_antd_templates_ui.py tests/test_antd_creation_research_ui.py tests/test_antd_home_generator_ui.py tests/test_antd_presentation_ui.py tests/test_template_package_workspace_ui.py -q
+```
 
 ---
 

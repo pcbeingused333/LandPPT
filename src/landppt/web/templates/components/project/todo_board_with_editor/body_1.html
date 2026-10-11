@@ -1,66 +1,28 @@
-    <div class="main-container generator-workspace">
-        <!-- Header -->
-        <div class="header">
-            <div class="header-content">
-                <div class="header-left">
-                    <a href="/projects" class="generator-back" aria-label="返回项目列表" title="返回项目列表"><i class="fas fa-arrow-left" aria-hidden="true"></i></a>
-                    <div class="header-text">
-                        <div class="header-subtitle">PPT 智能生成器</div>
-                        <h2 title="{{ todo_board.title }}">{{ todo_board.title }}</h2>
-                    </div>
-                </div>
-                    <div class="btn-group-custom generator-actions" role="group" aria-label="幻灯片生成与查看">
-                        <button class="btn btn-primary" id="startBtn">
-                            <i class="fas fa-play"></i> 开始生成
-                        </button>
-                        <button class="btn btn-warning" id="pauseBtn" style="display: none;">
-                            <i class="fas fa-pause"></i> 暂停
-                        </button>
-                        <button class="btn btn-success" id="resumeBtn" style="display: none;">
-                            <i class="fas fa-play"></i> 继续
-                        </button>
-                        <button class="btn btn-danger" id="stopBtn" style="display: none;">
-                            <i class="fas fa-stop"></i> 停止生成
-                        </button>
-                        <button class="btn btn-success" id="editorBtn" style="display: none;">
-                            <i class="fas fa-edit"></i> 打开编辑器
-                        </button>
-                        <button class="btn btn-info" id="slideshowBtn" style="display: none;">
-                            <i class="fas fa-display"></i> 幻灯片放映
-                        </button>
-                    </div>
-            </div>
+    <!-- Inert UI adapter for the existing generation controller. Its button and
+         status IDs stay stable; the visible Ant controls never own this DOM. -->
+    <div id="generatorControlState" hidden aria-hidden="true">
+        <button id="startBtn">开始生成</button>
+        <button id="pauseBtn" style="display:none">暂停</button>
+        <button id="resumeBtn" style="display:none">继续</button>
+        <button id="stopBtn" style="display:none">停止生成</button>
+        <button id="editorBtn" style="display:none">打开编辑器</button>
+        <button id="slideshowBtn" style="display:none">幻灯片放映</button>
+        <div id="generationStatus" style="display:none">
+            <span id="statusMessage">准备开始生成...</span>
+            <div id="connectionStatus" class="connection-status disconnected">未连接</div>
+            <div id="generationProgress" style="width:0%"></div>
         </div>
+    </div>
+    <div class="main-container generator-workspace generator-ant-workspace">
+        <header id="antdRoot" class="generator-ant-chrome"><p role="status">正在加载生成工作区…</p></header>
 
         <div class="content-area">
             <div class="editor-section">
 
-                {% with generation_mode_compact=true %}
-                {% include "components/project/generation_mode_entry.html" %}
-                {% endwith %}
-
                 <!-- 无人值守任务监控面板（无任务时保持隐藏） -->
                 <div id="unattendedMonitor" hidden></div>
 
-                <!-- Generation Status -->
-                <div class="status-indicator" id="generationStatus" style="display: none;">
-                    <div class="generation-status-row">
-                    <h6><i class="fas fa-cogs"></i> 生成状态</h6>
-                    <div id="statusMessage" role="status" aria-live="polite">准备开始生成...</div>
-                    <!-- 连接状态指示器 -->
-                    <div class="connection-status-container">
-                        <div id="connectionStatus" class="connection-status disconnected">
-                            <span
-                                style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#ef4444;"></span>
-                            未连接
-                        </div>
-                    </div>
-                    </div>
-                    <div class="progress">
-                        <div class="progress-bar progress-bar-striped progress-bar-animated" id="generationProgress"
-                            style="width: 0%"></div>
-                    </div>
-                </div>
+                <div id="generatorStatusUI"></div>
 
                 <div class="slides-container" id="slidesContainer">
                     <div class="welcome-message">
@@ -68,8 +30,8 @@
                             <div class="welcome-message-orbit"></div>
                             <i class="fas fa-rocket fa-4x"></i>
                         </div>
-                        <h4 class="welcome-message-title">准备创建精彩的演示文稿</h4>
-                        <p class="welcome-message-subtitle">点击“开始生成”按钮，AI 将为您创建专业的 PPT 幻灯片</p>
+                        <h4 class="welcome-message-title">{{ '任务正在运行' if unattended_active else '准备生成演示文稿' }}</h4>
+                        <p class="welcome-message-subtitle">{{ '生成的页面会显示在这里，可在上方查看进度与阶段详情。' if unattended_active else '点击“开始生成”，生成的页面会依次显示在这里。' }}</p>
                         <div class="welcome-message-features">
                             <span class="feature-badge"><i class="fas fa-brain"></i> AI 驱动</span>
                             <span class="feature-badge"><i class="fas fa-bolt"></i> 快速生成</span>

@@ -359,12 +359,14 @@ def test_component_templates_replace_legacy_partials_directories():
     template_expectations = {
         "src/landppt/web/templates/pages/settings/ai_config.html": "components/settings/ai_config/",
         "src/landppt/web/templates/pages/admin/community.html": "components/admin/community/",
-        "src/landppt/web/templates/pages/project/project_detail.html": "components/project/detail/",
-        "src/landppt/web/templates/pages/project/project_fullscreen_presentation.html": "components/project/fullscreen_presentation/",
+        "src/landppt/web/templates/pages/project/project_detail.html": '"antd_base.html"',
+        "src/landppt/web/templates/pages/project/scenarios.html": '"antd_base.html"',
+        "src/landppt/web/templates/pages/project/research_status.html": '"antd_base.html"',
+        "src/landppt/web/templates/pages/project/project_fullscreen_presentation.html": "/static/js/pages/project/presentation.js",
         "src/landppt/web/templates/pages/project/todo_board.html": "components/project/todo_board/",
         "src/landppt/web/templates/pages/project/todo_board_with_editor.html": "components/project/todo_board_with_editor/",
-        "src/landppt/web/templates/pages/template/global_master_templates.html": "components/template/global_master_templates/",
-        "src/landppt/web/templates/pages/template/template_selection.html": "components/template/template_selection/",
+        "src/landppt/web/templates/pages/template/global_master_templates.html": '"antd_base.html"',
+        "src/landppt/web/templates/pages/template/template_selection.html": '"antd_base.html"',
     }
 
     for relative_path, marker in template_expectations.items():

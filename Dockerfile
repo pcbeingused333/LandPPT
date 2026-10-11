@@ -1,6 +1,14 @@
 # LandPPT Docker Image
 # Multi-stage build for minimal image size
 
+# Compile browser assets; Node is only needed at build time.
+FROM node:22-bookworm-slim AS frontend-builder
+WORKDIR /frontend
+COPY frontend/package.json frontend/package-lock.json ./
+RUN npm ci --no-audit --no-fund
+COPY frontend/ ./
+RUN npm run build
+
 # Build stage
 FROM python:3.11-slim-bookworm AS builder
 
@@ -48,6 +56,7 @@ ENV VIRTUAL_ENV=/opt/venv \
 WORKDIR /app
 COPY pyproject.toml uv.lock* uv.toml README.md ./
 COPY src/ ./src/
+COPY --from=frontend-builder /src/landppt/web/static/antd/ ./src/landppt/web/static/antd/
 
 # Install Python dependencies using uv
 # uv sync will create venv at UV_PROJECT_ENVIRONMENT and install all dependencies
@@ -168,6 +177,7 @@ WORKDIR /app
 # Copy application code (minimize layers)
 COPY run.py ./
 COPY src/ ./src/
+COPY --from=frontend-builder /src/landppt/web/static/antd/ ./src/landppt/web/static/antd/
 COPY template_examples/ ./template_examples/
 COPY docker-healthcheck.sh docker-entrypoint.sh docker-permissions-init.sh /usr/local/bin/
 COPY .env.example ./.env
