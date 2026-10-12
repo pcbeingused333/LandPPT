@@ -427,7 +427,8 @@ function openSvgPageEditor() {
           </footer>
         </div>`;
     document.body.appendChild(dialog);
-    dialog.showModal();
+    if (window.LandPPTEditorUI) window.LandPPTEditorUI.openDialog(dialog);
+    else dialog.showModal();
 
     const pick = selector => dialog.querySelector(selector);
     const frame = pick('[data-frame]'), stage = pick('[data-stage]'), paper = pick('[data-paper]');

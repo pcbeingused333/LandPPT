@@ -3,6 +3,7 @@ import { Button, Empty, Pagination, Select, Space } from 'antd';
 import { PlusOutlined, DashboardOutlined } from '@ant-design/icons';
 import { ProjectCollection, projectStates, useProjectActions, type Project } from '../components/projects';
 import type { ApiData } from '../api';
+import { navigatePage } from '../navigation';
 
 export default function Projects({ data }: { data: ApiData }) {
   const [projects, setProjects] = useState<Project[]>(data.projects);
@@ -11,7 +12,7 @@ export default function Projects({ data }: { data: ApiData }) {
     const url = new URL(location.href);
     if (status) url.searchParams.set('status', status); else url.searchParams.delete('status');
     if (page > 1) url.searchParams.set('page', String(page)); else url.searchParams.delete('page');
-    location.href = url.toString();
+    navigatePage(url.toString());
   }
   useEffect(() => {
     if (!projects.some(project => project.status === 'in_progress')) return;

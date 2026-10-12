@@ -56,7 +56,7 @@ def test_narration_audio_export_ui_is_wired():
     assert "triggerFileDownload(downloadUrl)" in narration_js_text
     assert "导出讲解音频" in speech_manage_js_text
     assert 'onclick="exportNarrationAudio()"' in speech_manage_js_text
-    assert "projectEditorNarration.js?v=20260802-auto-result-v1" in template_text
+    assert "projectEditorNarration.js?v=20261012-editor-media" in template_text
     assert "projectSlidesEditor.speechScriptsManage.js?v=20260802-auto-result-v1" in template_text
 
 

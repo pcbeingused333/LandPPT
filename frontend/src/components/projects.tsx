@@ -3,6 +3,7 @@ import { App, Button, Card, Empty, Form, Input, Modal, Progress, Space, Table, T
 import { EyeOutlined, EditOutlined, FullscreenOutlined, CopyOutlined, DeleteOutlined, FormOutlined, UnorderedListOutlined } from '@ant-design/icons';
 import { request } from '../api';
 import { modalFocus } from './modal-focus';
+import { navigatePage } from '../navigation';
 
 export interface Project {
   project_id: string; title: string; topic?: string; scenario: string; updated: string; status: string; progress: number | null;
@@ -40,7 +41,7 @@ export function useProjectActions(onRename: (id: string, title: string) => void)
     try {
       const result = await request(`/api/projects/${encodeURIComponent(project.project_id)}/duplicate`, 'POST');
       if (result.status !== 'success' || !result.project_id) throw new Error('复制失败');
-      location.href = `/projects/${encodeURIComponent(result.project_id)}`;
+      navigatePage(`/projects/${encodeURIComponent(result.project_id)}`);
     } catch (error) { message.error((error as Error).message); locked.current = false; setBusy(false); }
   }
   function remove(project: Project) {

@@ -43,7 +43,8 @@ function openNativeChatDialog() {
     renderNativeChatMessages();
     renderNativeUploadedImages();
     updateNativeUploadButtonState();
-    dialog.showModal();
+    if (window.LandPPTEditorUI) window.LandPPTEditorUI.openDialog(dialog);
+    else dialog.showModal();
 
     setTimeout(() => {
         const input = document.getElementById('aiNativeInputBox');

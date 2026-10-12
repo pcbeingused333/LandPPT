@@ -2459,7 +2459,7 @@
     }
 
     // 重新生成大纲函数
-    async function regenerateOutlineNew() {
+    async function regenerateOutlineNew(requirementsOverride) {
 
         // In-flight guard: without it a second click (or the JSON-view toggle
         // exposing the button mid-stream) started a concurrent generation that
@@ -2470,7 +2470,9 @@
         }
 
         // 使用自定义弹窗让用户输入额外需求
-        const customRequirements = await showCustomRequirementsModal();
+        const customRequirements = typeof requirementsOverride === 'string'
+            ? requirementsOverride
+            : await showCustomRequirementsModal();
 
         // 如果用户点击取消，返回 null
         if (customRequirements === null) {

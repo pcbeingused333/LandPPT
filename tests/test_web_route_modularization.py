@@ -363,7 +363,7 @@ def test_component_templates_replace_legacy_partials_directories():
         "src/landppt/web/templates/pages/project/scenarios.html": '"antd_base.html"',
         "src/landppt/web/templates/pages/project/research_status.html": '"antd_base.html"',
         "src/landppt/web/templates/pages/project/project_fullscreen_presentation.html": "/static/js/pages/project/presentation.js",
-        "src/landppt/web/templates/pages/project/todo_board.html": "components/project/todo_board/",
+        "src/landppt/web/templates/pages/project/todo_board.html": '"antd_base.html"',
         "src/landppt/web/templates/pages/project/todo_board_with_editor.html": "components/project/todo_board_with_editor/",
         "src/landppt/web/templates/pages/template/global_master_templates.html": '"antd_base.html"',
         "src/landppt/web/templates/pages/template/template_selection.html": '"antd_base.html"',

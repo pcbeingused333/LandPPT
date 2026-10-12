@@ -61,6 +61,9 @@
         // Fired on every poll so the host page can react to stage transitions
         // (e.g. render the outline the moment the outline stage finishes).
         this.onUpdate = typeof options.onUpdate === 'function' ? options.onUpdate : null;
+        // Migrated pages render controls in React; native hosts keep the default UI.
+        this.onRender = typeof options.onRender === 'function' ? options.onRender : null;
+        this.onError = typeof options.onError === 'function' ? options.onError : null;
         // True when the server rendered this page while a run was still live. Only then
         // is a terminal status news: revisiting a project whose run finished days ago
         // must not toast or reload.
@@ -111,6 +114,7 @@
                 return response.json();
             })
             .then(function (data) {
+                if (self.destroyed) return;
                 self.interval = ACTIVE_INTERVAL_MS;
                 self.render(data && data.run ? data.run : null);
                 if (!data || !data.run) {
@@ -125,6 +129,8 @@
                 self.schedule();
             })
             .catch(function () {
+                if (self.destroyed) return;
+                if (self.onError) self.onError(new Error('Failed to read unattended status'));
                 // 出错时指数退避，避免服务异常时刷屏。
                 self.interval = Math.min(MAX_INTERVAL_MS, self.interval * 2);
                 self.schedule();
@@ -133,101 +139,104 @@
 
     Monitor.prototype.render = function (run) {
         if (!this.container) return;
+        if (this.onRender) this.onRender(run || null);
         if (!run) {
             this.container.hidden = true;
             this.container.innerHTML = '';
             return;
         }
 
-        var status = run.status || run.task_status || 'running';
-        var badgeClass = TERMINAL[run.task_status] ? run.task_status : 'running';
-        var progress = Math.max(0, Math.min(100, Number(run.overall_progress) || 0));
-        // Preserve the user's disclosure choice across polling renders.
-        var previousDetails = this.container.querySelector('.lu-monitor-details');
-        var detailsOpen = previousDetails ? previousDetails.open : run.task_status === 'failed';
-        var detailsFocused = previousDetails && previousDetails.querySelector('summary') === document.activeElement;
+        if (!this.onRender) {
+            var status = run.status || run.task_status || 'running';
+            var badgeClass = TERMINAL[run.task_status] ? run.task_status : 'running';
+            var progress = Math.max(0, Math.min(100, Number(run.overall_progress) || 0));
+            // Preserve the user's disclosure choice across polling renders.
+            var previousDetails = this.container.querySelector('.lu-monitor-details');
+            var detailsOpen = previousDetails ? previousDetails.open : run.task_status === 'failed';
+            var detailsFocused = previousDetails && previousDetails.querySelector('summary') === document.activeElement;
 
-        var allStages = run.stages || [];
-        // Stages the user did not select are noise: with the default stop_after
-        // half the list would be dimmed rows about work that will never happen.
-        var plannedStages = allStages.filter(function (s) { return s.status !== 'skipped'; });
-        var skippedCount = allStages.length - plannedStages.length;
+            var allStages = run.stages || [];
+            // Stages the user did not select are noise: with the default stop_after
+            // half the list would be dimmed rows about work that will never happen.
+            var plannedStages = allStages.filter(function (s) { return s.status !== 'skipped'; });
+            var skippedCount = allStages.length - plannedStages.length;
 
-        var stagesHtml = plannedStages.map(function (stage) {
-            var stageStatus = stage.status || 'pending';
-            var icon = STAGE_ICONS[stageStatus] || STAGE_ICONS.pending;
-            var detail = stage.error || stage.message || '';
-            return '' +
-                '<li class="lu-monitor-stage is-' + escapeHtml(stageStatus) + '">' +
-                '<span class="lu-monitor-stage-icon"><i class="fas ' + icon + '"></i></span>' +
-                '<span class="lu-monitor-stage-body">' +
-                '<span class="lu-monitor-stage-name">' + escapeHtml(stage.name || stage.id) + '</span>' +
-                (detail
-                    ? '<div class="lu-monitor-stage-msg' + (stage.error ? ' is-error' : '') + '">' + escapeHtml(detail) + '</div>'
-                    : '') +
-                '</span>' +
-                '</li>';
-        }).join('');
+            var stagesHtml = plannedStages.map(function (stage) {
+                var stageStatus = stage.status || 'pending';
+                var icon = STAGE_ICONS[stageStatus] || STAGE_ICONS.pending;
+                var detail = stage.error || stage.message || '';
+                return '' +
+                    '<li class="lu-monitor-stage is-' + escapeHtml(stageStatus) + '">' +
+                    '<span class="lu-monitor-stage-icon"><i class="fas ' + icon + '"></i></span>' +
+                    '<span class="lu-monitor-stage-body">' +
+                    '<span class="lu-monitor-stage-name">' + escapeHtml(stage.name || stage.id) + '</span>' +
+                    (detail
+                        ? '<div class="lu-monitor-stage-msg' + (stage.error ? ' is-error' : '') + '">' + escapeHtml(detail) + '</div>'
+                        : '') +
+                    '</span>' +
+                    '</li>';
+            }).join('');
 
-        var actionsHtml = '';
-        if (!TERMINAL[run.task_status]) {
-            actionsHtml += '<button type="button" class="lu-monitor-btn" data-lu-action="cancel">' +
-                '<i class="fas fa-stop"></i> 停止</button>';
+            var actionsHtml = '';
+            if (!TERMINAL[run.task_status]) {
+                actionsHtml += '<button type="button" class="lu-monitor-btn" data-lu-action="cancel">' +
+                    '<i class="fas fa-stop"></i> 停止</button>';
+            }
+            if (run.download_url) {
+                actionsHtml += '<a class="lu-monitor-btn lu-monitor-btn--primary" href="' +
+                    escapeHtml(run.download_url) + '"><i class="fas fa-download"></i> 下载视频</a>';
+            }
+
+            var currentStage = plannedStages.filter(function (s) { return s.status === 'running'; })[0];
+            var doneCount = plannedStages.filter(function (s) { return s.status === 'completed'; }).length;
+            var subtitle = TERMINAL[run.task_status]
+                ? (run.topic || '')
+                : (currentStage
+                    ? '正在' + (currentStage.name || '') + ' · 第 ' + (doneCount + 1) + '/' + plannedStages.length + ' 步'
+                    : (run.topic || ''));
+            var stageDetails = '<ul class="lu-monitor-stages">' + stagesHtml + '</ul>' +
+                (skippedCount
+                    ? '<div class="lu-monitor-skipped">另有 ' + skippedCount + ' 个阶段未选择，不会执行</div>'
+                    : '');
+            if (this.compact) {
+                stageDetails = '<details class="lu-monitor-details"' + (detailsOpen ? ' open' : '') + '>' +
+                    '<summary>阶段详情 · ' + doneCount + '/' + plannedStages.length + ' 已完成</summary>' +
+                    stageDetails + '</details>';
+            }
+
+            this.container.hidden = false;
+            this.container.innerHTML = '' +
+                '<div class="lu-monitor-head">' +
+                '<div class="lu-monitor-heading">' +
+                '<h3 class="lu-monitor-title"><i class="fas fa-robot"></i> 无人值守任务</h3>' +
+                (subtitle ? '<div class="lu-monitor-topic" title="' + escapeHtml(subtitle) + '">' + escapeHtml(subtitle) + '</div>' : '') +
+                '</div>' +
+                '<span class="lu-monitor-badge lu-monitor-badge--' + escapeHtml(badgeClass) + '">' +
+                escapeHtml(STATUS_TEXT[status] || status) + '</span>' +
+                (actionsHtml ? '<div class="lu-monitor-actions">' + actionsHtml + '</div>' : '') +
+                '</div>' +
+                '<div class="lu-monitor-bar"><div class="lu-monitor-bar-fill' +
+                (TERMINAL[run.task_status] ? ' is-' + escapeHtml(run.task_status) : '') +
+                '" style="width:' + progress + '%"></div></div>' +
+                '<div class="lu-monitor-meta">总进度 ' + progress.toFixed(0) + '%</div>' +
+                stageDetails +
+                // A cancel carries an `error` string too; showing it in a red error box
+                // would read as a failure the user did not cause.
+                (run.error && run.task_status !== 'cancelled'
+                    ? '<div class="lu-monitor-error">' + escapeHtml(run.error) + '</div>'
+                    : '');
+
+            if (this.compact && detailsFocused) {
+                this.container.querySelector('.lu-monitor-details summary').focus({ preventScroll: true });
+            }
+
+            var cancelBtn = this.container.querySelector('[data-lu-action="cancel"]');
+            if (cancelBtn) {
+                var self = this;
+                cancelBtn.addEventListener('click', function () { self.cancel(cancelBtn); });
+            }
+
         }
-        if (run.download_url) {
-            actionsHtml += '<a class="lu-monitor-btn lu-monitor-btn--primary" href="' +
-                escapeHtml(run.download_url) + '"><i class="fas fa-download"></i> 下载视频</a>';
-        }
-
-        var currentStage = plannedStages.filter(function (s) { return s.status === 'running'; })[0];
-        var doneCount = plannedStages.filter(function (s) { return s.status === 'completed'; }).length;
-        var subtitle = TERMINAL[run.task_status]
-            ? (run.topic || '')
-            : (currentStage
-                ? '正在' + (currentStage.name || '') + ' · 第 ' + (doneCount + 1) + '/' + plannedStages.length + ' 步'
-                : (run.topic || ''));
-        var stageDetails = '<ul class="lu-monitor-stages">' + stagesHtml + '</ul>' +
-            (skippedCount
-                ? '<div class="lu-monitor-skipped">另有 ' + skippedCount + ' 个阶段未选择，不会执行</div>'
-                : '');
-        if (this.compact) {
-            stageDetails = '<details class="lu-monitor-details"' + (detailsOpen ? ' open' : '') + '>' +
-                '<summary>阶段详情 · ' + doneCount + '/' + plannedStages.length + ' 已完成</summary>' +
-                stageDetails + '</details>';
-        }
-
-        this.container.hidden = false;
-        this.container.innerHTML = '' +
-            '<div class="lu-monitor-head">' +
-            '<div class="lu-monitor-heading">' +
-            '<h3 class="lu-monitor-title"><i class="fas fa-robot"></i> 无人值守任务</h3>' +
-            (subtitle ? '<div class="lu-monitor-topic" title="' + escapeHtml(subtitle) + '">' + escapeHtml(subtitle) + '</div>' : '') +
-            '</div>' +
-            '<span class="lu-monitor-badge lu-monitor-badge--' + escapeHtml(badgeClass) + '">' +
-            escapeHtml(STATUS_TEXT[status] || status) + '</span>' +
-            (actionsHtml ? '<div class="lu-monitor-actions">' + actionsHtml + '</div>' : '') +
-            '</div>' +
-            '<div class="lu-monitor-bar"><div class="lu-monitor-bar-fill' +
-            (TERMINAL[run.task_status] ? ' is-' + escapeHtml(run.task_status) : '') +
-            '" style="width:' + progress + '%"></div></div>' +
-            '<div class="lu-monitor-meta">总进度 ' + progress.toFixed(0) + '%</div>' +
-            stageDetails +
-            // A cancel carries an `error` string too; showing it in a red error box
-            // would read as a failure the user did not cause.
-            (run.error && run.task_status !== 'cancelled'
-                ? '<div class="lu-monitor-error">' + escapeHtml(run.error) + '</div>'
-                : '');
-
-        if (this.compact && detailsFocused) {
-            this.container.querySelector('.lu-monitor-details summary').focus({ preventScroll: true });
-        }
-
-        var cancelBtn = this.container.querySelector('[data-lu-action="cancel"]');
-        if (cancelBtn) {
-            var self = this;
-            cancelBtn.addEventListener('click', function () { self.cancel(cancelBtn); });
-        }
-
         if (this.onUpdate) {
             try { this.onUpdate(run); } catch (e) { /* 回调异常不影响面板 */ }
         }

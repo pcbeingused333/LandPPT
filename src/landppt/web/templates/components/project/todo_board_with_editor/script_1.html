@@ -44,7 +44,9 @@
         function initFreeTemplateWizard() {
             const modalEl = document.getElementById('freeTemplateModal');
             if (!modalEl) return;
-            freeTemplateModalInstance = new bootstrap.Modal(modalEl, { backdrop: 'static', keyboard: true });
+            freeTemplateModalInstance = window.LandPPTGeneratorUI
+                ? window.LandPPTGeneratorUI.createModal(modalEl)
+                : new bootstrap.Modal(modalEl, { backdrop: 'static', keyboard: true });
 
             const saveCheckbox = document.getElementById('saveFreeTemplateToLibrary');
             const saveOptions = document.getElementById('freeTemplateSaveOptions');
@@ -1009,6 +1011,7 @@
                 }
 
                 // Start streaming with connection management
+                updateProgressIndicators();
                 keepStartLock = true;
                 startEventSourceConnection();
             } finally {
@@ -1637,6 +1640,13 @@
                 ? Math.min(completedFromEvent, totalSlides || completedFromEvent)
                 : getCompletedSlidesCount();
             const activePages = Array.from(currentlyGeneratingPages).sort((a, b) => a - b);
+
+            // Public presentation metadata for the React waiting UI. This does
+            // not change generation state, progress calculation or stream events.
+            const statusAdapter = document.getElementById('generationStatus');
+            statusAdapter.dataset.totalSlides = String(totalSlides || 0);
+            statusAdapter.dataset.completedSlides = String(completedSlides);
+            statusAdapter.dataset.activePages = activePages.join(',');
 
             const progressBar = document.getElementById('generationProgress');
             if (progressBar) {

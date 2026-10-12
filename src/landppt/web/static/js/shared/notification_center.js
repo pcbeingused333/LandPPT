@@ -66,7 +66,25 @@
         this.unreadCount = 0;
         this.seenIds = {};
         this.primed = false;
+        this.renderUI = options.renderUI;
+        this.onOpenChange = options.onOpenChange;
+        this.notifyUI = options.notifyUI;
+        this.cleanups = [];
+        this.disposed = false;
     }
+
+    Center.prototype.listen = function (target, event, handler) {
+        target.addEventListener(event, handler);
+        this.cleanups.push(function () { target.removeEventListener(event, handler); });
+    };
+
+    Center.prototype.dispose = function () {
+        this.disposed = true;
+        clearTimeout(this.timer);
+        this.cleanups.forEach(function (cleanup) { cleanup(); });
+        this.cleanups = [];
+        if (this.panel) this.panel.remove();
+    };
 
     Center.prototype.mount = function () {
         if (!this.bell) return;
@@ -79,26 +97,26 @@
         this.panel.setAttribute('aria-label', '通知');
         document.body.appendChild(this.panel);
 
-        this.bell.addEventListener('click', function (event) {
+        this.listen(this.bell, 'click', function (event) {
             event.preventDefault();
             self.toggle();
         });
 
-        document.addEventListener('click', function (event) {
+        this.listen(document, 'click', function (event) {
             if (!self.open) return;
             if (self.panel.contains(event.target) || self.bell.contains(event.target)) return;
             self.close();
         });
 
-        document.addEventListener('keydown', function (event) {
+        this.listen(document, 'keydown', function (event) {
             if (event.key === 'Escape' && self.open) self.close();
         });
 
-        window.addEventListener('resize', function () {
+        this.listen(window, 'resize', function () {
             if (self.open) self.position();
         });
 
-        document.addEventListener('visibilitychange', function () {
+        this.listen(document, 'visibilitychange', function () {
             if (!document.hidden) self.poll();
         });
 
@@ -106,12 +124,14 @@
     };
 
     Center.prototype.schedule = function () {
+        if (this.disposed) return;
         var self = this;
         clearTimeout(this.timer);
         this.timer = setTimeout(function () { self.poll(); }, this.interval);
     };
 
     Center.prototype.poll = function () {
+        if (this.disposed) return;
         if (document.hidden) { this.schedule(); return; }
         var self = this;
         fetch('/api/notifications/unread-count', { headers: { 'Accept': 'application/json' } })
@@ -120,6 +140,7 @@
                 return response.json();
             })
             .then(function (data) {
+                if (self.disposed) return;
                 self.interval = POLL_INTERVAL_MS;
                 var count = Number(data && data.unread_count) || 0;
                 var grew = count > self.unreadCount;
@@ -179,12 +200,14 @@
         this.position();
         this.renderLoading();
         this.load();
+        if (this.onOpenChange) this.onOpenChange(true);
     };
 
     Center.prototype.close = function () {
         this.open = false;
         this.panel.hidden = true;
         this.bell.setAttribute('aria-expanded', 'false');
+        if (this.onOpenChange) this.onOpenChange(false);
     };
 
     Center.prototype.position = function () {
@@ -201,10 +224,12 @@
     };
 
     Center.prototype.renderLoading = function () {
+        if (this.renderUI) { this.renderUI({ loading: true }); return; }
         this.panel.innerHTML = '<div class="ln-nc-empty"><i class="fas fa-spinner fa-spin"></i> 加载中…</div>';
     };
 
     Center.prototype.load = function () {
+        if (this.disposed) return;
         var self = this;
         fetch('/api/notifications?limit=20', { headers: { 'Accept': 'application/json' } })
             .then(function (response) {
@@ -216,6 +241,7 @@
                 self.render((data && data.notifications) || []);
             })
             .catch(function () {
+                if (self.renderUI) { self.renderUI({ error: '通知加载失败，请稍后重试' }); return; }
                 self.panel.innerHTML = '<div class="ln-nc-empty">通知加载失败，请稍后重试</div>';
             });
     };
@@ -224,6 +250,7 @@
         var self = this;
         var supportsDesktop = 'Notification' in window;
         var desktopOn = supportsDesktop && desktopEnabled() && Notification.permission === 'granted';
+        if (this.renderUI) { this.renderUI({ notifications: notifications, desktopAvailable: supportsDesktop && !desktopOn }); return; }
 
         var itemsHtml = notifications.length
             ? notifications.map(function (item) {
@@ -309,7 +336,8 @@
                 self.load();
             })
             .catch(function () {
-                if (window.Notify) window.Notify.error('操作失败，请稍后重试');
+                if (self.notifyUI) self.notifyUI('error', '操作失败，请稍后重试');
+                else if (window.Notify) window.Notify.error('操作失败，请稍后重试');
             });
     };
 
@@ -320,10 +348,12 @@
         Notification.requestPermission().then(function (permission) {
             if (permission === 'granted') {
                 setDesktopEnabled(true);
-                if (window.Notify) window.Notify.success('已开启桌面通知');
+                if (self.notifyUI) self.notifyUI('success', '已开启桌面通知');
+                else if (window.Notify) window.Notify.success('已开启桌面通知');
             } else {
                 setDesktopEnabled(false);
-                if (window.Notify) window.Notify.warning('浏览器已拒绝通知权限');
+                if (self.notifyUI) self.notifyUI('warning', '浏览器已拒绝通知权限');
+                else if (window.Notify) window.Notify.warning('浏览器已拒绝通知权限');
             }
             if (self.open) self.load();
         });

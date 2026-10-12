@@ -153,7 +153,8 @@ function getNarrationLanguage() {
                 await pollBackgroundTaskUntilDone(taskId, {
                     onTick: (t) => {
                         const p = (typeof t.progress === 'number') ? Math.round(t.progress) : 0;
-                        updateProgressToast(progressToast, `生成讲解音频中... (${p}%)`, p);
+                        const stage = t.message || (t.metadata && t.metadata.progress_message) || '正在生成讲解音频';
+                        updateProgressToast(progressToast, stage, p);
                     }
                 });
                 closeProgressToast(progressToast);
@@ -279,11 +280,12 @@ function getNarrationLanguage() {
         }
 
         async function exportNarrationVideo() {
+            let progressToast = null;
             try {
                 const lang = getNarrationLanguage();
                 const fps = getNarrationFps();
                 const renderMode = getNarrationRenderMode();
-                const progressToast = showProgressToast(`正在导出${lang === 'en' ? '英文' : '中文'}讲解视频...`, 0);
+                progressToast = showProgressToast(`正在导出${lang === 'en' ? '英文' : '中文'}讲解视频...`, 0);
 
                 const resp = await fetch(`/api/projects/${window.landpptEditorConfig.projectId}/export/narration-video`, {
                     method: 'POST',
@@ -299,12 +301,10 @@ function getNarrationLanguage() {
                 });
                 const data = await resp.json();
                 if (!resp.ok) {
-                    closeProgressToast(progressToast);
                     throw new Error(data && (data.detail || data.error || data.message) || `HTTP ${resp.status}`);
                 }
                 const taskId = data.task_id;
                 if (!taskId) {
-                    closeProgressToast(progressToast);
                     throw new Error(data.error || data.message || '未返回任务ID');
                 }
 
@@ -312,11 +312,11 @@ function getNarrationLanguage() {
                     timeoutMs: 60 * 60 * 1000,
                     onTick: (t) => {
                         const p = (typeof t.progress === 'number') ? Math.round(t.progress) : 0;
-                        updateProgressToast(progressToast, `导出视频中... (${p}%)`, p);
+                        const stage = t.message || (t.metadata && t.metadata.progress_message) || '正在导出讲解视频';
+                        updateProgressToast(progressToast, stage, p);
                     }
                 });
 
-                closeProgressToast(progressToast);
                 const downloadUrl = taskData.download_url || `/api/landppt/tasks/${taskId}/download`;
                 if (typeof triggerFileDownload === 'function') {
                     triggerFileDownload(downloadUrl);
@@ -327,6 +327,8 @@ function getNarrationLanguage() {
             } catch (error) {
                 console.error('Export narration video error:', error);
                 showNotification(`导出失败：${error && error.message ? error.message : error}`, 'error');
+            } finally {
+                if (progressToast) closeProgressToast(progressToast);
             }
         }
 

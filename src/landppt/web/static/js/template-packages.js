@@ -42,7 +42,9 @@
         const head = node('header'); head.append(node('h2', title), button('关闭', () => modal.close()));
         modal.append(head); document.body.append(modal);
         modal.addEventListener('close', () => modal.remove());
-        modal.showModal();
+        if (window.LandPPTPackageUI) window.LandPPTPackageUI.openDialog(modal);
+        else if (window.LandPPTEditorUI) window.LandPPTEditorUI.openDialog(modal);
+        else modal.showModal();
         return modal;
     }
     function fitPreview(frame) {

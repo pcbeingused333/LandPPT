@@ -1,0 +1,232 @@
+/* Application chrome only. Iframe documents and SVG artwork keep their styles. */
+.landppt-editor { --primary-color: #111; --primary-gradient: linear-gradient(#111,#111); --accent: #111; --surface: #fff; --surface-elevated: #fff; --surface-subtle: #fafafa; --text-primary: #252936; --text-secondary: #6b7280; --text-muted: #8a8a92; --border-color: #dedede; --glass-border: #dedede; --border-radius-lg: 8px; --border-radius-md: 6px; background: #f5f5f7; font: 14px/1.6 "PingFang SC", "Microsoft YaHei", sans-serif; }
+.landppt-editor .editor-container { margin: 0; height: 100dvh; border: 0; border-radius: 0; box-shadow: none; }
+.landppt-editor .editor-header[hidden], .landppt-editor .editor-toolbar[hidden], .landppt-editor #aiSidebarOverlay { display: none !important; }
+.landppt-editor #editorAntHeader, .landppt-editor #editorAntToolbar { flex: 0 0 auto; }
+.editor-ant-header { min-height: 56px; display: flex; align-items: center; gap: 12px; padding: 8px 16px; background: #fff; border-bottom: 1px solid #e8e8eb; }
+.editor-ant-title { min-width: 0; flex: 1; }
+.editor-ant-title h1 { font-size: 16px; line-height: 1.4; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.editor-ant-title > span { font-size: 12px; color: #6b7280; }
+.editor-ant-title .ant-tag { margin-left: 8px; }
+.editor-ant-toolbar { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px 16px; padding: 8px 12px; border-bottom: 1px solid #e8e8eb; background: #fff; }
+.editor-ant-view { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.editor-ant-actions { margin-left: auto; }
+.landppt-editor .workspace-body .slides-sidebar { flex-basis: 196px !important; background: #fafafa; border-right-color: #e8e8eb; }
+.landppt-editor .slides-sidebar .small { font-size: 11px; }
+.landppt-editor .slide-title { font-size: 12px; padding: 6px 8px; height: auto; min-height: 32px; }
+.landppt-editor .slide-thumbnail { border: 1px solid #dedede; border-radius: 6px; }
+.landppt-editor .slide-thumbnail.active, .landppt-editor .slide-thumbnail.selected { border-color: #111; box-shadow: 0 0 0 1px #111; }
+.landppt-editor .slide-thumbnail:focus-visible { outline: 2px solid #111; outline-offset: 3px; }
+.landppt-editor .slide-mode-badge { background: #f2f2f2; color: #252936; border-color: #dedede; }
+.landppt-editor .slide-frame-container > .preview-nav-btn:focus-visible { outline-color: #111; }
+.landppt-editor .context-menu { border: 1px solid #dedede; border-radius: 6px; box-shadow: 0 6px 16px #00000014; background: #fff; font-size: 14px; }
+.landppt-editor .context-menu-item { padding: 8px 12px; }
+.landppt-editor .context-menu-item:hover { background: #f5f5f5; color: #111; }
+.landppt-editor #contextMenu[data-ant-menu-mounted="true"] { display: none !important; }
+.editor-thumbnail-anchor { position: fixed; width: 1px; height: 1px; pointer-events: none; }
+.editor-thumbnail-dropdown { padding: 0; z-index: 1600; }
+.editor-thumbnail-menu { width: 252px; max-width: calc(100vw - 16px); max-height: calc(100dvh - 16px); overflow-y: auto; overscroll-behavior: contain; padding: 4px; border: 1px solid #e5e5e5; border-radius: 10px; background: #fff; box-shadow: 0 6px 24px #0000001a, 0 2px 6px #0000000a; }
+.editor-thumbnail-menu header { display: flex; align-items: center; gap: 10px; padding: 8px 10px 12px; margin: 0 4px 4px; border-bottom: 1px solid #eee; }
+.editor-thumbnail-menu-number { display: flex; flex: 0 0 32px; align-items: center; justify-content: center; height: 32px; border: 1px solid #e5e5e5; border-radius: 8px; background: #f7f7f7; color: #111; font-size: 14px; font-weight: 600; }
+.editor-thumbnail-menu header div { min-width: 0; }
+.editor-thumbnail-menu header div > span { display: block; margin-bottom: 2px; font-size: 11px; color: #737373; }
+.editor-thumbnail-menu header strong { display: block; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 13px; font-weight: 600; color: #252936; }
+.editor-thumbnail-menu .ant-dropdown-menu { padding: 0; border-radius: 0; box-shadow: none; }
+.editor-thumbnail-menu .ant-dropdown-menu .ant-dropdown-menu-item { min-height: 32px; padding: 6px 10px; border-radius: 6px; font-size: 13px; line-height: 20px; }
+.editor-thumbnail-menu .ant-dropdown-menu-item .anticon { font-size: 15px; }
+.editor-thumbnail-menu .ant-dropdown-menu-item-divider { margin: 4px 8px; }
+.editor-thumbnail-menu .ant-dropdown-menu-item-active:not(.ant-dropdown-menu-item-disabled) { background: #f2f2f2; }
+.editor-thumbnail-menu .ant-dropdown-menu-item:focus-visible { outline: 2px solid #111; outline-offset: -2px; }
+@media (max-width: 700px) {
+  .editor-thumbnail-menu .ant-dropdown-menu .ant-dropdown-menu-item { min-height: 44px; }
+}
+.landppt-editor .quick-edit-toolbar, .landppt-editor .quick-ai-edit-popover { border-radius: 8px; border-color: #dedede; background: #fff; box-shadow: 0 6px 20px #0000001a; }
+.landppt-editor .quick-edit-tool-btn { min-width: 32px; min-height: 32px; border-radius: 6px; background: #fff; color: #252936; }
+.landppt-editor .quick-edit-tool-btn.active { background: #111; color: #fff; }
+.landppt-editor .quick-ai-edit-popover-title, .landppt-editor .quick-ai-edit-popover-header { color: #252936; background: #fff; }
+
+/* Original roots remain body children for close/removeChild contracts. */
+.landppt-editor .editor-ant-modal-host { position: static !important; inset: auto !important; width: auto !important; height: 0 !important; min-height: 0 !important; padding: 0 !important; margin: 0 !important; overflow: visible !important; background: none !important; backdrop-filter: none !important; z-index: auto !important; animation: none !important; }
+.editor-ant-dialog { top: 16px; padding-bottom: 0; max-width: calc(100vw - 32px); }
+.editor-ant-dialog .ant-modal-container { display: flex; flex-direction: column; max-height: calc(100dvh - 32px); border-radius: 8px; }
+.editor-ant-dialog .ant-modal-header, .editor-ant-dialog .ant-modal-footer { flex: 0 0 auto; }
+.editor-ant-dialog .ant-modal-body { min-height: 0; flex: 1 1 auto; max-height: none; overflow-y: auto; }
+.editor-ant-dialog .ant-modal-title { font-size: 16px; overflow-wrap: anywhere; }
+.editor-adapted-content { min-width: 0; }
+.editor-ant-dialog .editor-adapted-content > :is(.modal-dialog,.speech-modal-dialog,.outline-modal__content,.ai-optimize-modal__card,.tpl-dialog,.lp-share-modal-dialog,.agent-diff-panel,.image-library-container,.image-preview-container,.export-modal),
+.editor-ant-dialog .editor-adapted-content :is(.modal-content,.speech-modal,.speech-modal-content,.lp-share-modal-content) { position: static !important; width: 100% !important; max-width: none !important; height: auto !important; max-height: none !important; min-height: 0 !important; margin: 0 !important; padding: 0 !important; border: 0 !important; border-radius: 0 !important; box-shadow: none !important; background: transparent !important; transform: none !important; animation: none !important; }
+.editor-ant-dialog .editor-adapted-content :is(.modal-header,.speech-modal-header,.outline-modal__header,.ai-optimize-modal__header,.tpl-dialog-header,.lp-share-modal-header,.agent-diff-header,.image-library-header,.image-preview-header) { display: none !important; }
+.editor-ant-dialog .editor-adapted-content :is(.modal-body,.speech-modal-body,.outline-modal__body,.ai-optimize-modal__body,.tpl-dialog-body,.lp-share-modal-body,.image-library-content,.image-preview-content) { padding: 0 !important; height: auto !important; min-height: 0 !important; max-height: none !important; overflow: visible !important; background: #fff; }
+.editor-ant-dialog .editor-adapted-content :is(.modal-footer,.speech-modal-footer,.outline-modal__footer,.ai-optimize-modal__footer,.tpl-dialog-footer,.image-library-actions,.image-preview-actions,.export-actions) { padding: 0 !important; margin: 0 !important; border: 0 !important; background: transparent !important; display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.editor-ant-dialog .editor-adapted-content :is(.outline-modal__footer-group,.footer-actions,#lpShareActions) { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.editor-ant-dialog .editor-adapted-content .footer-hint { display: none; }
+.editor-ant-dialog .editor-adapted-content p, .editor-ant-dialog .editor-adapted-content li { font-size: 14px; line-height: 1.6; overflow-wrap: anywhere; }
+.editor-ant-dialog .editor-adapted-content label { font-size: 14px; color: #252936; }
+.editor-ant-dialog .editor-adapted-content :is(input:not([type=checkbox]):not([type=radio]):not([type=color]),select,textarea) { max-width: 100%; border: 1px solid #dedede; border-radius: 6px; box-shadow: none; background: #fff; color: #252936; font-size: 14px; line-height: 1.6; padding: 4px 11px; }
+.editor-ant-dialog .editor-adapted-content :is(input:not([type=checkbox]):not([type=radio]):not([type=color]),select) { min-height: 32px; height: auto !important; }
+.editor-ant-dialog .editor-adapted-content textarea { min-height: 96px; }
+.editor-ant-dialog .editor-adapted-content :is(input,select,textarea):focus { border-color: #111; outline-color: #111; box-shadow: 0 0 0 2px #1111110d; }
+.editor-ant-dialog .editor-adapted-content :is(input[type=radio],input[type=checkbox]) { accent-color: #111; }
+.editor-ant-dialog .editor-adapted-content button { min-height: 32px; height: auto !important; font-weight: 400; padding: 4px 12px; border-radius: 6px; border: 1px solid #dedede; font-size: 14px; line-height: 1.6; box-shadow: none; color: #252936; background: #fff; }
+.editor-ant-dialog .editor-adapted-content button:not(:disabled):hover { border-color: #111; color: #111; }
+.editor-ant-dialog .editor-adapted-content button:hover { box-shadow: none !important; }
+.editor-ant-dialog .editor-adapted-content :is(.btn-primary,.speech-btn-primary,.speech-btn-dark,.outline-modal-btn--solid,.tpl-confirm-btn,.image-library-action:not(.secondary),.ai-optimize-confirm) { color: #fff; background: #111; border-color: #111; }
+.editor-ant-dialog .editor-adapted-content :is(.btn-primary,.speech-btn-primary,.speech-btn-dark,.outline-modal-btn--solid,.tpl-confirm-btn,.image-library-action:not(.secondary),.ai-optimize-confirm):hover { color: #fff; background: #333; }
+.editor-ant-dialog .editor-adapted-content :is(.btn-secondary,.speech-btn-outline,.secondary,.ai-optimize-cancel) { color: #252936; background: #fff; border-color: #dedede; }
+.editor-ant-dialog .editor-adapted-content :is(.btn-danger,.lp-share-btn-danger) { color: #cf1322; border-color: #ffccc7; background: #fff; }
+.editor-ant-dialog .editor-adapted-content button:disabled { color: #999; background: #f5f5f5; border-color: #dedede; cursor: not-allowed; }
+.editor-ant-dialog .editor-adapted-content .ant-btn-primary:not(:disabled), .editor-ant-assistant .native-ant-control .ant-btn-primary:not(:disabled) { background: #111; border-color: #111; color: #fff; }
+.editor-ant-dialog .editor-adapted-content .ant-btn-primary:not(:disabled):hover, .editor-ant-assistant .native-ant-control .ant-btn-primary:not(:disabled):hover { background: #333; color: #fff; }
+.editor-ant-dialog .editor-adapted-content .ant-btn-dangerous { color: #cf1322; border-color: #ffccc7; }
+.editor-ant-dialog .editor-adapted-content .ant-select-input { min-height: 0; height: 100% !important; padding: 0 !important; border: 0 !important; background: transparent !important; box-shadow: none !important; }
+.editor-ant-dialog .editor-adapted-content .ant-select-input:focus { box-shadow: none; border: 0; }
+.editor-ant-dialog .editor-adapted-content .text-primary { color: #111 !important; }
+.editor-ant-dialog .editor-adapted-content .alert-info { color: #252936; background: #fafafa; border-color: #e8e8eb; border-radius: 6px; }
+.editor-ant-dialog .editor-adapted-content :is(.current-info,.suggestions,.speech-info-box,.speech-option,.lp-share-block) { border-radius: 6px; border-color: #e8e8eb; box-shadow: none; background: #fafafa; }
+.editor-ant-dialog .editor-adapted-content :is(.input-group,.outline-field) { margin-bottom: 16px; }
+.editor-ant-dialog .editor-adapted-content .input-group { display: flex; flex-wrap: wrap; }
+.editor-ant-dialog .editor-adapted-content .input-label { flex-basis: 100%; }
+.editor-ant-dialog .editor-adapted-content .input-textarea { width: 100%; }
+.editor-ant-dialog .editor-adapted-content .tpl-dialog-body { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 16px; }
+.editor-ant-dialog .tpl-list-panel, .editor-ant-dialog .tpl-preview-panel { min-width: 0; }
+.editor-ant-dialog .tpl-card.selected, .editor-ant-dialog .tpl-card.active { border-color: #111; box-shadow: 0 0 0 1px #111; }
+.editor-ant-dialog .lp-share-url, .editor-ant-dialog .agent-diff-line { overflow-wrap: anywhere; white-space: pre-wrap; }
+.editor-ant-dialog .speech-script-duration { background: #f5f5f5; color: #6b7280; }
+.editor-ant-dialog #imageGalleryContainer { min-height: 160px !important; max-height: none !important; }
+.editor-ant-dialog .image-library-grid { grid-template-columns: repeat(auto-fill,minmax(min(100%,160px),1fr)); gap: 12px; }
+.editor-ant-dialog .image-preview-content { min-height: 140px !important; }
+.editor-ant-dialog #imagePreviewImg { max-width: 100%; max-height: 55dvh; object-fit: contain; }
+.editor-ant-dialog .export-icon { font-size: 28px; width: 56px; height: 56px; margin: 12px auto; color: #111; background: #f5f5f5; }
+.editor-ant-dialog .export-progress-bar-inner { background: #111; }
+.editor-ant-dialog .export-subtitle, .editor-ant-dialog .export-status { color: #6b7280; font-size: 14px; text-align: center; }
+.editor-ant-dialog .export-modal > h5 { display: none; }
+.landppt-editor #exportOverlay.editor-ant-export-host > .export-modal { display: none !important; }
+.editor-ant-dialog.editor-ant-export-dialog { top: 0; }
+.editor-export-file { display: flex; align-items: center; gap: 12px; padding: 12px; margin-bottom: 20px; border: 1px solid #e8e8eb; border-radius: 8px; background: #fafafa; }
+.editor-export-emblem { display: grid; flex: 0 0 40px; place-items: center; height: 40px; border: 1px solid #e8e8eb; border-radius: 8px; color: #111; background: #fff; font-size: 21px; }
+.editor-export-file > div { flex: 1; min-width: 0; }
+.editor-export-file strong { display: block; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 14px; }
+.editor-export-file div > span { color: #858585; font-size: 12px; }
+.editor-export-file .ant-tag { margin: 0; color: #555; background: #fff; border-color: #e5e5e5; }
+.editor-export-steps { margin-bottom: 24px; }
+.editor-export-steps .ant-steps-item { min-width: 0; }
+.editor-export-steps .ant-steps-item-title { font-size: 12px; }
+.editor-export-progress { padding: 14px 16px; border: 1px solid #e8e8eb; border-radius: 8px; background: #fff; }
+.editor-export-progress-heading { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 8px; }
+.editor-export-progress-heading > span { font-size: 13px; font-weight: 500; }
+.editor-export-progress-heading strong { font-size: 22px; line-height: 1.3; font-weight: 600; font-variant-numeric: tabular-nums; }
+.editor-export-progress-heading strong .anticon { font-size: 16px; }
+.editor-export-progress p { margin: 6px 0 0; color: #6b7280; font-size: 12px; line-height: 1.6; overflow-wrap: anywhere; }
+.editor-export-footer { display: flex; justify-content: space-between; align-items: center; gap: 12px; text-align: left; }
+.editor-export-footer > span { color: #858585; font-size: 12px; line-height: 1.6; }
+.editor-export-footer .ant-btn { flex: 0 0 auto; }
+.editor-export-error-detail { max-height: 180px; overflow-y: auto; overscroll-behavior: contain; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 13px; line-height: 1.7; }
+@media (max-width: 700px) {
+  .editor-export-file { gap: 8px; padding: 10px; }
+  .editor-export-emblem { flex-basis: 32px; height: 32px; font-size: 18px; }
+  .editor-export-progress { padding: 12px; }
+  .editor-export-footer { flex-wrap: wrap; }
+  .editor-export-footer .ant-btn { min-height: 44px; margin-left: auto; }
+}
+@media (prefers-reduced-motion: reduce) { .editor-ant-export-dialog .anticon-spin { animation: none !important; } }
+.landppt-editor .progress-toast, .landppt-editor #ai-optimize-loading { display: none !important; }
+.landppt-editor .ant-message, .landppt-editor .ant-notification { z-index: 7000; }
+.landppt-editor .editor-task-notification { width: 344px; max-width: calc(100vw - 32px); border: 1px solid #e5e5e5; border-radius: 10px; box-shadow: 0 8px 28px rgb(0 0 0 / 10%); }
+.editor-task-emblem { display: grid; place-items: center; width: 32px; height: 32px; border: 1px solid #e9e9e9; border-radius: 8px; color: #333; background: #fafafa; font-size: 17px; }
+.editor-task-title { display: flex; align-items: center; justify-content: space-between; gap: 10px; line-height: 1.4; }
+.editor-task-title strong { font-size: 13px; font-weight: 600; }
+.editor-task-title > span { color: #777; font-size: 11px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.editor-task-body p { margin: 0 0 6px; color: #777; font-size: 12px; line-height: 1.6; overflow-wrap: anywhere; }
+.editor-task-body .ant-progress { margin: 0; }
+.editor-task-wait { font-size: 11px; color: #999; }
+.editor-inline-tasks { display: grid; gap: 8px; margin-bottom: 12px; }
+.editor-inline-task { display: grid; grid-template-columns: 32px minmax(0, 1fr); align-items: start; gap: 12px; border: 1px solid #e8e8eb; border-radius: 8px; padding: 12px; background: #fafafa; }
+.editor-inline-task .editor-task-title { margin-bottom: 4px; }
+.editor-ant-dialog .speech-modal-controls { padding: 12px; margin-bottom: 16px; border: 1px solid #e8e8eb; border-radius: 8px; background: #fafafa; }
+.editor-ant-dialog .speech-toolbar-head { gap: 12px; align-items: center; flex-wrap: wrap; }
+.editor-ant-dialog .speech-duration-info { padding: 6px 10px; min-height: 32px; border-radius: 6px; border-color: #e8e8eb; background: #fff; font-size: 12px; }
+.editor-ant-dialog .speech-control-row-main { flex-wrap: wrap; gap: 8px; }
+.editor-ant-dialog .speech-control-row-main > .native-ant-select { width: 120px; flex: 0 0 120px; }
+.editor-ant-dialog .speech-compact-tools-toggle { min-height: 32px; border-radius: 6px; font-size: 13px; font-weight: 400; background: white; transform: none; }
+.editor-ant-dialog .speech-compact-panel { border-radius: 8px; border-color: #e8e8eb; box-shadow: 0 6px 18px rgb(0 0 0 / 8%); }
+.editor-ant-dialog .speech-scripts-container { max-height: none; overflow: visible; padding: 0; }
+.editor-ant-dialog .speech-script-item { margin-bottom: 12px; border-color: #e8e8eb; border-radius: 8px; box-shadow: none; }
+.editor-ant-dialog .speech-script-header { padding: 10px 14px; background: #fafafa; border-color: #e8e8eb; }
+.editor-ant-dialog .speech-script-header h6 { font-size: 14px; }
+.editor-ant-dialog .speech-script-content-wrapper { padding: 14px; }
+.editor-ant-dialog .speech-script-content { padding: 0; background: white; color: #252936; font-size: 14px; line-height: 1.8; }
+.editor-ant-dialog .speech-script-content-wrapper > .native-ant-textarea { width: 100%; }
+.editor-ant-dialog .speech-script-actions { gap: 8px; padding: 10px 14px; border-color: #e8e8eb; background: #fff; }
+@media (prefers-reduced-motion: reduce) { .editor-task-notification .anticon-spin, .editor-inline-task .anticon-spin { animation: none !important; } }
+
+.editor-ant-assistant .ant-drawer-body { display: flex; padding: 0; overflow: hidden; }
+.editor-ant-assistant .editor-adapted-content { width: 100%; height: 100%; }
+.editor-ant-assistant #aiEditSidebar { position: relative !important; inset: auto !important; transform: none !important; width: 100% !important; min-width: 0 !important; max-width: none !important; height: 100% !important; border: 0 !important; box-shadow: none !important; border-radius: 0; background: #fff; }
+.editor-ant-assistant .ai-edit-sidebar-header { display: none !important; }
+.editor-ant-assistant .ai-edit-content { height: 100%; padding: 0; }
+.editor-ant-assistant :is(.ai-edit-content,.ai-chat-container) { min-height: 0; }
+.editor-ant-assistant .ai-input-container { flex: 0 0 auto; }
+.editor-ant-assistant .ai-input-buttons { flex-wrap: wrap; gap: 8px; }
+.editor-ant-assistant .ai-uploaded-images { max-height: 120px; overflow-y: auto; }
+.editor-ant-assistant .ai-chat-messages { padding: 12px; }
+.editor-ant-assistant .ai-input-container { padding: 12px; background: #fff; }
+.editor-ant-assistant .ai-message { border-radius: 8px; background: #fafafa; color: #252936; border-color: #e8e8eb; }
+.editor-ant-assistant .ai-message.user { background: #f0f0f0; color: #252936; }
+.editor-ant-assistant .ai-input-box { font-size: 14px; border: 1px solid #dedede; border-radius: 6px; }
+.editor-ant-assistant .ai-input-box:focus { border-color: #111; box-shadow: none; }
+.editor-ant-assistant :is(.ai-send-btn,.ai-image-upload-btn,.ai-clear-context-btn,.ai-upload-toggle,.ai-answer-regenerate-btn) { min-height: 32px; border-radius: 6px; color: #252936; background: #fff; border: 1px solid #dedede; }
+.editor-ant-assistant .ai-send-btn { background: #111; color: #fff; border-color: #111; }
+.editor-ant-assistant .ai-message .agent-pill { background: #f5f5f5; color: #252936; }
+
+.editor-ant-dialog .editor-ant-native-dialog { position: static; inset: auto; width: 100%; max-width: none; height: auto; max-height: none; margin: 0; padding: 0; border: 0; box-shadow: none; border-radius: 0; background: #fff; }
+.editor-ant-dialog .ai-native-chat-dialog-header { display: none; }
+.editor-ant-dialog .package-dialog > header { display: none; }
+.editor-ant-dialog .ai-native-chat-dialog-body { height: min(420px,45dvh); min-height: 100px; padding: 0; }
+.editor-ant-dialog .ai-native-chat-dialog-footer { padding: 0; border: 0; }
+.editor-ant-dialog .ai-native-chat-input-row { gap: 8px; flex-wrap: wrap; }
+.editor-ant-dialog .ai-native-chat-input { flex: 1; min-width: 140px; }
+.editor-ant-canvas .ant-modal-container { padding: 0; overflow: hidden; }
+.editor-ant-canvas .ant-modal-body { overflow: hidden; }
+.editor-ant-canvas .svg-editor { height: min(980px,calc(100dvh - 32px)); max-height: none; width: 100%; }
+.editor-ant-canvas .svg-editor__topbar { padding: 10px 12px; gap: 12px; }
+.editor-ant-canvas .svg-editor__title { font-size: 16px; }
+.editor-ant-canvas .svg-btn { min-height: 32px; padding: 4px 10px; border-radius: 6px; }
+.editor-ant-canvas .svg-btn--primary, .editor-ant-canvas .svg-btn.is-active { background: #111; color: #fff; border-color: #111; }
+.editor-ant-canvas .svg-layer.is-selected { background: #f2f2f2; border-color: #111; }
+
+@media (max-width: 1100px) { .editor-ant-actions { margin-left: 0; } }
+@media (max-width: 700px) {
+  .editor-ant-header { padding: 8px 10px; gap: 8px; }
+  .editor-ant-title h1 { font-size: 14px; }
+  .editor-ant-header > .ant-btn:last-child { width: 44px; padding: 0; }
+  .editor-ant-header > .ant-btn:last-child > span:not(.ant-btn-icon) { display: none; }
+  .editor-ant-toolbar { gap: 8px; padding: 8px; }
+  .editor-ant-toolbar .ant-btn, .editor-ant-header .ant-btn { min-height: 44px; }
+  .editor-ant-toolbar .ant-segmented-item-label { min-height: 42px; display: flex; align-items: center; }
+  .editor-ant-view { gap: 6px; }
+  .editor-ant-actions { flex: 1; }
+  .editor-ant-dialog { top: 8px; max-width: calc(100vw - 16px); margin-inline: auto; }
+  .editor-ant-dialog .ant-modal-container { max-height: calc(100dvh - 16px); padding: 16px; }
+  .editor-ant-dialog .editor-adapted-content :is(button,input:not([type=checkbox]):not([type=radio]):not([type=color]),select) { min-height: 44px; }
+  .editor-ant-dialog .editor-adapted-content :is(.ant-input,.ant-select,.ant-select-input), .editor-ant-assistant .native-ant-control .ant-input { font-size: 16px; }
+  .editor-ant-dialog .native-ant-control .ant-select { height: 44px; min-height: 44px; }
+  .editor-ant-dialog .speech-compact-tools-toggle { min-height: 44px; }
+  .editor-ant-dialog .speech-modal-controls { padding: 10px; }
+  .editor-ant-dialog .speech-script-header, .editor-ant-dialog .speech-script-content-wrapper, .editor-ant-dialog .speech-script-actions { padding: 10px; }
+  .editor-ant-dialog .editor-adapted-content .tpl-dialog-body { grid-template-columns: minmax(0,1fr); }
+  .editor-ant-dialog .editor-adapted-content :is(.row,[class*=col-md-]) { max-width: 100%; }
+  .editor-ant-dialog .editor-adapted-content [class*=col-md-] { flex: 0 0 100%; }
+  .editor-ant-assistant :is(.ai-send-btn,.ai-image-upload-btn,.ai-clear-context-btn,.ai-upload-toggle) { min-height: 44px; }
+  .editor-ant-assistant .native-ant-control .ant-btn { min-height: 44px; min-width: 44px; }
+  .editor-ant-canvas .ant-modal-container { padding: 0; }
+  .editor-ant-canvas .svg-editor { height: calc(100dvh - 16px); }
+  .editor-ant-canvas .svg-btn { min-height: 44px; }
+  .editor-ant-canvas .svg-editor__topbar { flex-wrap: wrap; padding: 8px; gap: 8px; }
+  .editor-ant-canvas .svg-editor__heading { flex-basis: 100%; white-space: nowrap; gap: 8px; }
+  .editor-ant-canvas .svg-editor__spacer { display: none; }
+  .editor-ant-canvas .svg-editor__tools { width: 100%; min-width: 0; flex-wrap: wrap; gap: 6px; }
+  .editor-ant-canvas .svg-zoom { flex: 1 0 100%; justify-content: flex-start; gap: 6px; }
+  .editor-ant-canvas .svg-btn { flex-shrink: 0; white-space: nowrap; }
+  .landppt-editor .quick-edit-toolbar { max-width: calc(100vw - 16px); overflow-x: auto; }
+}
+@media (max-height: 500px) { .editor-ant-header { min-height: 44px; } .editor-ant-title > span { display: none; } .editor-ant-toolbar { padding-block: 4px; } .editor-ant-dialog { top: 8px; } .editor-ant-dialog .ant-modal-container { max-height: calc(100dvh - 16px); } .editor-ant-canvas .svg-editor { height: calc(100dvh - 16px); } }

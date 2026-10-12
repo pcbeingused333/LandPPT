@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { Alert, App, Button, Card, Form, Input, InputNumber, Select, Space, Switch } from 'antd';
+import { Alert, App, Button, Card, Form, Input, InputNumber, Select, Space, Switch, Tooltip } from 'antd';
+import { ApiOutlined, BranchesOutlined, SaveOutlined } from '@ant-design/icons';
 import { request, type ApiData } from '../api';
 
 const endpoint = '/api/global-master-templates/packages/settings';
@@ -43,7 +44,7 @@ export default function JevSettings() {
   return <div id="jev-config" className="settings-stack">
     <Alert showIcon type="info" title="决策模型为快速模式评估并匹配模板版式。关闭后仍可使用当前模型与规则匹配。" />
     {error && <Alert role="alert" type="error" showIcon title={error} />}
-    <Card title="决策模型配置" size="small" loading={loading}>
+    <Card title={<span className="config-card-title"><BranchesOutlined aria-hidden />决策模型配置</span>} size="small" loading={loading}>
       <Form form={form} layout="vertical" disabled={!!pending} initialValues={{ enabled: false, protocol: 'jev', model: 'jev-latest', endpoint_url: defaults[0], timeout: 30, retries: 2, concurrency: 1 }}>
         <Form.Item name="enabled" label="启用决策模型" valuePropName="checked"><Switch /></Form.Item>
         <div className="settings-fields">
@@ -56,7 +57,7 @@ export default function JevSettings() {
           <Form.Item name="concurrency" label="并发请求上限" extra="支持 1–16 个匹配请求；遇到限流会等待重试。" rules={[{ required: true }]}><InputNumber min={1} max={16} /></Form.Item>
         </div>
       </Form>
-      <div className="settings-actions"><span role="status" className="subtle">{status}</span><Space><Button disabled={loading || !!pending} loading={pending === 'test'} onClick={() => submit(true)}>测试连接</Button><Button type="primary" disabled={loading || !!pending} loading={pending === 'save'} onClick={() => submit(false)}>保存配置</Button></Space></div>
+      <div className="settings-actions"><span role="status" className="subtle">{status}</span><Space><Tooltip title="测试决策模型连接"><Button aria-label="测试连接" icon={<ApiOutlined aria-hidden />} disabled={loading || !!pending} loading={pending === 'test'} onClick={() => submit(true)} /></Tooltip><Button type="primary" aria-label="保存配置" icon={<SaveOutlined aria-hidden />} disabled={loading || !!pending} loading={pending === 'save'} onClick={() => submit(false)}>保存</Button></Space></div>
     </Card>
   </div>;
 }

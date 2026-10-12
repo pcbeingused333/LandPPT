@@ -23,7 +23,7 @@ def slide(number=1):
 
 
 def setup_workspace(
-    page, load, mode="package", active=False, completed=False, auto=False
+    page, load, mode="package", active=False, completed=False, auto=False, outline_titles=None, unattended_run=None
 ):
     page.add_init_script("window.bootstrap = {Modal: class {show() {} hide() {}}};")
     page.add_init_script(
@@ -48,7 +48,7 @@ def setup_workspace(
         )
         result = dict(project_metadata=dict(template_mode=mode, generation_mode=mode))
         if path.endswith("unattended/status"):
-            result = dict(run=None)
+            result = dict(run=unattended_run)
         elif path.endswith("selected-global-template"):
             result = dict(
                 template=dict(template_name="研究报告", created_by="user"),
@@ -63,7 +63,7 @@ def setup_workspace(
         topic="研发",
         status="completed" if completed else "draft",
         project_metadata=dict(template_mode=mode, generation_mode=mode),
-        outline=dict(slides=[dict(title="封面"), dict(title="内容")]),
+        outline=dict(slides=[dict(title=title) for title in (["封面", "内容"] if outline_titles is None else outline_titles)]),
         slides_data=[slide(1), slide(2)] if completed else [],
     )
     load(
@@ -337,5 +337,6 @@ def test_workspace_adapter_has_only_explicit_public_data(ui_page):
         title=TITLE,
         generationMode="package",
         unattendedActive=False,
+        slideTitles=["封面", "内容"],
     )
     assert page.locator("#generatorControlState").get_attribute("aria-hidden") == "true"

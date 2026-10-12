@@ -1,0 +1,152 @@
+/* Only application controls are adapted. Slide iframe/SVG documents stay intact. */
+.native-ant-source { display: none !important; }
+.native-ant-control { display: inline-flex; min-width: 0; max-width: 100%; vertical-align: middle; }
+.native-ant-control[hidden] { display: none !important; }
+.native-ant-input.native-ant-checkbox { width: auto; flex: 0 0 auto; }
+.native-ant-control > .ant-btn { white-space: nowrap; }
+.native-ant-input:not(:has(.ant-checkbox-wrapper)), .native-ant-select, .native-ant-textarea { width: 100%; }
+.native-ant-input.native-ant-checkbox { width: auto !important; }
+.native-ant-control > .ant-select, .native-ant-control > .ant-input { width: 100%; }
+.native-ant-validation { display: block; font-size: 12px; color: #b91c1c; }
+.native-ant-control:has(.native-ant-validation) { flex-wrap: wrap; }
+.native-ant-file { display: flex; align-items: center; gap: 8px; width: 100%; min-width: 0; }
+.native-ant-file > span:last-child { min-width: 0; color: #6b7280; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.native-ant-control .ant-input-input { border: 0 !important; background: transparent !important; padding: 0 !important; border-radius: 0; box-shadow: none !important; }
+.package-ant-modal { top: 16px; padding-bottom: 0; max-width: calc(100vw - 32px); }
+.package-ant-modal .ant-modal-container { display: flex; flex-direction: column; max-height: calc(100dvh - 32px); }
+.package-ant-modal .ant-modal-header, .package-ant-modal .ant-modal-footer { flex: 0 0 auto; }
+.package-ant-modal .ant-modal-body { min-height: 0; overflow: auto; }
+.package-ant-modal .ant-modal-footer { margin-top: 12px; }
+.package-ant-source-dialog.package-dialog { display: block; position: static; width: 0; max-width: none; height: 0; max-height: none; margin: 0; padding: 0; border: 0; border-radius: 0; box-shadow: none; overflow: visible; background: transparent; font: inherit; }
+.package-dialog.package-ant-source-dialog > header { display: none !important; }
+.package-ant-modal .native-ant-content { min-width: 0; }
+.package-ant-modal .pw-title { flex-wrap: wrap; gap: 4px 12px; padding-right: 24px; }
+.package-ant-modal .pw-title h2 { margin: 0; font-size: 16px; }
+.package-ant-modal .pw-meta { color: #6b7280; font-size: 12px; }
+.package-ant-modal :is(label,input,textarea,select) { font-size: 14px; }
+.package-ant-modal .ant-btn { min-height: 32px; padding: 4px 12px; font-size: 14px; font-weight: 400; border-radius: 6px; line-height: 1.5; }
+.package-ant-modal .ant-btn-primary { background: #111; border-color: #111; color: #fff; }
+.package-ant-modal .ant-btn-primary:not(:disabled):hover { background: #333; border-color: #333; color: #fff; }
+.package-ant-modal .ant-btn-text { background: transparent; border-color: transparent; }
+.package-ant-modal :is(.ant-input,.ant-select) { border-radius: 6px; }
+.package-ant-modal .ant-select { padding: 0; height: 32px; }
+.package-ant-modal .ant-select :is(input,span) { padding: 0; }
+.package-ant-modal .ant-select-selector { min-height: 32px; }
+.package-ant-modal .ant-input { min-height: 32px; padding: 4px 11px; }
+.package-ant-modal textarea.ant-input { resize: vertical; line-height: 1.6; }
+.package-ant-modal .ant-modal-footer footer { margin: 0; padding: 0; border: 0; box-shadow: none; position: static; display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 8px; text-align: left; }
+.package-ant-modal .ant-modal-footer .package-status { margin: 0; color: #6b7280; font-size: 12px; overflow-wrap: anywhere; max-height: 3.2em; overflow: auto; }
+.package-ant-modal .ant-modal-footer .package-status.error { color: #b91c1c; }
+.package-ant-modal .ant-modal-footer .package-progress { margin: 4px 0 0; }
+.package-ant-modal .package-status { overflow-wrap: anywhere; }
+.package-ant-modal .pptx-intro { margin: 0 0 16px; color: #6b7280; font-size: 14px; }
+.package-ant-modal .pptx-controls { gap: 12px; margin-bottom: 16px; }
+.package-ant-modal .pptx-controls input[type=file] { width: 100%; font-size: 12px; padding: 6px; border-radius: 6px; }
+.package-ant-modal .pptx-controls input[type=file]::file-selector-button { background: #fff; border: 1px solid #d9d9d9; border-radius: 4px; padding: 4px 8px; margin-right: 8px; color: #111; cursor: pointer; }
+.package-ant-modal .pptx-stages, .package-ant-modal .pptx-binding { background: #fafafa; border: 1px solid #eee; border-radius: 6px; color: #6b7280; }
+.package-ant-modal .pptx-binding { gap: 8px 12px; }
+.package-ant-modal .pptx-binding > .native-ant-input { grid-column: 2; }
+.package-ant-modal .pptx-page { border-color: #e8e8eb; border-radius: 6px; padding: 12px; }
+.package-ant-modal .pptx-page summary { gap: 12px; font-size: 14px; }
+.package-ant-modal .pptx-page summary img { width: 120px; border-radius: 4px; }
+.package-ant-modal .pptx-page summary strong { min-width: 0; }
+.package-ant-modal .pptx-page[open] > label { display: grid; grid-template-columns: 80px minmax(0,1fr); gap: 12px; }
+.package-ant-modal .pptx-import-footer .package-status { flex-basis: 100%; }
+.package-ant-modal .pptx-import-footer .pptx-activity { width: 100%; }
+.package-ant-modal .pptx-warnings { background: #fffbe6; border-radius: 6px; font-size: 13px; }
+.package-ant-workspace .ant-modal-container { height: min(860px, calc(100dvh - 32px)); }
+.package-ant-workspace .ant-modal-body { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+.package-ant-workspace .package-ant-surface, .package-ant-workspace .package-ant-surface > .native-ant-content { display: flex; flex-direction: column; flex: 1; height: 100%; min-height: 0; }
+.package-ant-workspace .pw-body { grid-template-columns: 176px minmax(0, 1fr) 296px; }
+.package-ant-workspace .pw-rail-head { padding: 8px; gap: 4px; }
+.package-ant-workspace .pw-pages { padding: 4px 8px 8px; gap: 8px; }
+.package-ant-workspace .pw-stage { padding: 12px; gap: 8px; }
+.package-ant-workspace .pw-page-bar { grid-template-columns: minmax(0, 1fr); gap: 6px; }
+.package-ant-workspace .pw-page-tools { justify-content: flex-end; flex-wrap: wrap; }
+.package-ant-workspace .pw-page-label { font-size: 13px; }
+.package-ant-workspace .pw-page-ai .native-ant-input { flex: 1; }
+.package-ant-workspace .pw-stage-preview { border-radius: 6px; }
+.package-ant-workspace .pw-chat-head { padding: 8px 12px; }
+.package-ant-workspace .pw-chat-head h3 { font-size: 14px; }
+.package-ant-workspace .pw-log { padding: 0 12px 8px; gap: 8px; font-size: 13px; }
+.package-ant-workspace .pw-round { border-radius: 6px; padding: 8px; }
+.package-ant-workspace .pw-chat-form { padding: 8px 12px 12px; gap: 6px; }
+.package-ant-workspace .pw-chat-form textarea.ant-input { min-height: 72px; max-height: 20dvh; }
+.package-ant-workspace .pw-chat-foot { gap: 6px; }
+.package-ant-workspace .pw-banner { padding: 8px 12px; font-size: 12px; }
+.package-ant-panes { display: none; }
+@media (max-width: 1000px) and (min-width: 761px) {
+  .package-ant-workspace .pw-body { grid-template-columns: 128px minmax(0, 1fr) 240px; }
+  .package-ant-workspace .pw-rail-head { flex-wrap: wrap; }
+  .package-ant-workspace .pw-page-ai { flex-direction: column; }
+}
+@media (max-width: 760px) {
+  .package-ant-modal { top: 8px; max-width: calc(100vw - 16px); }
+  .package-ant-modal .ant-modal-container { max-height: calc(100dvh - 16px); padding: 16px 12px; }
+  .package-ant-modal .ant-modal-footer { margin-top: 8px; }
+  .package-ant-modal .ant-btn { min-height: 44px !important; }
+  .package-ant-modal :is(.ant-input,.ant-select) { min-height: 44px !important; }
+  .package-ant-modal :is(.ant-input,.ant-select,.ant-select-input) { font-size: 16px; }
+  .package-ant-modal .pw-title h2 { flex-basis: 100%; font-size: 15px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .package-ant-workspace .ant-modal-container { height: calc(100dvh - 16px); }
+  .package-ant-panes { display: block; flex-shrink: 0; margin-bottom: 8px; }
+  .package-ant-workspace .pw-body { display: flex; flex-direction: column; }
+  .package-ant-workspace :is(.pw-rail,.pw-stage,.pw-chat) { flex: 1; min-height: 0; border: 0; }
+  .package-ant-surface[data-pane='页面'] :is(.pw-stage,.pw-chat), .package-ant-surface[data-pane='预览'] :is(.pw-rail,.pw-chat), .package-ant-surface[data-pane='AI 编辑'] :is(.pw-rail,.pw-stage) { display: none; }
+  .package-ant-workspace .pw-pages { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); overflow: auto; }
+  .package-ant-workspace .pw-page { min-width: 0; }
+  .package-ant-workspace .pw-rail-head { justify-content: space-between; flex-wrap: nowrap; }
+  .package-ant-workspace .pw-add { position: static; flex-shrink: 0; margin: 0 8px 8px; box-shadow: none; }
+  .package-ant-workspace .pw-stage { padding: 8px 0; display: grid; }
+  .package-ant-workspace .pw-page-tools { justify-content: flex-start; }
+  .package-ant-workspace .pw-page-ai { flex-direction: column; }
+  .package-ant-workspace .pw-chat-form textarea.ant-input { height: 88px; min-height: 88px; max-height: 30dvh; }
+  .package-ant-workspace .pw-chat-head { padding-inline: 0; }
+  .package-ant-workspace .pw-chat-form { padding: 8px 0 0; }
+  .package-ant-workspace .pw-log { padding-inline: 0; }
+  .package-ant-modal .pw-foot .package-tools { flex-wrap: wrap; }
+  .package-ant-modal .pptx-binding { grid-template-columns: minmax(0,1fr); }
+  .package-ant-modal .pptx-binding > .native-ant-input { grid-column: auto; }
+}
+@media (max-height: 500px) { .package-ant-workspace .pw-banner { padding-block: 4px; } .package-ant-workspace .pw-chat-form textarea.ant-input { height: 48px; min-height: 48px; } }
+
+#freeTemplateModal.generator-ant-modal-host { display: block; position: static; width: 0; height: 0; overflow: visible; opacity: 1; }
+#freeTemplateModal.generator-ant-modal-host > .modal-dialog { display: none; }
+.generator-ant-wizard .ftm-body { padding: 0; background: #fff; }
+.generator-ant-wizard .ftm-body > .row { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 16px; margin: 0; }
+.generator-ant-wizard .ftm-body > .row > div { width: 100%; padding: 0; min-width: 0; }
+.generator-ant-wizard .ftm-card { padding: 12px; border: 1px solid #e8e8eb; border-radius: 6px; box-shadow: none; background: #fff; }
+.generator-ant-wizard .ftm-tabs { padding: 0 0 8px; border: 0; background: transparent; gap: 8px; }
+.generator-ant-wizard :is(.ftm-section-title,.ftm-status-text,.ftm-status-label) { color: #111; font-size: 14px; }
+.generator-ant-wizard :is(.ftm-section-desc,.ftm-info) { font-size: 13px; color: #6b7280; }
+.generator-ant-wizard .ftm-section-title i { color: #111 !important; }
+.generator-ant-wizard .ftm-preview-wrap { width: 100%; aspect-ratio: 16/9; min-height: 0; height: auto; background: #fafafa; border-radius: 4px; }
+.generator-ant-wizard .ftm-preview-wrap iframe { width: 1280px; height: 720px; max-width: none; transform-origin: top left; }
+.generator-ant-wizard .ftm-code-wrap { height: 300px; min-height: 0; }
+.generator-ant-wizard .ftm-code-wrap .CodeMirror { height: 100% !important; font-size: 13px; }
+.generator-ant-wizard .ftm-status-row { padding: 8px 0; gap: 8px; }
+.generator-ant-wizard .ftm-status-indicator { margin-block: 12px; background: #fafafa; border: 1px solid #eee; }
+.generator-ant-wizard .ftm-info { background: #fafafa; border-color: #eee; padding: 8px; margin-top: 12px; }
+.generator-ant-wizard .ftm-badge { background: #fff; border: 1px solid #ddd; color: #111; border-radius: 4px; }
+.generator-ant-wizard .ftm-divider { margin-block: 12px; }
+.generator-ant-wizard .ftm-btn-group { display: flex; gap: 8px; margin: 0; }
+.generator-ant-wizard .ftm-adjust-row { display: flex; gap: 8px; }
+.generator-ant-wizard .ftm-adjust-row > .native-ant-input { flex: 1; min-width: 0; }
+.generator-ant-wizard .form-check { padding-left: 0; display: flex; align-items: center; gap: 8px; }
+.generator-ant-wizard .ftm-error:empty { display: none; }
+.generator-ant-wizard .ftm-error { border-radius: 6px; }
+@media (max-width: 760px) {
+  .generator-ant-wizard .ftm-body > .row { grid-template-columns: minmax(0,1fr); gap: 12px; }
+  .generator-ant-wizard .ftm-card { padding: 8px; }
+  .generator-ant-wizard .ftm-btn-group { flex-wrap: wrap; }
+  .generator-ant-wizard .ant-modal-footer > .ant-space { width: 100%; justify-content: flex-end; }
+  .generator-ant-wizard .ftm-code-wrap { height: 220px; }
+}
+
+.package-ant-modal .ant-btn-dangerous:not(:disabled) { color:#cf1322; border-color:#ffccc7; background:#fff; }
+.package-ant-modal .ant-select-input { min-height:0; padding:0; border:0; background:transparent; box-shadow:none; }
+.package-ant-modal :is(.ant-input,.ant-select-input):focus-visible { outline: none; }
+
+.generator-wizard-actions { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 8px; }
+.generator-wizard-actions .native-ant-content, .generator-wizard-actions .ftm-btn-group { display: contents; }
+@media (max-width: 760px) { .generator-wizard-actions #freeTemplateConfirmBtn + .native-ant-control { width: 100%; } .generator-wizard-actions #freeTemplateConfirmBtn + .native-ant-control > button { width: 100%; } }

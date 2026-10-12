@@ -312,7 +312,7 @@ Browser regressions use isolated API data and do not modify real projects, accou
 
 ```bash
 uv run --extra dev python -m playwright install chromium
-uv run --extra dev pytest tests/test_app_ui.py tests/test_antd_ui.py tests/test_antd_projects_ui.py tests/test_antd_account_ui.py tests/test_antd_admin_ui.py tests/test_antd_admin_management_ui.py tests/test_antd_community_ui.py tests/test_antd_images_ui.py tests/test_antd_templates_ui.py tests/test_antd_creation_research_ui.py tests/test_antd_home_generator_ui.py tests/test_antd_presentation_ui.py tests/test_template_package_workspace_ui.py -q
+uv run --extra dev pytest tests/test_app_ui.py tests/test_antd_ui.py tests/test_antd_projects_ui.py tests/test_antd_account_ui.py tests/test_antd_admin_ui.py tests/test_antd_admin_management_ui.py tests/test_antd_community_ui.py tests/test_antd_images_ui.py tests/test_antd_templates_ui.py tests/test_antd_creation_research_ui.py tests/test_antd_home_generator_ui.py tests/test_antd_presentation_ui.py tests/test_antd_todo_ui.py tests/test_antd_editor_ui.py tests/test_antd_remaining_ui.py tests/test_template_package_workspace_ui.py -q
 ```
 
 ---

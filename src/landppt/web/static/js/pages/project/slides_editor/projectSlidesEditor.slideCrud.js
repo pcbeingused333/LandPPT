@@ -127,6 +127,8 @@ function showContextMenu(event, slideIndex) {
 
     const contextMenu = document.getElementById('contextMenu');
     const pasteMenuItem = document.getElementById('pasteMenuItem');
+    contextMenu.dataset.antContextX = event.clientX;
+    contextMenu.dataset.antContextY = event.clientY;
 
     // 更新粘贴菜单项状态
     if (copiedSlideData) {
@@ -137,6 +139,7 @@ function showContextMenu(event, slideIndex) {
 
     // 显示菜单
     contextMenu.style.display = 'block';
+    if (contextMenu.dataset.antMenuMounted === 'true') return;
     contextMenu.style.left = event.pageX + 'px';
     contextMenu.style.top = event.pageY + 'px';
 

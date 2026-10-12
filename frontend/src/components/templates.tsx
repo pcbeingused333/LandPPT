@@ -103,14 +103,14 @@ export function downloadTemplate(blob: Blob, filename: string) {
 }
 
 let workspaceLoading: Promise<any> | undefined;
-// The versioned editor and PPTX slot analyser remain separate islands in this migration.
-// Load them only when explicitly opened, without mounting their old catalogue panel.
+// Load the original request/stream controllers only when opened. Their dialogs
+// and ordinary form controls are rendered by the shared Ant surface adapter.
 export function packageWorkspace() {
   if (!workspaceLoading) workspaceLoading = (async () => {
-    const css = document.createElement('link'); css.rel = 'stylesheet'; css.href = '/static/css/template-packages.css?v=20261011'; document.head.append(css);
+    const css = document.createElement('link'); css.rel = 'stylesheet'; css.href = '/static/css/template-packages.css?v=20261012'; document.head.append(css);
     for (const name of ['template-packages', 'template-package-workspace', 'template-package-pptx']) {
       await new Promise<void>((resolve, reject) => {
-        const script = document.createElement('script'); script.src = `/static/js/${name}.js?v=20261011`;
+        const script = document.createElement('script'); script.src = `/static/js/${name}.js?v=20261012`;
         const timer = setTimeout(() => { script.remove(); reject(new Error('模板包编辑器加载超时，请重试。')); }, 15000);
         script.onload = () => { clearTimeout(timer); resolve(); }; script.onerror = () => { clearTimeout(timer); script.remove(); reject(new Error('模板包编辑器加载失败，请重试。')); }; document.head.append(script);
       });

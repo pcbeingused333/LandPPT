@@ -2,6 +2,8 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { App, Button, Drawer, Dropdown, Space } from 'antd';
 import { BellOutlined, MenuOutlined, UserOutlined, SettingOutlined, LogoutOutlined } from '@ant-design/icons';
 import { modalFocus } from './components/modal-focus';
+import { NotificationDrawer, SiteAnnouncement } from './components/shell-feedback';
+import type { ApiData } from './api';
 
 export interface ShellData {
   page: string;
@@ -12,19 +14,29 @@ export interface ShellData {
 declare global {
   interface Window {
     SiteNotice?: { loadPublicSettings(options: Record<string, string>): Promise<unknown> };
-    NotificationCenter?: { mount(options: Record<string, string>): void };
+    NotificationCenter?: { mount(options: Record<string, unknown>): any };
   }
 }
 
-export function Shell({ data, children }: { data: ShellData; children: ReactNode }) {
+export function Shell({ data, children, pending = '' }: { data: ShellData; children: ReactNode; pending?: string }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const authPage = data.page === 'auth';
   const menuTrigger = useRef<HTMLButtonElement>(null);
-  const { modal } = App.useApp();
+  const { modal, message } = App.useApp();
+  const [notice, setNotice] = useState<ApiData>();
+  const [notifications, setNotifications] = useState<ApiData>({});
+  const [notificationOpen, setNotificationOpen] = useState(false);
+  const center = useRef<any>(null);
   useEffect(() => {
-    window.SiteNotice?.loadPublicSettings({ noticeContainer: 'globalSiteNotice', sponsorLink: 'footerSponsorLink' });
-    if (data.user) window.NotificationCenter?.mount({ bell: 'navNotificationBell', badge: 'navNotificationBadge' });
-  }, [data.user]);
+    let disposed = false;
+    window.SiteNotice?.loadPublicSettings({ sponsorLink: 'footerSponsorLink' }).then(value => { if (!disposed) setNotice((value as ApiData)?.site_notice); });
+    if (data.user) {
+      center.current = window.NotificationCenter?.mount({ bell: 'navNotificationBell', badge: 'navNotificationBadge', renderUI: (value: ApiData) => { if (!disposed) setNotifications(value); }, onOpenChange: (open: boolean) => { if (!disposed) setNotificationOpen(open); }, notifyUI: (type: 'error' | 'success' | 'warning', content: string) => { if (!disposed) message[type](content); } });
+      if (center.current?.panel) { center.current.panel.classList.add('app-notification-host'); center.current.panel.setAttribute('role', 'presentation'); }
+    }
+    return () => { disposed = true; center.current?.dispose(); center.current = null; };
+  }, [data.user?.username]);
+  useEffect(() => { setMenuOpen(false); }, [data.page]);
   const links = [
     ['首页', '/home'], ['工作台', '/dashboard'], ['项目', '/projects'], ['创建', '/create'],
     ['模板', '/global-master-templates'], ['图床', '/image-gallery'], ['配置', '/ai-config'],
@@ -41,23 +53,25 @@ export function Shell({ data, children }: { data: ShellData; children: ReactNode
   return <div className="app-shell">
     <a className="skip-link" href="#appMain">跳到主内容</a>
     <header className="app-header">
-      <a className="app-brand" href="/">LandPPT<span>AI 演示文稿</span></a>
+      <a className="app-brand" href="/">LandPPT</a>
       {!authPage && <div className="desktop-navigation">{navigation}</div>}
       {authPage ? <Button className="app-account" href="/home">返回首页</Button> : <Space size={8} className="app-account">
         {data.user ? <><Button type="text" id="navNotificationBell" aria-label="通知" icon={<BellOutlined aria-hidden />}><span id="navNotificationBadge" hidden>0</span></Button>
-          <Dropdown menu={{ items: account }} trigger={['click']}><Button type="text" icon={<UserOutlined aria-hidden />} aria-label="账户菜单"><span className="account-name">{data.user.username}</span></Button></Dropdown></>
+          <Dropdown classNames={{ root: 'app-account-menu' }} menu={{ items: account }} trigger={['click']}><Button type="text" icon={<UserOutlined aria-hidden />} aria-label="账户菜单"><span className="account-name">{data.user.username}</span></Button></Dropdown></>
           : <Button href="/auth/login">登录</Button>}
         <Button ref={menuTrigger} className="mobile-menu" type="text" aria-label="菜单" aria-expanded={menuOpen} icon={<MenuOutlined aria-hidden />} onClick={() => setMenuOpen(true)} />
       </Space>}
     </header>
+    {pending && <div className="navigation-progress" role="status" aria-label="正在打开页面" />}
     <Drawer title="导航" open={menuOpen} onClose={() => setMenuOpen(false)} afterOpenChange={open => { if (!open) menuTrigger.current?.focus(); }} size={280}>
       {navigation}<nav aria-label="账户导航" className="app-nav account-nav">
         {data.user ? <><a href="/auth/profile">个人资料</a>{data.creditsEnabled && <a href="/credits">我的积分</a>}{data.user.is_admin && <a href="/admin">管理后台</a>}<Button type="text" onClick={logout}>退出登录</Button></>
           : <><a href="/auth/login">登录</a><a href="/auth/login?tab=register">注册</a></>}
       </nav>
     </Drawer>
-    <div id="globalSiteNotice" hidden />
-    <main id="appMain" tabIndex={-1} className={`app-main${authPage ? ' auth-main' : ''}`}>{children}</main>
+    <SiteAnnouncement notice={notice} />
+    <NotificationDrawer open={notificationOpen} state={notifications} center={center.current} />
+    <main id="appMain" tabIndex={-1} aria-busy={!!pending} className={`app-main${authPage ? ' auth-main' : ''}`}>{children}</main>
     <footer className="app-footer">LandPPT · v0.3.3 <a href="https://github.com/sligter/LandPPT" target="_blank" rel="noreferrer">GitHub</a><a id="footerSponsorLink" className="is-hidden" href="/sponsors">赞助感谢</a><a href="mailto:support@landppt.com">商务合作</a></footer>
   </div>;
 }

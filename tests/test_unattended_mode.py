@@ -523,15 +523,15 @@ def test_a_terminal_run_is_reported_even_on_the_first_poll():
 
     for page in ("todo_board.html", "todo_board_with_editor.html"):
         source = (SRC / "web" / "templates" / "pages" / "project" / page).read_text(encoding="utf-8")
-        assert "initiallyActive:" in source, f"{page} must tell the monitor if a run was live"
+        assert "unattendedActive" in source or "unattended_active" in source, f"{page} must tell the monitor if a run was live"
 
 
 def test_a_failed_run_unsticks_the_workspace():
     """The board suppresses its own error/retry UI while a run is active, so the
     monitor must reload on failure and cancellation too, not only on success."""
-    for page in ("todo_board.html", "todo_board_with_editor.html"):
-        source = (SRC / "web" / "templates" / "pages" / "project" / page).read_text(encoding="utf-8")
-        onComplete = source[source.index("onComplete:") :][:400]
+    for page in ("todo.tsx", "generator-chrome.tsx"):
+        source = (SRC.parent.parent / "frontend/src/pages" / page).read_text(encoding="utf-8")
+        onComplete = source[source.index("onComplete={") :][:400]
         # Must fire for every terminal status, not just success — otherwise a failed
         # run leaves the workspace suppressing its own error UI forever.
         assert "if (run.task_status === 'completed')" not in onComplete
@@ -542,16 +542,16 @@ def test_a_failed_run_unsticks_the_workspace():
 def test_the_workspace_refreshes_when_the_outline_lands():
     """Otherwise the page shows nothing until the whole pipeline finishes — which for
     a run ending in video export can be ten minutes after the outline was written."""
-    source = (SRC / "web" / "templates" / "pages" / "project" / "todo_board.html").read_text(
+    source = (SRC.parent.parent / "frontend/src/pages/todo.tsx").read_text(
         encoding="utf-8"
     )
-    assert "onUpdate:" in source
-    on_update = source[source.index("onUpdate:") : source.index("onComplete:")]
+    assert "onUpdate={" in source
+    on_update = source[source.index("onUpdate={") : source.index("onComplete={")]
     assert "'outline'" in on_update
     assert "'completed'" in on_update
-    assert "refreshSoon" in on_update
+    assert "reloadSoon" in on_update
     # One refresh only, however many polls report the transition.
-    assert "if (refreshing) return;" in source
+    assert "if (reloading.current) return;" in source
 
 
 def test_the_editor_workspace_stands_down_during_an_unattended_run():
@@ -1595,14 +1595,17 @@ class TestMonitorSurfaces:
 
         for source in (todo_board, editor):
             assert "unattended_monitor.js" in source
-            assert "unattended_monitor.css" in source
-            assert "UnattendedMonitor?.mount(" in source
+        component = (SRC.parent.parent / "frontend/src/components/unattended.tsx").read_text(encoding="utf-8")
+        assert "initiallyActive" in component
+        assert "factory.mount(" in component
 
     def test_monitor_containers_exist(self):
         components = SRC / "web" / "templates" / "components" / "project"
         board = (components / "todo_board" / "content_1.html").read_text(encoding="utf-8")
         editor = (components / "todo_board_with_editor" / "body_1.html").read_text(encoding="utf-8")
-        assert 'id="unattendedMonitor"' in board
+        assert 'id="workspace-body"' in board
+        component = (SRC.parent.parent / "frontend/src/pages/todo.tsx").read_text(encoding="utf-8")
+        assert 'id="unattendedMonitor"' in component
         assert 'id="unattendedMonitor"' in editor
 
     def test_notification_bell_is_in_the_logged_in_nav_only(self):
@@ -1814,7 +1817,7 @@ class TestTemplatesRender:
             user=fixtures.user,
         )
         assert f"const unattendedActive = {expected};" in html
-        assert 'id="unattendedMonitor"' in html
+        assert '"page": "todo"' in html
 
     def test_todo_board_defaults_the_flag_to_false_when_absent(self, env, fixtures):
         """A route that forgets the flag must not crash or auto-enable stand-down."""
@@ -1830,10 +1833,10 @@ class TestTemplatesRender:
             project=fixtures.project, unattended_active=False, auto_start=False,
             user=fixtures.user,
         )
-        assert 'projectId: "proj-1"' in html
+        assert '"projectId": "proj-1"' in html
         assert "unattended_monitor.js" in html
         assert "const unattendedActive = false;" in html
-        assert "initiallyActive: false," in html
+        assert '"unattendedActive": false' in html
 
     def test_editor_workspace_stands_down_when_a_run_is_active(self, env, fixtures):
         html = env.get_template("pages/project/todo_board_with_editor.html").render(
@@ -1842,7 +1845,7 @@ class TestTemplatesRender:
             user=fixtures.user,
         )
         assert "const unattendedActive = true;" in html
-        assert "initiallyActive: true," in html
+        assert '"unattendedActive": true' in html
 
     def test_editor_workspace_defaults_the_flag_to_false_when_absent(self, env, fixtures):
         """A route that forgets the variable must render a safe, permissive page."""
@@ -1851,7 +1854,7 @@ class TestTemplatesRender:
             project=fixtures.project, auto_start=False, user=fixtures.user,
         )
         assert "const unattendedActive = false;" in html
-        assert "initiallyActive: false," in html
+        assert '"unattendedActive": false' in html
 
     def test_settings_page_round_trips_saved_values(self, env, fixtures):
         html = env.get_template("pages/settings/ai_config.html").render(
@@ -1934,9 +1937,12 @@ class TestTemplatesRender:
             request=fixtures.request, todo_board=fixtures.todo_board,
             project=fixtures.project, user=fixtures.user,
         )
-        assert 'id="navNotificationBell"' in html
-        assert 'id="navNotificationBadge"' in html
-        assert "NotificationCenter?.mount(" in html
+        data = creation_page_data(html)
+        assert data["user"]["username"] == fixtures.user.username
+        shell = (SRC.parent.parent / "frontend/src/shell.tsx").read_text(encoding="utf-8")
+        assert 'id="navNotificationBell"' in shell
+        assert 'id="navNotificationBadge"' in shell
+        assert "NotificationCenter?.mount(" in shell
 
 
 def test_smtp_send_does_not_block_the_event_loop():

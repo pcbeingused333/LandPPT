@@ -231,14 +231,17 @@ def test_detail_delete_keeps_two_confirmations_and_cancel_is_read_only(
 ):
     page, load = ui_page
     detail(page, load, detail_project)
-    page.get_by_role("button", name="删除项目", exact=True).click()
+    page.get_by_role("button", name="项目更多操作", exact=True).click()
+    page.get_by_role("menuitem", name="删除项目", exact=True).click()
     first = page.get_by_role("dialog", name="确认删除项目", exact=True)
     first.get_by_role("button", name="继续", exact=True).click()
     final = page.get_by_role("dialog", name="再次确认删除项目", exact=True)
     final.get_by_role("button", name="取消", exact=True).click()
     assert not final.is_visible()
+    assert page.get_by_role("button", name="项目更多操作", exact=True).evaluate("e => e === document.activeElement")
     # The fixture rejects every non-GET request unless explicitly intercepted.
-    page.get_by_role("button", name="归档项目", exact=True).click()
+    page.get_by_role("button", name="项目更多操作", exact=True).click()
+    page.get_by_role("menuitem", name="归档项目", exact=True).click()
     page.get_by_role("dialog", name="归档项目", exact=True).get_by_role(
         "button", name="取消", exact=True
     ).click()
@@ -263,9 +266,8 @@ def test_outline_move_failure_leaves_order_and_sends_existing_operation(
         },
     }
     detail(page, load, project)
-    page.locator("#compactView").get_by_role(
-        "button", name="下移", exact=True
-    ).first.click()
+    page.get_by_role("button", name="第 1 页更多操作", exact=True).click()
+    page.get_by_role("menuitem", name="下移", exact=True).click()
     page.get_by_text("排序保存失败", exact=True).wait_for()
     assert page.locator("#compactView h3").all_text_contents() == ["A", "B"]
     payload = writes[0]
@@ -290,15 +292,14 @@ def test_outline_drag_and_delete_send_synchronizing_operations(ui_page, detail_p
     cards.first.drag_to(cards.nth(1))
     page.get_by_text("写入失败", exact=True).wait_for()
     assert writes[0]["operation"] == {"type": "move", "slide_index": 0, "to_index": 1}
-    page.locator("#compactView").get_by_role(
-        "button", name="删除此页", exact=True
-    ).first.click()
+    page.get_by_role("button", name="第 1 页更多操作", exact=True).click()
+    page.get_by_role("menuitem", name="删除此页", exact=True).click()
     dialog = page.get_by_role("dialog", name="删除大纲页面")
     dialog.get_by_role("button", name="取消", exact=True).click()
     assert len(writes) == 1
-    page.locator("#compactView").get_by_role(
-        "button", name="删除此页", exact=True
-    ).first.click()
+    assert page.get_by_role("button", name="第 1 页更多操作", exact=True).evaluate("e => e === document.activeElement")
+    page.get_by_role("button", name="第 1 页更多操作", exact=True).click()
+    page.get_by_role("menuitem", name="删除此页", exact=True).click()
     with page.expect_response("**/projects/*/update-outline") as response:
         dialog.get_by_role("button", name="删除", exact=True).click()
     assert response.value.status == 500
@@ -324,7 +325,8 @@ def test_detail_copy_navigates_to_created_project(ui_page, detail_project):
         .get_attribute("href")
         == "/projects"
     )
-    page.get_by_role("button", name="复制项目", exact=True).click()
+    page.get_by_role("button", name="项目更多操作", exact=True).click()
+    page.get_by_role("menuitem", name="复制项目", exact=True).click()
     page.wait_for_url("**/projects/created-project")
     assert writes == [("POST", "http://ui.test/api/projects/ui-detail/duplicate")]
 

@@ -1,7 +1,8 @@
 # LandPPT browser UI
 
 React 19, TypeScript and Ant Design 6. The FastAPI routes still render Jinja
-pages and provide their existing APIs; navigation remains normal browser links.
+pages and provide their existing APIs. Navigation uses normal browser links,
+with client navigation between ordinary application pages and project details.
 
 ## Development
 
@@ -18,7 +19,7 @@ Dependencies and generated assets are ignored by Git.
 
 ```sh
 npm run check --prefix frontend
-python -m pytest tests/test_app_ui.py tests/test_antd_ui.py tests/test_antd_projects_ui.py tests/test_antd_account_ui.py tests/test_antd_admin_ui.py tests/test_antd_admin_management_ui.py tests/test_antd_community_ui.py tests/test_antd_images_ui.py tests/test_antd_templates_ui.py tests/test_antd_creation_research_ui.py tests/test_antd_home_generator_ui.py tests/test_antd_presentation_ui.py tests/test_template_package_workspace_ui.py -q
+python -m pytest tests/test_app_ui.py tests/test_antd_ui.py tests/test_antd_settings_performance_ui.py tests/test_antd_settings_models_ui.py tests/test_antd_navigation_ui.py tests/test_antd_projects_ui.py tests/test_antd_account_ui.py tests/test_antd_admin_ui.py tests/test_antd_admin_management_ui.py tests/test_antd_community_ui.py tests/test_antd_images_ui.py tests/test_antd_templates_ui.py tests/test_antd_creation_research_ui.py tests/test_antd_home_generator_ui.py tests/test_antd_generator_skeleton_ui.py tests/test_antd_presentation_ui.py tests/test_antd_todo_ui.py tests/test_antd_editor_ui.py tests/test_antd_editor_media_ui.py tests/test_antd_editor_context_ui.py tests/test_antd_editor_export_ui.py tests/test_antd_remaining_ui.py tests/test_template_package_workspace_ui.py -q
 ```
 
 Build before installing from source or publishing Python packages. Hatch includes
@@ -38,26 +39,100 @@ chunks can import shared exports from that entry. Giving the script a different
 URL would execute it twice and remount the page. Serve the stable entry with
 cache revalidation; the child chunks carry content hashes.
 
-Currently migrated: project dashboard, project library/detail, all five system
-configuration tabs, personal profile, credits, login, registration, password reset,
-and admin users, redemption codes, OAuth/email configuration, all five community
-administration tabs, the public sponsor page, image gallery, image generation,
-template management, template selection, project creation, research status, home
-and presentation playback (23 of 26 page templates).
-The other pages continue using their existing templates until migrated. The
-integrated generation workspace now has Ant Design controls and status feedback,
-but retains its original controller, slide renderer, monitor and free-template
-wizard. This partial migration is not counted as another completed page.
+Home, dashboard, projects, creation, templates, images, configuration, project
+details, accounts, research and administration reuse the shell, React runtime
+and loaded modules when switching pages. Each switch
+reads the existing authenticated HTML route with no data cache; only its public
+page payload and inert settings/community catalogues are used. Fetched scripts never run.
+The current link cancels pending navigation; later clicks abort earlier reads.
+Browser history, page titles, menu closure and focus are maintained. The server's
+existing home redirect is respected. Modified clicks and new tabs remain native.
+Authentication redirects, account/role changes, invalid responses and mismatched
+CSS release stamps fall back to native navigation. Bump that stamp for UI releases.
+Only the `/projects/:id` root participates; editor, task board, playback,
+template-selection workspaces and authentication retain full navigation.
+Pagination, filtering and project duplication use the same authenticated
+navigation. Outline saves and version restoration still reload authoritative
+server state. Navigation warms module code on hover/focus and while idle;
+it never prefetches private page data or mounts hidden pages to run their APIs.
+
+Project details group archive/copy/delete in a click-triggered menu; preview and
+editing remain direct actions. Outline cards expose view/edit and a menu for
+move/delete, alongside drag sorting. Confirmation cancellation restores focus
+to the menu trigger; deletion keeps both confirmations. Shared Ant tokens use
+black actions, subtle card depth and distinct hover/focus states. Styling affects
+application controls only, not generated HTML/SVG inside presentation frames.
+
+All 26 page shells/catalogues now use Ant Design, including dashboard,
+project library/detail, configuration, accounts/authentication, administration,
+community, images, templates, creation/research, home, playback, task board,
+generation workspace and PPT editor. The shared error page is also migrated.
+Announcements use Ant Alert and the notification center uses an Ant Drawer;
+its existing poller, read endpoints and desktop-permission flow remain intact.
+The generator's free-template preparation wizard now uses an Ant modal and
+ordinary controls, with fixed confirmation actions and preview/code views.
+Existing generation and document controllers remain explicit adapter boundaries.
 
 Home uses compact creation/management links, a three-step guide and public provider
 information, without new API calls. The existing `/home` redirect remains intact.
 The generation workspace reads the controller's hidden control/status adapter
 through a MutationObserver and forwards actions to the same bound buttons. React
-never writes controller state or renders presentation content. Start/pause/resume,
+Skeleton components show pending outline pages beside generated previews. The
+grid retains empty columns and caps desktop previews at 440px, so a single page
+does not expand across the workspace. Skeletons follow page numbers, stop their
+animation when paused or disconnected, and disappear on completion or failure.
+Only six pending placeholders are mounted; unknown totals never invent a page
+count or estimated progress. The controller's UI adapter exposes real stream
+totals/completed counts and active page numbers, while generated iframe contents
+remain unchanged. Its grid reset/resume lifecycle restores the UI-only portal host.
+React never writes controller state or renders presentation content. Start/pause/resume,
 stop confirmation, completion and partial retry retain their existing contracts;
 terminal errors hide stale pause controls, and active unattended runs expose only
 the monitor's cancellation control. The adapter is a temporary migration boundary,
-to be removed when the controller and free-template wizard are migrated together.
+to be removed only with equivalent stream, recovery and document checks.
+
+The PPT editor remains a standalone workspace. Ant controls replace its header,
+view modes, save/export/regenerate menus and AI drawer; thumbnail, source,
+quick-edit and SVG controllers retain their data ownership. A ResizeObserver
+invokes the original frame-sizing functions when the new toolbar changes size.
+Thumbnail context actions use a grouped Ant menu with the target page title,
+clipboard availability and a separate destructive action. The original nine
+handlers still perform edits, copy/paste, insertion, duplication and exports.
+The menu measures its size and stays inside the viewport, scrolls in short
+windows, and closes when scrolling the thumbnail pane or resizing. Shift+F10
+and the context-menu key open it; arrows skip disabled items, Escape/Tab return
+focus, and cancelling a confirmation restores the target thumbnail. Presentation
+artwork, selection and native operation guards remain unchanged.
+An editor-only adapter mounts original dialog nodes into Ant frames, keeping
+body-child removal, listeners, form values and asynchronous footer insertion.
+Native chat, SVG and editor package dialogs use nonmodal `show()` inside those
+frames, retaining their close events and SVG dirty-state confirmation. Their
+existing `showModal()` behavior remains the fallback outside this workspace.
+Nested dialogs keep focus, fixed action footers and ordered overlays; export
+progress keeps its existing cancellation availability. Ordinary buttons, text fields, checkboxes and selects now use Ant controls,
+forwarding native values, validation, shortcuts and submit events. Scoped styles
+align specialized canvas controls with black actions and neutral surfaces.
+PPTX client and SVG conversion use a dedicated Ant dialog with file context,
+native stage messages, page counts and live progress. Missing progress remains
+indeterminate; the UI adds no timer estimates. The original cancel button and
+AbortController own cancellation, including its disabled cleanup state. Escape
+and the backdrop keep active tasks open; failure exposes close, Escape and
+backdrop dismissal through the original failure handler. Reopening captures a
+fresh focus origin. The exporter, speaker notes, downloads and API contracts
+remain native; renderer tests isolate the external conversion library.
+Native control adapters also mirror `hidden`/`d-none` classes and restore their
+source-hiding class after controller class replacements. Speech preview and edit
+modes therefore show exactly one body/textarea, while preserving unsaved values
+and the existing save requests. Speech, narration audio and video tasks share
+compact black progress cards with stable task names and real stage messages.
+Cards appear inside an open speech preview; closing it moves ongoing tasks to
+the workspace notification area without duplicating progress or cancelling jobs.
+Video export always removes its progress card on success, request failure or
+task failure. SSE, polling fallback, payloads and download handling remain native.
+Share, template, image, speech/narration, hash/revision and permission-dependent
+actions keep their original contracts. Iframe documents and generated SVG are
+not restyled. Controllers and original form nodes remain a temporary adapter boundary;
+CodeMirror, SVG, file selectors and document-editing engines retain their ownership.
 
 Presentation playback uses Ant Design controls, a thumbnail drawer and bounded
 shortcut/cache dialogs without the account shell, including public share links.
@@ -72,6 +147,32 @@ panels alone. Panel closure restores focus; the compact toolbar auto-hides after
 inactivity while subtitles remain visible. Mobile narration uses two control rows.
 Browser fixtures isolate cues/audio; real TTS and audio playback remain deployment
 integration checks.
+
+The task board sends the existing multipart confirmation fields for manual,
+file and URL sources. Failed confirmation keeps inputs and files; success removes
+the form before starting exactly one existing outline stream. Published package
+selection loads on demand, supports retry and uses SVG. Custom audience/style,
+page ranges, transition pages and footer controls keep their form names.
+The outline list, detailed view, JSON preview/export, JSON and single-slide
+editors, regeneration dialog and AI optimization now use Ant components. AI
+results remain editable drafts until explicitly saved; failed requests retain
+inputs. Single-slide editing preserves unknown fields and optional-field deletion.
+The original SSE, cancellation, reconnect and persistence recovery controller
+continues using an inert hidden DOM adapter. `outline_ui_bridge.js` publishes
+snapshots and forwards actions; only regeneration accepts an optional requirements
+argument to bypass its old dialog. Pretext renders into the visible Ant stream
+slot and retains scroll position / jump-to-latest behavior. Subscriptions detach
+on unmount. The dormant native mindmap helpers are retained, without adding a new
+graph feature. Native notifications use Ant messages and confirmations. This
+temporary adapter should be extracted with the controller once its recovery
+contract can be tested independently. Generated presentations are unchanged.
+
+Unattended monitoring retains the original five-second polling/backoff,
+visibility handling and terminal callbacks. Both workspace views use Ant progress,
+collapsed stage details, failure feedback and confirmed cancellation. Missing runs
+hide the panel; historical terminal runs do not trigger reloads. The outline-stage
+refresh and longer failure read window are retained. Default native hosts still
+receive the existing monitor markup; disposal ignores pending replies.
 
 Project creation uses a compact content/settings form and a persistent submit
 action on small screens. The existing multipart creation route receives the
@@ -91,6 +192,14 @@ inline event handlers do not run. `settings-schema.ts` reads only field metadata
 React owns the visible controls and all new interactions. New requests use the
 same API URLs, methods and payload shapes. The Jev API key remains omitted when
 left empty so the backend retains its saved secret.
+
+Configuration uses compact icon tabs, provider identity/status rows and short
+save actions with explicit accessible names. Model controls use `ModelPicker`:
+the saved name and search query are separate, so opening/refetching shows the
+full list without replacing custom names. Visible fields open on successful
+refresh; a late result never focuses an inactive tab. Lists keep virtual scroll,
+keyboard selection and free input where the original field allows it. Provider
+changes invalidate role lists, including roles that follow the default provider.
 
 Shell notices and notification polling still use the existing services in their
 own DOM containers. Page forms, dialogs and feedback use Ant Design. Settings
@@ -172,12 +281,17 @@ reads incremental SSE progress and requires a completion event before reporting
 success. Stopping reception closes the browser stream; it does not claim that the
 server has cancelled creation. Inspect the draft list before retrying.
 
-The versioned package editor and PPTX slot analyser are deliberately retained as
-legacy islands, loaded only on an explicit action, with their scoped CSS. Their
-version, draft, conflict and streaming contracts are unchanged. Thus the 23-page
-count measures migrated page shells/catalogues, not completion of every nested
-editor. Their internal Ant Design migration and the three remaining page templates
-still need to be completed. Screenshots are in ignored `artifacts/` directories.
+The versioned package workspace and PPTX slot analyser use Ant modal frames
+and ordinary form controls, while lazily loading the original draft/conflict/stream
+controllers. Dialog roots retain footer ancestry and submit form association;
+asynchronous actions, validation and input values remain available for retry.
+Desktop workspace retains three panes; narrow screens switch between pages,
+preview and AI editing, with the active pane's actions visible without page scroll.
+PPTX file pickers and thumbnail/candidate layout remain specialized components.
+No generated slide, published manifest or existing project content is restyled.
+The original controller nodes and scoped native components are compatibility
+boundaries, not unfinished page shells. Screenshots and verification reports
+are stored in ignored `artifacts/` directories.
 
 ## Design constraints
 
@@ -186,8 +300,7 @@ Keep black primary actions, neutral surfaces, 14px body text, 20px page headings
 phones; long forms retain a sticky save action. Keep presentation HTML/SVG and
 iframe styles outside application styling.
 
-Continue migration by page: remaining public pages, then
-templates, then streaming generation and editor workspaces.
+Keep the page inventory and compatibility boundaries above current.
 Remove a page's retired CSS and DOM scripts only when its replacement preserves
 its actions, permission visibility and browser regressions. Test built assets,
 error/empty states and desktop/mobile geometry. Store screenshots in ignored

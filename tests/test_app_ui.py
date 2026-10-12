@@ -371,8 +371,12 @@ def test_project_detail_compact_layout_keeps_stage_and_outline_actions_reachable
     assert page.get_by_role("link", name="查看 TODO 看板").is_visible() == (
         status == "in_progress"
     )
-    assert page.locator("#compactView [aria-label='上移']").first.is_disabled()
-    assert page.locator("#compactView [aria-label='下移']").last.is_disabled()
+    page.get_by_role("button", name="第 1 页更多操作", exact=True).click()
+    assert page.get_by_role("menuitem", name="上移", exact=True).get_attribute("aria-disabled") == "true"
+    page.keyboard.press("Escape")
+    page.get_by_role("button", name="第 3 页更多操作", exact=True).click()
+    assert page.get_by_role("menuitem", name="下移", exact=True).get_attribute("aria-disabled") == "true"
+    page.keyboard.press("Escape")
     if width <= 600:
         surface = page.locator(".outline-surface").bounding_box()
         for card in page.locator("#compactView .outline-slide-card").all():
@@ -676,7 +680,7 @@ def test_primary_controls_share_scale_across_app_shells(
     assert visible_control.bounding_box()["height"] <= (46 if width < 600 else 42)
     primary = page.locator(button).first
     assert primary.evaluate("e => getComputedStyle(e).fontSize") == "14px"
-    assert primary.evaluate("e => getComputedStyle(e).borderRadius") == "6px"
+    assert primary.evaluate("e => getComputedStyle(e).borderRadius") == "8px"
     assert (
         primary.evaluate("e => getComputedStyle(e).backgroundColor")
         == "rgb(17, 17, 17)"
@@ -734,33 +738,38 @@ def test_ai_sidebar_header_and_long_input_keep_actions_visible(
         path="/projects/ui-test/edit",
         enable_auto_layout_repair=auto_repair,
     )
-    page.locator("#aiEditBtn").click()
-    page.locator("#aiInputBox").fill("修改当前页的标题并调整正文间距。" * 80)
+    page.get_by_role("button", name="AI 编辑", exact=True).click()
+    dialog = page.get_by_role("dialog", name=re.compile("^AI 编辑助手"))
+    field = dialog.get_by_role("textbox", name="AI 编辑指令", exact=True)
+    field.fill("修改当前页的标题并调整正文间距。" * 80)
     page.wait_for_timeout(450)
-    for selector in (
-        ".ai-edit-sidebar-header h4",
-        ".ai-current-slide-info",
-        ".ai-header-buttons > button",
-        "#aiInputBox",
-        "#aiSendBtn",
+    for controls in (
+        dialog.locator(".ant-drawer-header"),
+        dialog.locator(".ant-drawer-header button"),
+        field,
+        dialog.get_by_role("button", name="发送", exact=True),
     ):
-        for control in page.locator(selector).all():
+        for control in controls.all():
             box = control.bounding_box()
             assert box["x"] >= 0 and box["x"] + box["width"] <= width + 1
             assert box["y"] >= 0 and box["y"] + box["height"] <= height + 1
-    assert page.locator("#aiSendBtn").evaluate(
+    assert dialog.get_by_role("button", name="发送", exact=True).evaluate(
         "e => {const r=e.getBoundingClientRect();return e.contains(document.elementFromPoint(r.x+r.width/2,r.y+r.height/2))}"
     )
-    assert page.locator(".ai-header-buttons > button").count() == (
+    send_box = dialog.get_by_role("button", name="发送", exact=True).bounding_box()
+    for name in ["上传图片", "视觉模式", "自由对话", "清除上下文"]:
+        button = dialog.get_by_role("button", name=name, exact=True)
+        box = button.bounding_box()
+        assert abs(box["y"] - send_box["y"]) < 2
+        assert box["height"] >= (44 if width <= 600 else 32)
+    assert dialog.locator(".ant-drawer-header button").count() == (
         4 if auto_repair else 3
     )
-    if width <= 600:
-        assert page.locator(".ai-current-slide-info").bounding_box()["height"] < 30
-    for button in page.locator(".ai-header-buttons > button").all():
+    for button in dialog.locator(".ant-drawer-header button").all():
         assert button.evaluate(
             "e => {const r=e.getBoundingClientRect();return e.contains(document.elementFromPoint(r.x+r.width/2,r.y+r.height/2))}"
         )
-    page.get_by_role("button", name="关闭 AI 编辑助手").click()
+    page.keyboard.press("Escape")
     assert not page.locator("#aiEditSidebar").evaluate(
         "e=>e.classList.contains('open')"
     )
@@ -1352,8 +1361,16 @@ def test_generator_completed_workspace_fits_and_preserves_preview_content(
     open_workspace()
     assert not errors
     assert page.evaluate("document.documentElement.scrollWidth") <= width
-    assert page.locator("#generatorStatusUI .ant-badge-status-text").inner_text() == "生成完成"
-    assert not page.locator(".lu-monitor-details").evaluate("e => e.open")
+    assert (
+        page.locator("#generatorStatusUI .ant-badge-status-text").inner_text()
+        == "生成完成"
+    )
+    assert (
+        page.get_by_role("button", name=re.compile("阶段详情")).get_attribute(
+            "aria-expanded"
+        )
+        == "false"
+    )
     assert not page.locator("#generationProgress").is_visible()
     assert page.locator("#unattendedMonitor").evaluate(
         "e => e.scrollHeight <= e.clientHeight + 1"
@@ -1408,36 +1425,26 @@ def test_generator_monitor_keeps_status_errors_and_details_reachable(
         assert not page.locator("#unattendedMonitor").is_visible()
         assert page.get_by_role("button", name="开始生成", exact=True).is_visible()
         return
-    details = page.locator(".lu-monitor-details")
-    assert details.evaluate("e => e.open") == (task_status == "failed")
+    details = page.get_by_role("button", name=re.compile("阶段详情"))
+    assert (details.get_attribute("aria-expanded") == "true") == (
+        task_status == "failed"
+    )
     if task_status == "failed":
-        assert page.locator(".lu-monitor-error").is_visible()
-        assert page.locator(".lu-monitor-stage-msg.is-error").is_visible()
-        details.locator("summary").click()
-        assert page.locator(".lu-monitor-error").is_visible()
+        assert page.locator(".unattended-ant-error").first.is_visible()
+        details.click()
+        assert page.locator(".unattended-ant-error").first.is_visible()
     elif task_status == "running":
-        assert page.locator('[data-lu-action="cancel"]').is_visible()
-        assert "正在生成幻灯片" in page.locator(".lu-monitor-topic").inner_text()
-    page.evaluate(
-        """run => {
-            window.regressionMonitor = UnattendedMonitor.mount({container:'unattendedMonitor',projectId:'ui-generator',compact:true});
-            regressionMonitor.destroy(); regressionMonitor.render(run);
-        }""",
-        run_state["run"],
-    )
-    summary = details.locator("summary")
-    summary.focus()
+        assert page.get_by_role("button", name="停止无人值守任务").is_visible()
+        assert "正在生成幻灯片" in page.locator(".unattended-ant-topic").inner_text()
+    details.focus()
     page.keyboard.press("Enter")
-    assert details.evaluate("e => e.open")
-    page.evaluate(
-        "run => regressionMonitor.render(run)",
-        run_state["run"],
-    )
-    assert details.evaluate("e => e.open")
-    assert summary.evaluate("e => e === document.activeElement")
-    page.locator(".lu-monitor-details summary").focus()
+    assert details.get_attribute("aria-expanded") == "true"
+    # The actual controller polls the same run, preserving Ant disclosure/focus.
+    page.wait_for_timeout(5100)
+    assert details.get_attribute("aria-expanded") == "true"
+    assert details.evaluate("e => e === document.activeElement")
     page.keyboard.press("Enter")
-    assert not details.evaluate("e => e.open")
+    assert details.get_attribute("aria-expanded") == "false"
     assert all(method == "GET" for method in requests)
 
 

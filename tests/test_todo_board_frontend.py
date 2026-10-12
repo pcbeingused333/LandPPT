@@ -100,7 +100,7 @@ class TestStreamCancellation:
 
 class TestDoubleSubmitGuards:
     def test_regenerate_has_an_in_flight_guard(self, js):
-        body = _slice(js, "async function regenerateOutlineNew()")
+        body = _slice(js, "async function regenerateOutlineNew(requirementsOverride)")
         assert "if (outlineGenerationStarted)" in body
         assert "return" in body
 

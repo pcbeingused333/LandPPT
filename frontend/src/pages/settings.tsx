@@ -1,22 +1,67 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, App, AutoComplete, Button, Card, Collapse, Form, Input, InputNumber, Modal, Radio, Select, Slider, Space, Switch, Tabs, Tag } from 'antd';
-import { ReloadOutlined, SaveOutlined, ApiOutlined } from '@ant-design/icons';
+import { memo, useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
+import { Alert, App, AutoComplete, Button, Card, Collapse, Form, Input, InputNumber, Modal, Radio, Select, Slider, Space, Switch, Tabs, Tag, Tooltip } from 'antd';
+import { ReloadOutlined, SaveOutlined, ApiOutlined, SettingOutlined, SlidersOutlined, BranchesOutlined, PictureOutlined, CheckCircleOutlined } from '@ant-design/icons';
 import { request, type ApiData } from '../api';
 import { readSettingsSchema, type Field } from '../settings-schema';
 import JevSettings from './jev-settings';
 import { modalFocus } from '../components/modal-focus';
+import { ModelPicker } from '../components/model-picker';
 
 const categories: Record<string, string> = { 'generation-params': 'generation_params', 'app-config': 'app_config', 'image-service': 'image_service' };
 const saveLabels: Record<string, string> = { 'generation-params': '保存生成参数', 'app-config': '保存应用配置', 'image-service': '保存配置' };
 const bool = (value: unknown) => value === true || value === 1 || value === 'true' || value === '1';
 const labels: Record<string, string> = { landppt: 'LandPPT', openai: 'OpenAI', anthropic: 'Anthropic Claude', google: 'Google Gemini' };
+const JevPanel = memo(JevSettings);
+const tabIcons: Record<string, React.ReactNode> = { 'ai-providers': <ApiOutlined aria-hidden />, 'generation-params': <SlidersOutlined aria-hidden />, 'jev-config': <BranchesOutlined aria-hidden />, 'app-config': <SettingOutlined aria-hidden />, 'image-service': <PictureOutlined aria-hidden /> };
+const providerMarks: Record<string, string> = { landppt: 'LP', openai: 'O', anthropic: 'A', google: 'G' };
+type Drafts = { read: (name: string) => unknown; subscribe: (listener: () => void) => () => void };
+
+const SettingsField = memo(function SettingsField({ field, drafts, initialValue, pending, error, models, change, fetchModels }: {
+  field: Field; drafts: Drafts; initialValue: unknown; pending: string; error?: string;
+  models?: Field['options']; change: (name: string, value: unknown) => void; fetchModels: (field: Field) => Promise<void>;
+}) {
+  const raw = useSyncExternalStore(drafts.subscribe, () => drafts.read(field.name));
+  const visible = useSyncExternalStore(drafts.subscribe, () => field.dependencies.every(name => bool(drafts.read(name))));
+  const reasoningEnabled = useSyncExternalStore(drafts.subscribe, () => !field.name.endsWith('_reasoning_effort') || bool(drafts.read(field.name.replace('_reasoning_effort', '_enable_reasoning'))));
+  const disabled = !!pending || !reasoningEnabled;
+  const id = `field-${field.name}`;
+  const value = String(raw ?? '');
+  const modelField = field.name.endsWith('_model') || field.name.endsWith('_model_name');
+  const options = useMemo(() => models || (field.kind === 'select' ? field.options : field.options.filter(option => option.value)), [models, field]);
+  const common = { id, 'aria-label': field.label, placeholder: field.placeholder, disabled };
+  if (!visible) return null;
+  if (field.kind === 'checkbox') return <Form.Item className="switch-field"><label className="switch-row" htmlFor={id}><span className="switch-copy"><span>{field.label}</span>{field.help && <span className="subtle">{field.help}</span>}</span><Switch id={id} aria-label={field.label} disabled={disabled} checked={bool(raw)} onChange={checked => change(field.name, checked)} /></label></Form.Item>;
+  let control;
+  if (modelField) control = <ModelPicker field={field} value={value} options={options} fetched={models} disabled={disabled} change={change} />;
+  else if (field.kind === 'select') control = <Select {...common} value={value} options={options} onChange={next => change(field.name, next)} showSearch optionFilterProp="label" />;
+  else if (field.kind === 'number') control = <><InputNumber {...common} name={field.name} value={value ? Number(value) : null} min={field.min} max={field.max} step={field.step || 1} onChange={next => change(field.name, next === null ? '' : String(next))} />{field.slider && <Slider aria-label={`${field.label}滑块`} {...field.slider} value={value ? Number(value) : field.slider.min} onChange={next => change(field.name, String(next))} />}</>;
+  else if (field.kind === 'textarea') control = <Input.TextArea {...common} name={field.name} value={value} autoSize={{ minRows: 3, maxRows: 8 }} onChange={event => change(field.name, event.target.value)} />;
+  else if (field.kind === 'password') control = <Input.Password {...common} name={field.name} value={value} autoComplete="new-password" onChange={event => change(field.name, event.target.value)} />;
+  else if (field.options.length) control = <AutoComplete {...common} value={value} options={options} onChange={next => change(field.name, next)} filterOption={(input, option) => String(option?.value).toLowerCase().includes(input.toLowerCase())}><Input name={field.name} /></AutoComplete>;
+  else control = <Input {...common} name={field.name} value={value} onChange={event => change(field.name, event.target.value)} />;
+  return <Form.Item label={field.label} htmlFor={id} extra={field.help || undefined} validateStatus={error ? 'error' : undefined} help={error} className={field.kind === 'textarea' ? 'field-full' : undefined}>
+    {modelField ? <><div className="model-control">{control}<Tooltip title="获取可用模型列表"><Button aria-label={field.name === 'pollinations_model' ? '获取模型' : `获取${field.label}列表`} disabled={!!pending} loading={pending === `models-${field.name}`} icon={<ReloadOutlined aria-hidden />} onClick={() => fetchModels(field)} /></Tooltip></div>{models && <span className="model-list-status" role="status">{models.filter(option => option.value).length ? `${models.filter(option => option.value).length} 个可用模型` : '暂无可用模型'}{field.kind !== 'select' && ' · 可搜索或输入自定义名称'}</span>}</> : control}
+    {field.name === 'ai_image_resolution_presets' && <Button type="text" className="field-action" onClick={() => change(field.name, String(initialValue))}>重置为默认</Button>}
+  </Form.Item>;
+});
 
 export default function Settings({ data }: { data: ApiData }) {
   const panels = useMemo(readSettingsSchema, []);
   const allFields = useMemo(() => panels.flatMap(panel => panel.fields), [panels]);
   const initial = useMemo(() => Object.fromEntries(allFields.map(field => [field.name, data.config[field.name] ?? field.value])), [allFields, data.config]);
-  const [values, setValues] = useState<ApiData>(initial);
-  const valuesRef = useRef(values); valuesRef.current = values;
+  const valuesRef = useRef<ApiData>(initial);
+  const draftListeners = useRef(new Set<() => void>());
+  const drafts = useMemo<Drafts>(() => ({
+    read: name => valuesRef.current[name],
+    subscribe: listener => { draftListeners.current.add(listener); return () => { draftListeners.current.delete(listener); }; },
+  }), []);
+  // Only fields whose snapshots change render; saving still reads the full draft.
+  const setValues = useCallback((update: (previous: ApiData) => ApiData) => {
+    const next = update(valuesRef.current);
+    if (next === valuesRef.current) return;
+    valuesRef.current = next;
+    draftListeners.current.forEach(listener => listener());
+  }, []);
   const dirty = useRef(new Set<string>());
   const [active, setActive] = useState('ai-providers');
   const [defaultProvider, setDefaultProvider] = useState(data.currentProvider);
@@ -45,13 +90,17 @@ export default function Settings({ data }: { data: ApiData }) {
     }).catch(reason => { if (!controller.signal.aborted) setError(`配置读取失败：${reason.message}`); }).finally(() => { if (!controller.signal.aborted) setLoading(false); });
     request('/api/image/status', 'GET', undefined, controller.signal).then(setImageStatus).catch(() => {});
     return () => { mounted.current = false; controller.abort(); operations.current.forEach(operation => operation.abort()); operations.current.clear(); };
-  }, [allFields]);
-  function change(name: string, value: unknown) {
+  }, [allFields, setValues]);
+  const change = useCallback((name: string, value: unknown) => {
+    if (name.endsWith('_model_provider') && !Object.is(valuesRef.current[name], value)) {
+      const model = name.replace(/_provider$/, '_name');
+      setModels(previous => { if (!Object.hasOwn(previous, model)) return previous; const next = { ...previous }; delete next[model]; return next; });
+    }
     dirty.current.add(name);
-    setValues(previous => ({ ...previous, [name]: value }));
-    setFieldErrors(previous => { const next = { ...previous }; delete next[name]; return next; });
-  }
-  async function run(key: string, operation: (signal: AbortSignal) => Promise<void>) {
+    setValues(previous => Object.is(previous[name], value) ? previous : { ...previous, [name]: value });
+    setFieldErrors(previous => { if (!Object.hasOwn(previous, name)) return previous; const next = { ...previous }; delete next[name]; return next; });
+  }, [setValues]);
+  const run = useCallback(async (key: string, operation: (signal: AbortSignal) => Promise<void>) => {
     if (operations.current.size) return;
     if (key.startsWith('test-')) testTrigger.current = document.activeElement as HTMLElement;
     const controller = new AbortController(); operations.current.set(key, controller);
@@ -59,7 +108,7 @@ export default function Settings({ data }: { data: ApiData }) {
     try { await operation(controller.signal); }
     catch (reason) { if (!controller.signal.aborted && mounted.current) setError((reason as Error).message); }
     finally { operations.current.delete(key); if (mounted.current) setPending(''); }
-  }
+  }, []);
   function payload(fields: Field[], category: string): ApiData | null {
     const config: ApiData = {}; const errors: Record<string, string> = {};
     fields.forEach(field => {
@@ -102,13 +151,25 @@ export default function Settings({ data }: { data: ApiData }) {
     if (['openai', 'anthropic'].includes(provider)) { body.enable_reasoning = bool(config[`${provider}_enable_reasoning`]); body.reasoning_effort = config[`${provider}_reasoning_effort`] || 'medium'; }
     run(`test-${provider}`, async signal => { const result = await request('/api/ai/providers/test', 'POST', body, signal); setTestResult({ title: `${labels[provider]} 连接测试`, message: result.message || '连接成功' }); });
   }
-  async function fetchModels(field: Field) {
+  function chooseDefault(provider: string) {
+    run(`default-${provider}`, async signal => {
+      await request('/api/config/default-provider', 'POST', { provider }, signal);
+      setDefaultProvider(provider);
+      setModels(previous => {
+        const next = { ...previous }; let changed = false;
+        for (const name of Object.keys(next)) if (name.endsWith('_model_name') && !valuesRef.current[name.replace('_name', '_provider')]) { delete next[name]; changed = true; }
+        return changed ? next : previous;
+      });
+      message.success('默认提供者已更新');
+    });
+  }
+  const fetchModels = useCallback(async (field: Field) => {
     const provider = field.name === 'pollinations_model' ? 'pollinations' : field.name.endsWith('_model_name') ? String(valuesRef.current[field.name.replace('_name', '_provider')] || defaultProvider) : field.name.replace('_model', '');
     await run(`models-${field.name}`, async signal => {
       let list: string[] = [];
       const names = (records: unknown[]) => records
         .filter((model: any) => provider !== 'pollinations' || (typeof model === 'object' && Array.isArray(model?.output_modalities) && model.output_modalities.includes('image')))
-        .map((model: any) => typeof model === 'string' ? model : model.id || model.name).filter(Boolean);
+        .map((model: any) => typeof model === 'string' ? model : model?.id || model?.name).filter((name: unknown): name is string => typeof name === 'string' && !!name.trim());
       if (provider === 'landppt') list = (await request('/api/ai/providers/landppt/models', 'GET', undefined, signal)).models || [];
       else {
         let config = valuesRef.current;
@@ -129,53 +190,33 @@ export default function Settings({ data }: { data: ApiData }) {
           list = names(Array.isArray(result) ? result : result.models || []);
         }
       }
-      list.sort((a, b) => a.localeCompare(b));
+      list = [...new Set(list.filter(model => typeof model === 'string' && !!model.trim()))].sort((a, b) => a.localeCompare(b));
       if (list.includes('MODEL1')) list = ['MODEL1', ...list.filter(model => model !== 'MODEL1')];
       setModels(previous => ({ ...previous, [field.name]: [...(provider === 'pollinations' ? [{ label: '（留空/默认）', value: '' }] : []), ...list.map(model => ({ label: model, value: model }))] }));
       message.success(list.length ? `已获取 ${list.length} 个模型` : '暂无可用模型，可手动填写');
     });
-  }
+  }, [defaultProvider, run, message]);
   function renderField(field: Field) {
-    if (field.dependencies.some(name => !bool(values[name]))) return null;
-    const id = `field-${field.name}`;
-    const raw = values[field.name];
-    const value = String(raw ?? '');
-    const modelField = field.name.endsWith('_model') || field.name.endsWith('_model_name');
-    const reasoning = field.name.endsWith('_reasoning_effort');
-    const disabled = !!pending || (reasoning && !bool(values[field.name.replace('_reasoning_effort', '_enable_reasoning')]));
-    const common = { id, 'aria-label': field.label, placeholder: field.placeholder, disabled };
-    if (field.kind === 'checkbox') return <Form.Item key={field.name} className="switch-field"><label className="switch-row" htmlFor={id}><span className="switch-copy"><span>{field.label}</span>{field.help && <span className="subtle">{field.help}</span>}</span><Switch id={id} aria-label={field.label} disabled={!!pending} checked={bool(raw)} onChange={checked => change(field.name, checked)} /></label></Form.Item>;
-    let control;
-    if (field.kind === 'select') control = <Select {...common} value={value} options={models[field.name] || field.options} onChange={next => change(field.name, next)} showSearch optionFilterProp="label" />;
-    else if (field.kind === 'number') control = <><InputNumber {...common} name={field.name} value={value ? Number(value) : null} min={field.min} max={field.max} step={field.step || 1} onChange={next => change(field.name, next === null ? '' : String(next))} />{field.slider && <Slider aria-label={`${field.label}滑块`} {...field.slider} value={value ? Number(value) : field.slider.min} onChange={next => change(field.name, String(next))} />}</>;
-    else if (field.kind === 'textarea') control = <Input.TextArea {...common} name={field.name} value={value} autoSize={{ minRows: 3, maxRows: 8 }} onChange={event => change(field.name, event.target.value)} />;
-    else if (field.kind === 'password') control = <Input.Password {...common} name={field.name} value={value} autoComplete="new-password" onChange={event => change(field.name, event.target.value)} />;
-    else if (modelField || field.options.length) control = <AutoComplete {...common} value={value} options={models[field.name] || field.options.filter(option => option.value)} onChange={next => change(field.name, next)} filterOption={(input, option) => String(option?.value).toLowerCase().includes(input.toLowerCase())}><Input name={field.name} /></AutoComplete>;
-    else control = <Input {...common} name={field.name} value={value} onChange={event => change(field.name, event.target.value)} />;
-    return <Form.Item key={field.name} label={field.label} htmlFor={id} extra={field.help || undefined} validateStatus={fieldErrors[field.name] ? 'error' : undefined} help={fieldErrors[field.name]} className={field.kind === 'textarea' ? 'field-full' : undefined}>
-      {modelField ? <div className="model-control">{control}<Button aria-label={`获取${field.label}列表`} title="获取可用模型列表" disabled={!!pending} loading={pending === `models-${field.name}`} icon={<ReloadOutlined aria-hidden />} onClick={() => fetchModels(field)} /></div> : control}
-      {field.name === 'pollinations_model' && <Button className="field-action" disabled={!!pending} loading={pending === `models-${field.name}`} onClick={() => fetchModels(field)} icon={<ReloadOutlined aria-hidden />}>获取模型</Button>}
-      {field.name === 'ai_image_resolution_presets' && <Button type="text" className="field-action" onClick={() => change(field.name, String(initial[field.name]))}>重置为默认</Button>}
-    </Form.Item>;
+    return <SettingsField key={field.name} field={field} drafts={drafts} initialValue={initial[field.name]} pending={pending} error={fieldErrors[field.name]} models={models[field.name]} change={change} fetchModels={fetchModels} />;
   }
   function fieldsGrid(fields: Field[]) { return <Form layout="vertical" className="settings-fields">{fields.map(renderField)}</Form>; }
   function renderPanel(key: string) {
-    if (key === 'jev-config') return <JevSettings />;
+    if (key === 'jev-config') return <JevPanel />;
     const fields = panels.find(panel => panel.key === key)!.fields;
     if (key === 'ai-providers') {
       const providers = Object.keys(labels);
       return <div id={key} className="settings-stack">
-        <Card size="small" title="AI 提供者" extra={<Tag>默认：{labels[defaultProvider] || defaultProvider}</Tag>}>
-          <Collapse defaultActiveKey={[defaultProvider]} items={providers.map(provider => ({
-            key: provider, label: <Space>{labels[provider]}<Tag>{provider === 'landppt' || data.providerStatus[provider] ? '可用' : '未配置'}</Tag></Space>,
+        <Card size="small" title={<span className="config-card-title"><ApiOutlined aria-hidden />AI 提供者</span>} extra={<Tag className="config-default-tag">默认：{labels[defaultProvider] || defaultProvider}</Tag>}>
+          <Collapse className="provider-collapse" defaultActiveKey={[defaultProvider]} items={providers.map(provider => ({
+            key: provider, label: <div className="provider-heading"><span className={`provider-mark${defaultProvider === provider ? ' provider-mark--default' : ''}`}>{providerMarks[provider]}</span><strong>{labels[provider]}</strong><Tag className="provider-status" icon={provider === 'landppt' || data.providerStatus[provider] ? <CheckCircleOutlined aria-hidden /> : undefined}>{provider === 'landppt' || data.providerStatus[provider] ? '可用' : '未配置'}</Tag></div>,
             children: <>
               {provider === 'landppt' && <Alert type="info" showIcon title="LandPPT 服务凭据由管理员统一维护，此处仅设置当前账号的模型。" description={data.user?.is_admin ? <a href="/admin/community#system-defaults">前往后台管理 / 系统默认配置</a> : undefined} />}
               {fieldsGrid(fields.filter(field => field.section === provider))}
-              <div className="settings-actions"><Radio checked={defaultProvider === provider} disabled={!!pending || loading} onChange={() => run(`default-${provider}`, async signal => { await request('/api/config/default-provider', 'POST', { provider }, signal); setDefaultProvider(provider); message.success('默认提供者已更新'); })}>设为默认</Radio><Space wrap><Button disabled={!!pending || loading} loading={pending === `test-${provider}`} icon={<ApiOutlined aria-hidden />} onClick={() => testProvider(provider)}>测试连接</Button><Button type="primary" disabled={!!pending || loading} loading={pending === `save-${provider}`} onClick={() => save(fields.filter(field => field.section === provider), 'ai_providers', `save-${provider}`)}>保存 {labels[provider]}</Button></Space></div>
+              <div className="settings-actions"><Radio aria-label="设为默认" checked={defaultProvider === provider} disabled={!!pending || loading} onChange={() => chooseDefault(provider)}>{defaultProvider === provider ? '当前默认' : '设为默认'}</Radio><Space wrap><Tooltip title={`测试 ${labels[provider]} 连接`}><Button aria-label="测试连接" disabled={!!pending || loading} loading={pending === `test-${provider}`} icon={<ApiOutlined aria-hidden />} onClick={() => testProvider(provider)} /></Tooltip><Button type="primary" aria-label={`保存 ${labels[provider]}`} icon={<SaveOutlined aria-hidden />} disabled={!!pending || loading} loading={pending === `save-${provider}`} onClick={() => save(fields.filter(field => field.section === provider), 'ai_providers', `save-${provider}`)}>保存</Button></Space></div>
             </>,
           }))} />
         </Card>
-        <Collapse items={[{ key: 'roles', label: '模型任务配置', children: <>{fieldsGrid(fields.filter(field => field.section === '模型任务配置'))}<Button type="primary" disabled={!!pending || loading} loading={pending === 'roles'} onClick={() => save(fields.filter(field => field.section === '模型任务配置'), 'model_roles', 'roles')}>保存模型任务配置</Button></> }]} />
+        <Collapse className="model-roles-collapse" items={[{ key: 'roles', label: <span className="config-card-title"><BranchesOutlined aria-hidden />模型任务配置</span>, children: <>{fieldsGrid(fields.filter(field => field.section === '模型任务配置'))}<Button type="primary" aria-label="保存模型任务配置" icon={<SaveOutlined aria-hidden />} disabled={!!pending || loading} loading={pending === 'roles'} onClick={() => save(fields.filter(field => field.section === '模型任务配置'), 'model_roles', 'roles')}>保存</Button></> }]} />
       </div>;
     }
     const sections = [...new Set(fields.map(field => field.section))];
@@ -188,15 +229,17 @@ export default function Settings({ data }: { data: ApiData }) {
         const imagePath = String(result.image_path || result.image_url || result.image?.url || '');
         const image = imagePath.startsWith('http') ? new URL(imagePath).pathname : imagePath.startsWith('/') ? imagePath : imagePath ? `/images/${imagePath}` : '';
         setTestResult({ title: '图片生成测试', message: result.message || '图片生成成功', image });
-      })}>测试生成</Button>}<Button type="primary" icon={<SaveOutlined aria-hidden />} disabled={!!pending || loading} loading={pending === key} onClick={() => save(fields, categories[key], key)}>{saveLabels[key]}</Button></Space></div>
+      })} icon={<PictureOutlined aria-hidden />}>测试生成</Button>}<Button type="primary" aria-label={saveLabels[key]} icon={<SaveOutlined aria-hidden />} disabled={!!pending || loading} loading={pending === key} onClick={() => save(fields, categories[key], key)}>保存</Button></Space></div>
       {key === 'image-service' && <Alert type={imageStatus.status === 'ok' ? 'success' : 'warning'} showIcon title={`服务状态：${imageStatus.status === 'ok' && imageStatus.available_providers?.length ? '正常运行' : '服务异常'}`} description={`可用提供者：${(imageStatus.available_providers || []).join('、') || '暂无'}`} />}
-      {sections.map(section => <Card size="small" title={section} key={section}>{fieldsGrid(fields.filter(field => field.section === section))}</Card>)}
+      {sections.map(section => <Card size="small" className="config-section-card" title={<span className="config-card-title">{tabIcons[key]}{section}</span>} key={section}>{fieldsGrid(fields.filter(field => field.section === section))}</Card>)}
     </div>;
   }
-  return <div className="settings-page">
-    <div className="page-heading"><div><h1>系统配置管理</h1><p>管理 AI、生成参数与应用服务</p></div></div>
+  // Keep pane elements stable when only the selected tab or feedback changes.
+  const tabItems = useMemo(() => panels.map(panel => ({ key: panel.key, label: panel.label, icon: tabIcons[panel.key], children: renderPanel(panel.key) })), [panels, drafts, fieldErrors, models, pending, loading, defaultProvider, imageStatus, initial, data, change, fetchModels, run, message]);
+  return <div className="settings-page configuration-page">
+    <div className="page-heading config-heading"><div><span className="config-heading-icon"><SettingOutlined aria-hidden /></span><div><h1>系统配置管理</h1><p>管理 AI、生成参数与应用服务</p></div></div></div>
     {error && <Alert className="page-error" role="alert" type="error" showIcon title={error} closable onClose={() => setError('')} />}
-    <Tabs aria-label="系统配置分类" activeKey={active} onChange={setActive} items={panels.map(panel => ({ key: panel.key, label: panel.label, children: renderPanel(panel.key) }))} />
+    <Tabs aria-label="系统配置分类" animated={false} activeKey={active} onChange={setActive} items={tabItems} />
     <Modal title={testResult?.title} modalRender={modalFocus} open={!!testResult} onCancel={() => setTestResult(null)} afterClose={() => testTrigger.current?.focus()} footer={<Button onClick={() => setTestResult(null)}>关闭测试结果</Button>}>
       <p className="test-result-copy">{testResult?.message}</p>{testResult?.image && <img className="test-result-image" src={testResult.image} alt="图片生成测试结果" />}
     </Modal>

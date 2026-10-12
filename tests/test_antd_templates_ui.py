@@ -554,14 +554,15 @@ def test_package_editor_is_lazy_and_existing_ai_controls_remain_visible(ui_page)
     page.locator('[data-package-id="11"]').get_by_role(
         "button", name="编辑草稿", exact=True
     ).click()
-    page.locator(".package-workspace").wait_for()
+    workspace = page.locator(".package-ant-workspace")
+    workspace.wait_for()
     for field in ["此页修改要求", "整套模板修改要求"]:
-        box = page.get_by_label(field, exact=True).bounding_box()
+        if field == "整套模板修改要求":
+            workspace.get_by_text("AI 编辑", exact=True).click()
+        box = workspace.get_by_role("textbox", name=field, exact=True).bounding_box()
         assert box["y"] >= 0 and box["y"] + box["height"] <= 844
-    page.locator(".package-workspace header").get_by_role(
-        "button", name="关闭", exact=True
-    ).click()
-    page.locator(".package-workspace").wait_for(state="detached")
+    workspace.get_by_role("button", name="关闭", exact=True).click()
+    workspace.wait_for(state="detached")
 
 
 def test_regular_json_export_and_html_import_preserve_content(ui_page):
@@ -587,7 +588,9 @@ def test_package_pptx_import_opens_existing_slot_analyser_without_ai_call(ui_pag
     state = template_api(page)
     management(page, load, "packages")
     page.get_by_role("button", name="从 PPTX 创建", exact=True).click()
-    expect(page.locator(".pptx-import")).to_be_visible()
+    expect(
+        page.get_by_role("dialog", name="从 PPTX 创建模板包", exact=True)
+    ).to_be_visible()
     assert not state["writes"]
 
 

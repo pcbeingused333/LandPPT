@@ -75,7 +75,7 @@ function applyThumbnailPreviewScaleToAll() {
 
 // 点击其他地方隐藏右键菜单
 document.addEventListener('click', function (event) {
-    if (!event.target.closest('.context-menu')) {
+    if (!event.target.closest('.context-menu, .editor-thumbnail-menu')) {
         hideContextMenu();
     }
 });

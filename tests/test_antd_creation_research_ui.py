@@ -680,3 +680,96 @@ def test_creation_submit_bar_keeps_footer_links_accessible(ui_page, width, heigh
     assert link.evaluate(
         "el => { const r = el.getBoundingClientRect(); return document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2)?.closest('a') === el; }"
     )
+
+
+@pytest.mark.parametrize("width,height", [(1920, 1080), *SIZES])
+def test_creation_width_matches_dashboard_workspace(ui_page, width, height):
+    page, load = ui_page
+    page.set_viewport_size(dict(width=width, height=height))
+    state = api(page)
+    load("pages/project/project_dashboard.html", path="/dashboard")
+    page.get_by_role("heading", name="项目仪表板", exact=True).wait_for()
+    dashboard = page.locator(".page-heading").bounding_box()
+    load("pages/project/scenarios.html", path="/scenarios", scenarios=SCENARIOS)
+    page.get_by_role("heading", name="创建 PPT", exact=True).wait_for()
+    creation_bounds = page.locator(
+        ".create-project-page > .page-heading"
+    ).bounding_box()
+    assert abs(creation_bounds["x"] - dashboard["x"]) <= 1
+    assert abs(creation_bounds["width"] - dashboard["width"]) <= 1
+    assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
+    assert not state["writes"]
+
+
+def readable_select(element):
+    """Measure rendered contrast, including the open select's inherited opacity."""
+    return element.evaluate(
+        """e => {
+      const rgb = value => value.match(/[\\d.]+/g).slice(0, 3).map(Number);
+      const luminance = values => values.map(v => v / 255).map(v => v <= .04045 ? v / 12.92 : ((v + .055) / 1.055) ** 2.4).reduce((s, v, i) => s + v * [.2126, .7152, .0722][i], 0);
+      let background = [255, 255, 255], opacity = 1;
+      for (let node = e; node; node = node.parentElement) {
+        const style = getComputedStyle(node);
+        opacity *= Number(style.opacity);
+        if (style.backgroundColor !== 'rgba(0, 0, 0, 0)') { background = rgb(style.backgroundColor); break; }
+      }
+      const foreground = rgb(getComputedStyle(e).color).map((v, i) => v * opacity + background[i] * (1 - opacity));
+      const values = [luminance(foreground), luminance(background)].sort((a, b) => a - b);
+      return (values[1] + .05) / (values[0] + .05);
+    }"""
+    )
+
+
+@pytest.mark.parametrize("width", [1440, 320])
+@pytest.mark.parametrize(
+    "name,current,choice,key,steps",
+    [
+        ("生成方式", "自由设计", "快速模式（模板包）", "ArrowUp", 1),
+        ("场景", "科技技术", "通用", "ArrowDown", 1),
+        ("目标受众", "普通大众", "自定义", "ArrowUp", 1),
+        ("页数", "AI 智能决定", "自定义范围", "ArrowUp", 1),
+        ("PPT 风格", "通用场景", "自定义风格", "ArrowUp", 2),
+        ("语言", "中文", "English", "ArrowUp", 1),
+        ("页面绘制方式", "HTML（默认）", "SVG（实验）", "ArrowUp", 1),
+    ],
+)
+def test_creation_selects_remain_readable_and_support_mouse_and_keyboard(
+    ui_page, width, name, current, choice, key, steps
+):
+    page, load = ui_page
+    page.set_viewport_size(dict(width=width, height=900))
+    state = api(page)
+    creation(page, load)
+    combo = page.get_by_role("combobox", name=name, exact=True)
+    content = combo.locator("..")
+    expect(content).to_have_attribute("title", current)
+    combo.click()
+    expect(combo).to_have_attribute("aria-expanded", "true")
+    assert readable_select(content) >= 4.5
+    selected = page.locator(
+        ".ant-select-dropdown:visible .ant-select-item-option-selected"
+    )
+    assert readable_select(selected) >= 4.5
+    selected.hover()
+    assert readable_select(selected) >= 4.5
+    option = page.locator(
+        ".ant-select-dropdown:visible .ant-select-item-option-content"
+    ).get_by_text(choice, exact=True)
+    option.click()
+    expect(content).to_have_attribute("title", choice)
+    expect(combo).to_have_attribute("aria-expanded", "false")
+    combo.press("ArrowDown")
+    active = page.locator(".ant-select-dropdown:visible .ant-select-item-option-active")
+    expect(active).to_have_text(choice)
+    for _ in range(steps):
+        combo.press(key)
+    expect(active).to_have_text(current)
+    assert readable_select(active) >= 4.5
+    combo.press("Enter")
+    expect(content).to_have_attribute("title", current)
+    expect(combo).to_have_attribute("aria-expanded", "false")
+    combo.click()
+    combo.press("Escape")
+    expect(content).to_have_attribute("title", current)
+    expect(combo).to_have_attribute("aria-expanded", "false")
+    assert not state["writes"]

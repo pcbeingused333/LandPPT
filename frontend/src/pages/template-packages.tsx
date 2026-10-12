@@ -4,6 +4,7 @@ import { PlusOutlined, ReloadOutlined, UploadOutlined } from '@ant-design/icons'
 import { request, errorText, type ApiData } from '../api';
 import { useAdminActions } from '../components/admin-data';
 import { modalFocus } from '../components/modal-focus';
+import { PackageDialogs } from '../components/package-dialogs';
 import { downloadTemplate, families, packageAPI, packageStatuses, packageWorkspace, postStream, TemplateFrame, TemplateMore, TemplatePreview, templateAPI, useTemplateModalFocus } from '../components/templates';
 
 export default function TemplatePackages({ preferred = 0, selecting = false, busy = false, onSelect }: { preferred?: number; selecting?: boolean; busy?: boolean; onSelect?: (pkg: ApiData, options: ApiData) => Promise<void> }) {
@@ -52,6 +53,7 @@ export default function TemplatePackages({ preferred = 0, selecting = false, bus
     });
   }
   return <section className="template-package-catalogue" aria-label="模板包列表">
+    <PackageDialogs />
     <div className="template-toolbar">
       <Select aria-label="模板包状态" value={filter} onChange={value => { setFilter(value); setPage(1); }} options={[{ value: 'all', label: '全部版本' }, ...Object.entries(packageStatuses).map(([value, label]) => ({ value, label }))]} />
       <Button aria-label="刷新模板包" icon={<ReloadOutlined aria-hidden />} disabled={loading || disabled} onClick={load}>刷新</Button>
@@ -66,6 +68,7 @@ export default function TemplatePackages({ preferred = 0, selecting = false, bus
     {error && <Alert className="page-error" type="error" title={error} action={<Button onClick={load} disabled={disabled}>重新加载</Button>} />}
     {actions.error && <Alert className="page-error" type="error" title={actions.error} />}
     {loading && <p role="status"><Spin size="small" /> 正在加载模板包…</p>}
+    {working && !loading && <p role="status"><Spin size="small" /> 正在处理模板包操作…</p>}
     {!loading && !visible.length && <Empty description={packages.length ? '没有符合条件的模板包版本' : '还没有模板包，可添加内置包或创建自己的设计'} />}
     <div className="template-grid">{visible.slice((current - 1) * size, current * size).map(pkg => {
       const components: ApiData[] = pkg.manifest.components || [];
