@@ -437,9 +437,10 @@ function exportSingleSlideHTML() {
 }
 
 async function showShareDialog() {
+    let loading;
     try {
         // 显示加载提示
-        showNotification('正在生成分享链接...', 'info');
+        loading = Notify.toast('正在生成分享链接...', { type: 'info', duration: 0 });
 
         // 调用API生成分享链接
         const response = await fetch(`/api/projects/${window.landpptEditorConfig.projectId}/share/generate`, {
@@ -510,7 +511,10 @@ if (narrationUrlBox) narrationUrlBox.textContent = narrationUrl;
 
 // Actions
 const actions = modal.querySelector('#lpShareActions');
-const close = () => modal.remove();
+const close = () => {
+    document.removeEventListener('keydown', onKeyDown);
+    modal.remove();
+};
 const makeBtn = (text, iconClass, className, onClick) => {
     const btn = document.createElement('button');
     btn.type = 'button';
@@ -554,16 +558,18 @@ modal.querySelector('.lp-share-modal-close')?.addEventListener('click', close);
 const onKeyDown = (e) => {
     if (e.key === 'Escape') {
         close();
-        document.removeEventListener('keydown', onKeyDown);
     }
 };
 document.addEventListener('keydown', onKeyDown);
 
-showNotification('分享链接已生成', 'success');
+if (!document.querySelector('.editor-ant-toolbar')) showNotification('分享链接已生成', 'success');
 
     } catch (error) {
     console.error('Error generating share link:', error);
     showNotification('生成分享链接失败: ' + error.message, 'error');
+} finally {
+    if (typeof loading === 'function') loading();
+    else loading?.querySelector('button')?.click();
 }
 }
 
@@ -581,7 +587,9 @@ async function disableSharing() {
         }
 
         // 关闭对话框
-        document.querySelector('.lp-share-modal')?.remove();
+        const modal = document.querySelector('.lp-share-modal');
+        const close = modal?.querySelector('.lp-share-modal-close');
+        if (close) close.click(); else modal?.remove();
         showNotification('分享已禁用', 'success');
 
     } catch (error) {

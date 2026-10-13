@@ -153,7 +153,9 @@ def setup(
         narration_video_tools_enabled=not restricted,
         enable_auto_layout_repair=not restricted,
     )
-    page.locator(".editor-toolbar" if native else ".editor-ant-toolbar").wait_for()
+    # Retired toolbar nodes are inert/hidden even without React; the native
+    # preview remains the controller's visible initialization boundary.
+    page.locator("#slideFrame" if native else ".editor-ant-toolbar").wait_for()
     return state
 
 

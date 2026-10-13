@@ -9,12 +9,14 @@ import { NativeControls, keepNativeSubmitForms, nativeSelectIsOpen } from '../co
 import { editorTaskNotice, EditorTaskPanel } from '../components/editor-task-progress';
 import { EditorThumbnailMenu, type EditorContextMenu } from '../components/editor-thumbnail-menu';
 import { EditorExportDialog, type EditorExportProgress } from '../components/editor-export-dialog';
+import { EditorShareDialog, type EditorShareLinks, type EditorShareAction } from '../components/editor-share-dialog';
+import { EditorQuickIcons } from '../components/editor-quick-icons';
 import '../components/native-surfaces.css';
 import './slides-editor.css';
 
-type DialogRecord = { key: number; node: HTMLElement; type: string[]; title: string; closable: boolean; origin: HTMLElement | null; footer?: HTMLElement | null; exportProgress?: EditorExportProgress };
+type DialogRecord = { key: number; node: HTMLElement; type: string[]; title: string; closable: boolean; origin: HTMLElement | null; footer?: HTMLElement | null; exportProgress?: EditorExportProgress; shareLinks?: EditorShareLinks };
 type EditorState = ApiData & { dialogs: DialogRecord[]; toasts: ApiData[]; contextMenu: EditorContextMenu | null };
-type Bridge = { read(): EditorState; subscribe(listener: (state: EditorState) => void): () => void; call(name: string, ...args: unknown[]): any; click(id: string): void; close(record: DialogRecord): void; runContextAction(action: string): void; dismissContextMenu(): void; cancelExport(): void; dismissExport(): void };
+type Bridge = { read(): EditorState; subscribe(listener: (state: EditorState) => void): () => void; call(name: string, ...args: unknown[]): any; click(id: string): void; close(record: DialogRecord): void; runContextAction(action: string): void; dismissContextMenu(): void; cancelExport(): void; dismissExport(): void; runShareAction(record: DialogRecord, action: EditorShareAction): void };
 const controller = () => (window as typeof window & { LandPPTEditorUI: Bridge }).LandPPTEditorUI;
 
 // Keep the exact native form nodes/listeners; Ant owns their bounded frame.
@@ -74,6 +76,15 @@ export default function SlidesEditor({ data }: { data: ApiData }) {
   useEffect(() => controller().subscribe(setState), []);
   useLayoutEffect(() => {
     const resize = () => {
+      const quickToolbar = document.getElementById('quickEditToolbar');
+      const tools = document.getElementById('editorAntToolbar');
+      const pane = document.querySelector('.editor-content');
+      if (quickToolbar && tools && pane) {
+        const width = quickToolbar.getBoundingClientRect().width, rect = pane.getBoundingClientRect();
+        const center = Math.max(8 + width / 2, Math.min(rect.left + rect.width / 2, window.innerWidth - 8 - width / 2));
+        quickToolbar.style.setProperty('--quick-toolbar-center', `${center}px`);
+        quickToolbar.style.setProperty('--quick-toolbar-top', `${Math.max(8, Math.min(tools.getBoundingClientRect().bottom + 8, window.innerHeight - quickToolbar.offsetHeight - 8))}px`);
+      }
       const wrapper = document.getElementById('slideFrameWrapper');
       if (wrapper && wrapper.clientWidth > 20 && wrapper.clientHeight > 20) controller().call('applyMainFrameScale');
       controller().call('applyThumbnailPreviewScaleToAll'); controller().call('resizeCodeMirror');
@@ -122,6 +133,7 @@ export default function SlidesEditor({ data }: { data: ApiData }) {
     </Space>
   </div>;
   return <>
+    <EditorQuickIcons />
     <EditorThumbnailMenu state={state.contextMenu} run={controller().runContextAction} dismiss={controller().dismissContextMenu} />
     {createPortal(<header className="editor-ant-header"><Button aria-label="展开或收起幻灯片列表" aria-expanded={state.sidebar} aria-controls="slidesSidebar" icon={<BarsOutlined aria-hidden />} onClick={() => controller().click('slidesSidebarToggle')} /><div className="editor-ant-title"><h1 title={data.title}>{data.title}</h1><span>{state.count ? `第 ${state.current + 1} / ${state.count} 页` : "暂无幻灯片"}{state.svg && <Tag>SVG</Tag>}</span></div><Button href="/dashboard" icon={<ArrowLeftOutlined aria-hidden />}>返回工作台</Button></header>, document.getElementById('editorAntHeader')!)}
     {createPortal(toolbar, document.getElementById('editorAntToolbar')!)}
@@ -131,6 +143,7 @@ export default function SlidesEditor({ data }: { data: ApiData }) {
     </Drawer>
     {state.dialogs.map((record, index) => record.node.id === 'exportOverlay'
       ? <EditorExportDialog key={record.key} record={record} index={index} projectTitle={data.title} cancel={controller().cancelExport} dismiss={controller().dismissExport} />
+      : record.shareLinks ? <EditorShareDialog key={record.key} record={record} index={index} projectTitle={data.title} run={action => controller().runShareAction(record, action)} dismiss={() => controller().close(record)} />
       : <EditorDialog key={record.key} record={record} index={index} tasks={record.key === taskDialog?.key ? state.toasts : []} />)}
   </>;
 }

@@ -44,6 +44,7 @@ function setQuickAiStatus(text) {
     } else {
         statusEl.classList.remove('visible');
     }
+    refreshQuickAiPopoverLayout();
 }
 
 function setQuickAiSendingState(sending) {
@@ -65,6 +66,7 @@ function setQuickAiVisionEnabledState(enabled, options = {}) {
     const btn = getQuickAiVisionBtnEl();
     if (btn) {
         btn.classList.toggle('active', quickAiVisionEnabled);
+        btn.setAttribute('aria-pressed', String(quickAiVisionEnabled));
         btn.title = quickAiVisionEnabled
             ? '关闭视觉参考（不再发送所选元素截图）'
             : '开启视觉参考（将发送所选元素截图）';
@@ -349,6 +351,7 @@ function setQuickAiPopoverMinimizedState(minimized, options = {}) {
             ? '<i class="fas fa-window-maximize"></i>'
             : '<i class="fas fa-minus"></i>';
         minBtn.title = quickAiPopoverMinimized ? '还原' : '最小化';
+        minBtn.setAttribute('aria-label', minBtn.title);
     }
 
     // 最小化时收起高度到标题栏，避免外框仍保持大高度导致“看起来没最小化”
@@ -360,8 +363,9 @@ function setQuickAiPopoverMinimizedState(minimized, options = {}) {
                 pop.dataset.quickAiPrevHeight = String(Math.round(rect.height));
             } catch (e) { }
 
-            pop.style.height = '46px';
-            pop.style.minHeight = '46px';
+            const headerHeight = Math.ceil((pop.querySelector('.quick-ai-edit-popover-header')?.getBoundingClientRect().height || 44) + 2);
+            pop.style.height = `${headerHeight}px`;
+            pop.style.minHeight = `${headerHeight}px`;
             pop.style.resize = 'horizontal';
             clampQuickAiPopoverToViewport();
         } else {
@@ -422,10 +426,42 @@ function clampQuickAiPopoverToViewport() {
     let top = rect.top;
 
     left = Math.max(margin, Math.min(left, window.innerWidth - rect.width - margin));
-    top = Math.max(margin, Math.min(top, window.innerHeight - rect.height - margin));
+    top = Math.max(quickAiPopoverTopBoundary(rect.height), Math.min(top, window.innerHeight - rect.height - margin));
 
     pop.style.left = `${left}px`;
     pop.style.top = `${top}px`;
+}
+
+function quickAiPopoverTopBoundary(height) {
+    const toolbar = document.querySelector('.editor-ant-toolbar');
+    const quickToolbar = document.getElementById('quickEditToolbar');
+    const preferred = Math.max(10, toolbar ? toolbar.getBoundingClientRect().bottom + 8 : 10,
+        quickToolbar?.classList.contains('visible') ? quickToolbar.getBoundingClientRect().bottom + 8 : 10);
+    return Math.min(preferred, Math.max(10, window.innerHeight - height - 10));
+}
+
+function fitQuickAiPopoverControls() {
+    const pop = getQuickAiPopoverEl();
+    if (!pop || pop.classList.contains('minimized')) return;
+    const header = pop.querySelector('.quick-ai-edit-popover-header');
+    const body = pop.querySelector('.quick-ai-edit-popover-body');
+    if (!header || !body) return;
+    const style = getComputedStyle(body);
+    const children = Array.from(body.children).filter(child => getComputedStyle(child).display !== 'none');
+    const contentHeight = children.reduce((height, child) => height + (child.matches('.quick-ai-edit-input')
+        ? parseFloat(getComputedStyle(child).minHeight) || 80
+        : child.getBoundingClientRect().height), 0);
+    const required = header.getBoundingClientRect().height + 2 + contentHeight
+        + (parseFloat(style.paddingTop) || 0) + (parseFloat(style.paddingBottom) || 0)
+        + Math.max(0, children.length - 1) * (parseFloat(style.gap) || 0);
+    const minimum = `${Math.ceil(Math.min(window.innerHeight - 20, Math.max(206, required)))}px`;
+    if (pop.style.minHeight !== minimum) pop.style.minHeight = minimum;
+}
+
+function refreshQuickAiPopoverLayout() {
+    if (!isQuickAiPopoverVisible()) return;
+    fitQuickAiPopoverControls();
+    clampQuickAiPopoverToViewport();
 }
 
 function saveQuickAiPopoverPosition() {
@@ -504,10 +540,13 @@ function isQuickAiPopoverVisible() {
 function hideQuickAiEditPopover(options = {}) {
     const { clearInput = false } = options || {};
     const pop = getQuickAiPopoverEl();
+    const returnFocus = pop?.contains(document.activeElement);
     if (pop) {
         pop.classList.remove('visible');
         pop.setAttribute('aria-hidden', 'true');
     }
+    document.getElementById('quickAiEditToggleBtn')?.setAttribute('aria-expanded', 'false');
+    if (returnFocus) document.getElementById('quickAiEditToggleBtn')?.focus({ preventScroll: true });
 
     if (clearInput) {
         const inputEl = getQuickAiInputEl();
@@ -553,6 +592,7 @@ function showQuickAiEditPopover(element, options = {}) {
 
     pop.classList.add('visible');
     pop.setAttribute('aria-hidden', 'false');
+    document.getElementById('quickAiEditToggleBtn')?.setAttribute('aria-expanded', 'true');
 
     if (focus) {
         inputEl.focus();
@@ -593,10 +633,10 @@ function positionQuickAiEditPopover(element) {
 
         // 优先放到元素上方，空间不足则放下方
         let top = targetTop - popH - 12;
-        if (top < margin) {
+        if (top < quickAiPopoverTopBoundary(popH)) {
             top = targetBottom + 12;
         }
-        top = Math.max(margin, Math.min(top, window.innerHeight - popH - margin));
+        top = Math.max(quickAiPopoverTopBoundary(popH), Math.min(top, window.innerHeight - popH - margin));
 
         pop.style.left = `${left}px`;
         pop.style.top = `${top}px`;
@@ -615,6 +655,7 @@ function initializeQuickAiEditPopover() {
                 quickAiEditApply();
             } else if (e.key === 'Escape') {
                 e.preventDefault();
+                e.stopPropagation();
                 hideQuickAiEditPopover({ clearInput: false });
             }
         });
@@ -699,13 +740,18 @@ function initializeQuickAiEditPopover() {
     if (pop && !pop._quickAiResizeObserver) {
         try {
             const ro = new ResizeObserver(() => {
-                // 避免在隐藏状态下写入怪尺寸
-                if (!isQuickAiPopoverVisible()) return;
-                if (pop.classList.contains('minimized')) return;
-                clampQuickAiPopoverToViewport();
-                saveQuickAiPopoverSize();
+                if (pop._quickAiSizingFrame) return;
+                // Apply sizing in the next frame, outside observer delivery.
+                pop._quickAiSizingFrame = requestAnimationFrame(() => {
+                    pop._quickAiSizingFrame = null;
+                    if (!isQuickAiPopoverVisible() || pop.classList.contains('minimized')) return;
+                    fitQuickAiPopoverControls();
+                    clampQuickAiPopoverToViewport();
+                    saveQuickAiPopoverSize();
+                });
             });
             ro.observe(pop);
+            pop.querySelectorAll('.quick-ai-edit-popover-header,.quick-ai-edit-actions,.quick-ai-edit-status,.quick-ai-edit-result').forEach(node => ro.observe(node));
             pop._quickAiResizeObserver = ro;
         } catch (e) {
             // ResizeObserver not supported
@@ -849,6 +895,7 @@ function clearQuickAiResultBar() {
     if (!el) return;
     el.innerHTML = '';
     el.classList.remove('visible');
+    refreshQuickAiPopoverLayout();
 }
 
 function setQuickAiResultBar(buttons) {
@@ -857,6 +904,7 @@ function setQuickAiResultBar(buttons) {
     el.innerHTML = '';
     buttons.filter(Boolean).forEach(btn => el.appendChild(btn));
     el.classList.toggle('visible', el.childElementCount > 0);
+    refreshQuickAiPopoverLayout();
 }
 
 function makeQuickAiResultButton(label, icon, variant, onClick) {

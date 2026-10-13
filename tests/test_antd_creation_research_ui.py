@@ -675,11 +675,21 @@ def test_creation_submit_bar_keeps_footer_links_accessible(ui_page, width, heigh
     page.set_viewport_size(dict(width=width, height=height))
     creation(page, load)
     page.evaluate("window.scrollTo(0, document.documentElement.scrollHeight)")
-    link = page.get_by_role("link", name="GitHub", exact=True)
-    expect(link).to_be_visible()
-    assert link.evaluate(
-        "el => { const r = el.getBoundingClientRect(); return document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2)?.closest('a') === el; }"
-    )
+    for name, href in [
+        ("GitHub", "https://github.com/sligter/LandPPT"),
+        ("商务合作", "mailto:support@landppt.com"),
+    ]:
+        link = page.get_by_role("link", name=name, exact=True)
+        expect(link).to_be_visible()
+        expect(link).to_have_attribute("href", href)
+        assert link.inner_text() == ""
+        assert link.locator("svg").count() == 1
+        assert link.bounding_box()["height"] >= (44 if width <= 600 else 32)
+        assert link.evaluate(
+            "el => { const r = el.getBoundingClientRect(); return document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2)?.closest('a') === el; }"
+        )
+        link.focus()
+        expect(page.get_by_role("tooltip")).to_have_text(name)
 
 
 @pytest.mark.parametrize("width,height", [(1920, 1080), *SIZES])

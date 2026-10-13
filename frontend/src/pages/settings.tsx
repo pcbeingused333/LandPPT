@@ -16,6 +16,40 @@ const tabIcons: Record<string, React.ReactNode> = { 'ai-providers': <ApiOutlined
 const providerMarks: Record<string, string> = { landppt: 'LP', openai: 'O', anthropic: 'A', google: 'G' };
 type Drafts = { read: (name: string) => unknown; subscribe: (listener: () => void) => () => void };
 
+const SettingsSection = memo(function SettingsSection({ fields, drafts, title, children, dependencies = [] }: {
+  fields: Field[]; drafts: Drafts; title: React.ReactNode; children: React.ReactNode; dependencies?: string[];
+}) {
+  const visible = useSyncExternalStore(drafts.subscribe, () => dependencies.every(name => bool(drafts.read(name))) && fields.some(field => field.dependencies.every(name => bool(drafts.read(name)))));
+  if (!visible) return null;
+  return <Card size="small" className="config-section-card" title={title}>{children}</Card>;
+});
+
+const imageCredentialGroups = [
+  { key: 'dalle', label: 'DALL-E', pattern: /^openai_api_key_image$/ },
+  { key: 'siliconflow', label: 'SiliconFlow', pattern: /^siliconflow_/ },
+  { key: 'gemini', label: 'Gemini 图片生成', pattern: /^gemini_image_/ },
+  { key: 'openai_image', label: 'OpenAI 图片生成', pattern: /^openai_image_/ },
+  { key: 'pollinations', label: 'Pollinations', pattern: /^pollinations_/ },
+  { key: 'network', label: '网络搜索凭据', pattern: /^(unsplash_access_key|pixabay_api_key|searxng_host)$/ },
+];
+
+function ImageCredentials({ fields, drafts, children }: {
+  fields: Field[]; drafts: Drafts; children: (fields: Field[]) => React.ReactNode;
+}) {
+  const provider = useSyncExternalStore(drafts.subscribe, () => String(drafts.read('default_ai_image_provider') || 'dalle'));
+  const [expanded, setExpanded] = useState<string | string[]>(provider);
+  useEffect(() => { setExpanded(provider); }, [provider]);
+  const groups = imageCredentialGroups.map(group => ({ ...group, fields: fields.filter(field => group.pattern.test(field.name)) })).filter(group => group.fields.length);
+  const remaining = fields.filter(field => !imageCredentialGroups.some(group => group.pattern.test(field.name)));
+  return <Card size="small" className="image-credentials-card" title={<span className="config-card-title"><ApiOutlined aria-hidden />提供者与凭据</span>}>
+    <p className="image-credentials-help subtle">展开需要使用的服务，填写密钥与模型；收起不会清除配置。</p>
+    <Collapse className="image-credentials-collapse" accordion activeKey={expanded} onChange={setExpanded} items={groups.map(group => ({
+      key: group.key, label: <span className="image-credential-heading"><strong>{group.label}</strong>{group.key === provider && <Tag>默认</Tag>}</span>, forceRender: true, children: children(group.fields),
+    }))} />
+    {remaining.length > 0 && children(remaining)}
+  </Card>;
+}
+
 const SettingsField = memo(function SettingsField({ field, drafts, initialValue, pending, error, models, change, fetchModels }: {
   field: Field; drafts: Drafts; initialValue: unknown; pending: string; error?: string;
   models?: Field['options']; change: (name: string, value: unknown) => void; fetchModels: (field: Field) => Promise<void>;
@@ -220,6 +254,13 @@ export default function Settings({ data }: { data: ApiData }) {
       </div>;
     }
     const sections = [...new Set(fields.map(field => field.section))];
+    const sectionCard = (section: string, dependencies?: string[]) => {
+      const sectionFields = fields.filter(field => field.section === section);
+      return <SettingsSection key={section} fields={sectionFields} drafts={drafts} dependencies={dependencies} title={<span className="config-card-title">{tabIcons[key]}{key === 'image-service' ? section.replace(/^详细配置 · /, '') : section}</span>}>{fieldsGrid(sectionFields)}</SettingsSection>;
+    };
+    const imageBase = fields.filter(field => field.name === 'enable_image_service' || field.dependencies.includes('enable_image_service'));
+    const imageCredentials = fields.filter(field => !field.dependencies.length && field.name !== 'enable_image_service');
+    const imageDetails = sections.filter(section => fields.some(field => field.section === section && field.dependencies.length && !field.dependencies.includes('enable_image_service')));
     return <div id={key} className="settings-stack">
       <div className="settings-savebar"><span className="subtle">{loading ? '正在读取配置…' : '保存后应用当前配置'}</span><Space>{key === 'image-service' && <Button disabled={!!pending || loading} loading={pending === 'test-image'} onClick={() => run('test-image', async signal => {
         const config = valuesRef.current; const provider = config.default_ai_image_provider || 'dalle';
@@ -231,7 +272,18 @@ export default function Settings({ data }: { data: ApiData }) {
         setTestResult({ title: '图片生成测试', message: result.message || '图片生成成功', image });
       })} icon={<PictureOutlined aria-hidden />}>测试生成</Button>}<Button type="primary" aria-label={saveLabels[key]} icon={<SaveOutlined aria-hidden />} disabled={!!pending || loading} loading={pending === key} onClick={() => save(fields, categories[key], key)}>保存</Button></Space></div>
       {key === 'image-service' && <Alert type={imageStatus.status === 'ok' ? 'success' : 'warning'} showIcon title={`服务状态：${imageStatus.status === 'ok' && imageStatus.available_providers?.length ? '正常运行' : '服务异常'}`} description={`可用提供者：${(imageStatus.available_providers || []).join('、') || '暂无'}`} />}
-      {sections.map(section => <Card size="small" className="config-section-card" title={<span className="config-card-title">{tabIcons[key]}{section}</span>} key={section}>{fieldsGrid(fields.filter(field => field.section === section))}</Card>)}
+      {key === 'image-service' ? <>
+        <div className="image-source-settings"><SettingsSection fields={imageBase} drafts={drafts} title={<span className="config-card-title"><PictureOutlined aria-hidden />图片来源</span>}>{fieldsGrid(imageBase)}</SettingsSection></div>
+        <div className="image-settings-grid">
+          <div className="settings-stack">
+            {imageDetails.filter(section => fields.some(field => field.section === section && field.dependencies.includes('enable_ai_generation'))).map(section => sectionCard(section, ['enable_image_service']))}
+          </div>
+          <div className="settings-stack">
+            {imageDetails.filter(section => fields.some(field => field.section === section && !field.dependencies.includes('enable_ai_generation'))).map(section => sectionCard(section, ['enable_image_service']))}
+            <ImageCredentials fields={imageCredentials} drafts={drafts}>{fieldsGrid}</ImageCredentials>
+          </div>
+        </div>
+      </> : sections.map(section => sectionCard(section))}
     </div>;
   }
   // Keep pane elements stable when only the selected tab or feedback changes.

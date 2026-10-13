@@ -1045,6 +1045,10 @@ def test_settings_layout_keeps_original_save_payload(
     page.get_by_role("tab", name=labels[tab], exact=True).click()
     if category == "model_roles":
         page.locator(".ant-collapse-header").filter(has_text="模型任务配置").click()
+    if category == "image_service":
+        page.locator(".image-credentials-collapse .ant-collapse-header").filter(
+            has_text="OpenAI 图片生成"
+        ).click()
     page.locator(f'input[name="{field}"]').fill(value)
     page.get_by_role("button", name=button, exact=True).click()
     page.wait_for_timeout(100)

@@ -81,7 +81,15 @@ class ProjectRepository:
         result = await self.session.execute(stmt)
         return result.scalar_one_or_none()
     
-    async def list_projects(self, user_id: Optional[int] = None, page: int = 1, page_size: int = 10, status: Optional[str] = None) -> List[Project]:
+    @staticmethod
+    def _search_filter(search: str):
+        return or_(
+            Project.title.icontains(search.strip(), autoescape=True),
+            Project.topic.icontains(search.strip(), autoescape=True),
+            Project.project_id.icontains(search.strip(), autoescape=True),
+        )
+
+    async def list_projects(self, user_id: Optional[int] = None, page: int = 1, page_size: int = 10, status: Optional[str] = None, search: Optional[str] = None) -> List[Project]:
         """List projects with pagination. If user_id is provided, filters by owner."""
         user_id = _effective_user_id(user_id)
         stmt = select(Project).options(
@@ -94,6 +102,8 @@ class ProjectRepository:
             stmt = stmt.where(Project.user_id == user_id)
         if status:
             stmt = stmt.where(Project.status == status)
+        if search and search.strip():
+            stmt = stmt.where(self._search_filter(search))
         
         stmt = stmt.order_by(Project.updated_at.desc())
         stmt = stmt.offset((page - 1) * page_size).limit(page_size)
@@ -101,7 +111,7 @@ class ProjectRepository:
         result = await self.session.execute(stmt)
         return result.scalars().all()
     
-    async def count_projects(self, user_id: Optional[int] = None, status: Optional[str] = None) -> int:
+    async def count_projects(self, user_id: Optional[int] = None, status: Optional[str] = None, search: Optional[str] = None) -> int:
         """Count total projects. If user_id is provided, counts only that user's projects."""
         user_id = _effective_user_id(user_id)
         stmt = select(func.count(Project.id))
@@ -109,6 +119,8 @@ class ProjectRepository:
             stmt = stmt.where(Project.user_id == user_id)
         if status:
             stmt = stmt.where(Project.status == status)
+        if search and search.strip():
+            stmt = stmt.where(self._search_filter(search))
 
         result = await self.session.execute(stmt)
         return result.scalar() or 0

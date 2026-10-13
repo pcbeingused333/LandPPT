@@ -99,11 +99,15 @@ class DatabaseProjectManager:
     
     async def list_projects(self, page: int = 1, page_size: int = 10,
                           status: Optional[str] = None,
-                          user_id: Optional[int] = None) -> ProjectListResponse:
+                          user_id: Optional[int] = None,
+                          search: Optional[str] = None) -> ProjectListResponse:
         """List projects with pagination. If user_id is provided, filters by owner."""
         db_service = await self._get_db_service()
         try:
-            return await db_service.list_projects(page, page_size, status, user_id=user_id)
+            return await db_service.list_projects(
+                page, page_size, status, user_id=user_id,
+                **({"search": search} if search else {}),
+            )
         finally:
             await db_service.session.close()
     

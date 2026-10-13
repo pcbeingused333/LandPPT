@@ -28,6 +28,13 @@
             cancelVisible: !!shown(button), cancelDisabled: !!button?.disabled, cancelLabel,
         };
     }
+    function readShareLinks(node) {
+        const narration = node.querySelector('#lpNarrationBlock');
+        return {
+            presentation: node.querySelector('#lpShareUrlBox')?.textContent || '',
+            narration: narration && narration.style.display !== 'none' ? node.querySelector('#lpNarrationUrlBox')?.textContent || '' : '',
+        };
+    }
     const contextActions = ['editSlide', 'regenerateContextSlide', 'copySlide', 'pasteSlide', 'duplicateSlide', 'insertNewSlide', 'exportSingleSlideHTML', 'exportSingleSlidePptxClient', 'deleteSlide'];
     const contextActionNode = action => contextActions.includes(action) ? document.querySelector(`#contextMenu [onclick="${action}()"]`) : null;
     const contextActionDisabled = node => !node || node.disabled || node.classList.contains('disabled') || node.style.pointerEvents === 'none';
@@ -59,6 +66,7 @@
             const close = node.querySelector(record.type[2]) || Array.from(node.querySelectorAll('button')).find(button => /^(取消|关闭)$/.test(button.textContent.trim()));
             record.closable = !!close && !close.disabled && close.style.display !== 'none';
             if (node.id === 'exportOverlay') record.exportProgress = readExportProgress(node);
+            if (node.matches('.lp-share-modal')) record.shareLinks = readShareLinks(node);
             dialogs.push(record);
         });
         records.forEach((record, node) => { if (!node.isConnected || node.id === 'exportOverlay' && !shown(node)) records.delete(node); });
@@ -104,7 +112,7 @@
                     });
                 });
                 const state = read();
-                const signature = JSON.stringify({ ...state, dialogs: state.dialogs.map(item => [item.key, item.title, item.closable, !!item.footer, item.exportProgress]) });
+                const signature = JSON.stringify({ ...state, dialogs: state.dialogs.map(item => [item.key, item.title, item.closable, !!item.footer, item.exportProgress, item.shareLinks]) });
                 if (signature !== previous) { previous = signature; listener(state); }
             };
             const observer = new MutationObserver(() => { if (!queued) { queued = true; queueMicrotask(update); } });
@@ -124,6 +132,12 @@
         },
         call(name, ...args) { if (typeof window[name] === 'function') return window[name](...args); },
         click(id) { document.getElementById(id)?.click(); },
+        runShareAction(record, action) {
+            if (!record.node.isConnected || !record.node.matches('.lp-share-modal')) return;
+            const label = { copy: '复制链接', open: '打开演示', copyNarration: '复制讲解链接', openNarration: '打开讲解', disable: '禁用分享' }[action];
+            const button = Array.from(record.node.querySelectorAll('#lpShareActions button')).find(node => node.textContent.trim() === label);
+            if (button && !button.disabled) button.click();
+        },
         dismissContextMenu() { hideContextMenu(); },
         cancelExport() {
             const overlay = document.getElementById('exportOverlay'), progress = readExportProgress(overlay);

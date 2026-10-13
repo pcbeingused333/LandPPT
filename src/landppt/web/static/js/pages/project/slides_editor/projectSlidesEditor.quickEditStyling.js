@@ -82,6 +82,7 @@ function quickEditToggleBold() {
     const boldBtn = document.getElementById('boldBtn');
     if (boldBtn) {
         boldBtn.classList.toggle('active', !isBold);
+        boldBtn.setAttribute('aria-pressed', String(!isBold));
     }
 
     saveQuickEditChanges();
@@ -106,6 +107,7 @@ function quickEditToggleItalic() {
     const italicBtn = document.getElementById('italicBtn');
     if (italicBtn) {
         italicBtn.classList.toggle('active', !isItalic);
+        italicBtn.setAttribute('aria-pressed', String(!isItalic));
     }
 
     saveQuickEditChanges();
@@ -130,6 +132,7 @@ function quickEditToggleUnderline() {
     const underlineBtn = document.getElementById('underlineBtn');
     if (underlineBtn) {
         underlineBtn.classList.toggle('active', !hasUnderline);
+        underlineBtn.setAttribute('aria-pressed', String(!hasUnderline));
     }
 
     saveQuickEditChanges();
@@ -175,18 +178,21 @@ function updateStyleButtonStates() {
     if (boldBtn) {
         const isBold = computedStyle.fontWeight === 'bold' || parseInt(computedStyle.fontWeight) >= 700;
         boldBtn.classList.toggle('active', isBold);
+        boldBtn.setAttribute('aria-pressed', String(isBold));
     }
 
     // 更新斜体按钮
     const italicBtn = document.getElementById('italicBtn');
     if (italicBtn) {
         italicBtn.classList.toggle('active', computedStyle.fontStyle === 'italic');
+        italicBtn.setAttribute('aria-pressed', String(computedStyle.fontStyle === 'italic'));
     }
 
     // 更新下划线按钮
     const underlineBtn = document.getElementById('underlineBtn');
     if (underlineBtn) {
         underlineBtn.classList.toggle('active', computedStyle.textDecoration.includes('underline'));
+        underlineBtn.setAttribute('aria-pressed', String(computedStyle.textDecoration.includes('underline')));
     }
 
     // 更新颜色选择器

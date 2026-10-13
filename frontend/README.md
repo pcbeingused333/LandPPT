@@ -19,7 +19,7 @@ Dependencies and generated assets are ignored by Git.
 
 ```sh
 npm run check --prefix frontend
-python -m pytest tests/test_app_ui.py tests/test_antd_ui.py tests/test_antd_settings_performance_ui.py tests/test_antd_settings_models_ui.py tests/test_antd_navigation_ui.py tests/test_antd_projects_ui.py tests/test_antd_account_ui.py tests/test_antd_admin_ui.py tests/test_antd_admin_management_ui.py tests/test_antd_community_ui.py tests/test_antd_images_ui.py tests/test_antd_templates_ui.py tests/test_antd_creation_research_ui.py tests/test_antd_home_generator_ui.py tests/test_antd_generator_skeleton_ui.py tests/test_antd_presentation_ui.py tests/test_antd_todo_ui.py tests/test_antd_editor_ui.py tests/test_antd_editor_media_ui.py tests/test_antd_editor_context_ui.py tests/test_antd_editor_export_ui.py tests/test_antd_remaining_ui.py tests/test_template_package_workspace_ui.py -q
+python -m pytest tests/test_app_ui.py tests/test_antd_ui.py tests/test_antd_settings_performance_ui.py tests/test_antd_settings_models_ui.py tests/test_antd_settings_compact_ui.py tests/test_antd_asset_updates_ui.py tests/test_antd_navigation_ui.py tests/test_antd_projects_ui.py tests/test_antd_project_search_ui.py tests/test_antd_account_ui.py tests/test_antd_admin_ui.py tests/test_antd_admin_management_ui.py tests/test_antd_community_ui.py tests/test_antd_images_ui.py tests/test_antd_templates_ui.py tests/test_antd_creation_research_ui.py tests/test_antd_home_generator_ui.py tests/test_antd_generator_skeleton_ui.py tests/test_antd_presentation_ui.py tests/test_antd_todo_ui.py tests/test_antd_editor_ui.py tests/test_antd_editor_media_ui.py tests/test_antd_editor_context_ui.py tests/test_antd_editor_export_ui.py tests/test_antd_editor_share_ui.py tests/test_antd_quick_edit_ui.py tests/test_antd_remaining_ui.py tests/test_template_package_workspace_ui.py -q
 ```
 
 Build before installing from source or publishing Python packages. Hatch includes
@@ -34,10 +34,13 @@ Frontend CI validates this source-to-wheel release path before browser checks.
 `antd_base.html` loads the new shell without legacy page CSS. Its JSON payload
 contains explicit public user fields and page data. The entry point loads each
 page separately; an error boundary provides a refresh action if loading fails.
-The entry module uses one canonical URL without a query string, because lazy
-chunks can import shared exports from that entry. Giving the script a different
-URL would execute it twice and remount the page. Serve the stable entry with
-cache revalidation; the child chunks carry content hashes.
+`app.js` is a small, versioned loader, separate from the React application. It
+reads `manifest.json` with `cache: no-store`, then imports the content-hashed
+application entry. Shared chunks refer to that same entry URL, so React mounts
+once even if the loader has a release query. This also avoids reusing an old
+application entry from HTTP cache after a UI update. Loader, manifest, hashed
+entry, CSS and chunks must be deployed together; failed discovery offers a
+refresh action instead of silently showing an older interface.
 
 Home, dashboard, projects, creation, templates, images, configuration, project
 details, accounts, research and administration reuse the shell, React runtime
@@ -55,6 +58,11 @@ Pagination, filtering and project duplication use the same authenticated
 navigation. Outline saves and version restoration still reload authoritative
 server state. Navigation warms module code on hover/focus and while idle;
 it never prefetches private page data or mounts hidden pages to run their APIs.
+
+The footer reads its version from `frontend/package.json`. GitHub and business
+contact links use icons, accessible names and hover/focus tooltips; original
+destinations and the conditional sponsor link are retained. UI releases bump the
+template resource stamp so existing pages switch to the new build on navigation.
 
 Project details group archive/copy/delete in a click-triggered menu; preview and
 editing remain direct actions. Outline cards expose view/edit and a menu for
@@ -112,6 +120,13 @@ Nested dialogs keep focus, fixed action footers and ordered overlays; export
 progress keeps its existing cancellation availability. Ordinary buttons, text fields, checkboxes and selects now use Ant controls,
 forwarding native values, validation, shortcuts and submit events. Scoped styles
 align specialized canvas controls with black actions and neutral surfaces.
+Quick element controls retain native buttons, color pickers and editing handlers,
+with local Ant SVG icons and explicit pressed states. Normal, hover, selected,
+disabled and focus styles use the same neutral theme. The draggable AI surface
+keeps resize/minimize preferences, expands its input instead of leaving blank
+space, and fits its minimum height to visible controls so old sizes cannot clip
+Apply. It follows toolbar/viewport bounds and respects reduced motion. Escape
+closes it locally, retains the selection/draft and returns focus to its trigger.
 PPTX client and SVG conversion use a dedicated Ant dialog with file context,
 native stage messages, page counts and live progress. Missing progress remains
 indeterminate; the UI adds no timer estimates. The original cancel button and
@@ -120,6 +135,13 @@ and the backdrop keep active tasks open; failure exposes close, Escape and
 backdrop dismissal through the original failure handler. Reopening captures a
 fresh focus origin. The exporter, speaker notes, downloads and API contracts
 remain native; renderer tests isolate the external conversion library.
+Sharing uses a dedicated Ant dialog with separate presentation/narration link
+cards and copy/open icons beside read-only URLs. Narration appears only when
+the original controller provides a link. Native generation, clipboard fallback,
+new-window and disable handlers remain responsible for their requests; failed
+disable retains the dialog. Closing restores toolbar focus and removes the
+native Escape listener. The generation notice is dismissed when the request
+finishes; the enabled status in the dialog replaces a second success toast.
 Native control adapters also mirror `hidden`/`d-none` classes and restore their
 source-hiding class after controller class replacements. Speech preview and edit
 modes therefore show exactly one body/textarea, while preserving unsaved values
@@ -201,6 +223,15 @@ refresh; a late result never focuses an inactive tab. Lists keep virtual scroll,
 keyboard selection and free input where the original field allows it. Provider
 changes invalidate role lists, including roles that follow the default provider.
 
+Image settings hide the whole detail card when its source or the image service
+is disabled. Source switches stay together; active details and provider credentials
+share two columns on desktop and stack on narrow screens. Credentials use a compact
+accordion that opens the default image provider and follows provider selection.
+Closed sections and hidden sources retain their drafts and all original save
+fields. Group visibility uses the existing field subscriptions, without rerendering
+every settings tab on each keystroke. The configuration form has smaller spacing;
+mobile controls keep their 44px targets.
+
 Shell notices and notification polling still use the existing services in their
 own DOM containers. Page forms, dialogs and feedback use Ant Design. Settings
 cancel pending requests on unmount, retain edits during an initial read, and
@@ -208,6 +239,12 @@ prevent concurrent saves. Keyboard focus stays in dialogs and returns to the
 trigger after asynchronous tests.
 
 Project lists share one table/mobile-card collection and action controller.
+Search submits on Enter or its icon and matches titles, topics and project IDs
+across all pages owned by the authenticated user. The trimmed `search` query
+persists through pagination, status changes and reloads. Clearing resets the page
+while retaining the status filter. The server applies the same search to results
+and counts before pagination, retaining existing effective-status handling and
+ownership checks. Automatic list refresh pauses while its toolbar has focus.
 The dashboard uses compact linked summaries, a recent-project list and an
 active-task sidebar that stacks below projects on narrow screens. It shares the
 same action controller. Project date payloads use the server's timestamp filter

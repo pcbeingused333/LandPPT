@@ -179,7 +179,8 @@ def test_admin_entry_and_read_requests_execute_once(ui_page):
         ),
     )
     reads, writes = admin(page, load, "oauth")
-    assert entries == ["http://ui.test/static/antd/app.js"]
+    assert len(entries) == 1
+    assert entries[0].split("?")[0] == "http://ui.test/static/antd/app.js"
     assert reads == ["http://ui.test/admin/api/oauth"]
     assert not writes
 

@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PPT编辑器 - {{ project.title }}</title>
-    <link rel="stylesheet" href="/static/antd/app.css?v=20261012-editor-export">
+    <link rel="stylesheet" href="/static/antd/app.css?v=0.4.0-quick-edit-v3">
     <link rel="icon" type="image/svg+xml" href="/static/images/favicon.svg">
     <link rel="alternate icon" href="/favicon.ico">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -325,7 +325,7 @@
     </div>
 
     <!-- 快速编辑工具栏 -->
-    <div class="quick-edit-toolbar" id="quickEditToolbar">
+    <div class="quick-edit-toolbar" id="quickEditToolbar" role="toolbar" aria-label="元素快速编辑">
         <button class="quick-edit-tool-btn" onclick="quickEditUndo()" title="撤销 (Ctrl+Z)" id="undoBtn" disabled>
             <i class="fas fa-undo"></i>
         </button>
@@ -349,13 +349,13 @@
         </button>
         <span class="toolbar-divider"></span>
         <!-- 文字样式 -->
-        <button class="quick-edit-tool-btn" onclick="quickEditToggleBold()" title="粗体" id="boldBtn">
+        <button class="quick-edit-tool-btn" onclick="quickEditToggleBold()" title="粗体" id="boldBtn" aria-pressed="false">
             <i class="fas fa-bold"></i>
         </button>
-        <button class="quick-edit-tool-btn" onclick="quickEditToggleItalic()" title="斜体" id="italicBtn">
+        <button class="quick-edit-tool-btn" onclick="quickEditToggleItalic()" title="斜体" id="italicBtn" aria-pressed="false">
             <i class="fas fa-italic"></i>
         </button>
-        <button class="quick-edit-tool-btn" onclick="quickEditToggleUnderline()" title="下划线" id="underlineBtn">
+        <button class="quick-edit-tool-btn" onclick="quickEditToggleUnderline()" title="下划线" id="underlineBtn" aria-pressed="false">
             <i class="fas fa-underline"></i>
         </button>
         <span class="toolbar-divider"></span>
@@ -390,7 +390,7 @@
         </button>
         <span class="toolbar-divider"></span>
         <!-- 元素 AI 编辑 -->
-        <button class="quick-edit-tool-btn" id="quickAiEditToggleBtn" onclick="toggleQuickAiEditPopover()" title="AI雕琢">
+        <button class="quick-edit-tool-btn" id="quickAiEditToggleBtn" onclick="toggleQuickAiEditPopover()" title="AI雕琢" aria-expanded="false" aria-controls="quickAiEditPopover">
             <i class="fas fa-robot"></i>
         </button>
         <!-- 状态指示器 -->
@@ -398,15 +398,15 @@
     </div>
 
     <!-- 快捷 AI 元素编辑浮窗（快速编辑模式下：选中元素自动弹出） -->
-    <div class="quick-ai-edit-popover" id="quickAiEditPopover" aria-hidden="true">
+    <div class="quick-ai-edit-popover" id="quickAiEditPopover" role="dialog" aria-labelledby="quickAiEditTitle" aria-hidden="true">
         <div class="quick-ai-edit-popover-header" id="quickAiEditPopoverHeader">
             <div class="quick-ai-edit-popover-title">
                 <i class="fas fa-robot"></i>
-                <span>AI雕琢</span>
+                <span id="quickAiEditTitle">AI雕琢</span>
             </div>
-            <div style="display:flex; gap:8px; align-items:center;">
+            <div class="quick-ai-edit-header-actions">
                 <button class="quick-ai-edit-popover-vision" type="button" id="quickAiVisionToggleBtn"
-                    title="开启视觉参考（将发送所选元素截图）">
+                    title="开启视觉参考（将发送所选元素截图）" aria-pressed="false">
                     <i class="fas fa-eye"></i>
                 </button>
                 <button class="quick-ai-edit-popover-minimize" type="button" id="quickAiEditPopoverMinBtn" title="最小化">
@@ -419,9 +419,10 @@
             </div>
         </div>
         <div class="quick-ai-edit-popover-body">
-            <textarea class="quick-ai-edit-input" id="quickAiEditInput"
+            <textarea class="quick-ai-edit-input" id="quickAiEditInput" aria-label="修改要求" aria-describedby="quickAiEditKeyboardHint"
                 placeholder="对选中元素说：例如“把这段文字改得更简洁有力，两行以内”"></textarea>
             <div class="quick-ai-edit-actions">
+                <span class="quick-ai-edit-keyboard-hint" id="quickAiEditKeyboardHint">Enter 应用 · Shift+Enter 换行</span>
                 <button class="quick-ai-edit-btn" type="button"
                     onclick="hideQuickAiEditPopover({ clearInput: true })">取消</button>
                 <button class="quick-ai-edit-btn primary" type="button" id="quickAiEditSendBtn"
@@ -763,13 +764,13 @@
     } | tojson | safe }}</script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="/static/js/dom-to-pptx.bundle.js?v=20260911-svg-native-v1"></script>
-    <script src="/static/js/pages/project/slides_editor/projectEditorShareExport.js?v=20260707-queued-export-v1"></script>
+    <script src="/static/js/pages/project/slides_editor/projectEditorShareExport.js?v=20261013-editor-share"></script>
     <script src="/static/js/pages/project/slides_editor/projectSlidesEditor.core.js?v=20260911-svg-edit-v1"></script>
     <script src="/static/js/pages/project/slides_editor/projectSlidesEditor.agentClient.js?v=20260726-agent-loop-v2"></script>
     <script src="/static/js/pages/project/slides_editor/projectSlidesEditor.quickEdit.js?v=20260408-quick-reset-v2"></script>
-    <script src="/static/js/pages/project/slides_editor/projectSlidesEditor.quickAi.js?v=20260726-agent-loop-v2"></script>
+    <script src="/static/js/pages/project/slides_editor/projectSlidesEditor.quickAi.js?v=20261013-quick-ui-v4"></script>
     <script src="/static/js/pages/project/slides_editor/projectSlidesEditor.quickEditActions.js?v=20260408-quick-reset-v2"></script>
-    <script src="/static/js/pages/project/slides_editor/projectSlidesEditor.quickEditStyling.js?v=20260408-quick-reset-v2"></script>
+    <script src="/static/js/pages/project/slides_editor/projectSlidesEditor.quickEditStyling.js?v=20261013-quick-ui-v2"></script>
     <script src="/static/js/pages/project/slides_editor/projectSlidesEditor.svgEdit.js?v=20260913-svg-editor-v4"></script>
     <script src="/static/js/pages/project/slides_editor/projectSlidesEditor.slideImageOps.js?v=20260911-svg-edit-v1"></script>
     <script src="/static/js/pages/project/slides_editor/projectSlidesEditor.slideMediaUi.js?v=20260402-split"></script>
@@ -838,14 +839,14 @@
     <link rel="stylesheet" href="/static/css/template-packages.css?v=20261002-controls">
     <script src="/static/js/template-packages.js?v=20260925-workspace"></script>
     <script src="/static/js/pages/project/slides_editor/projectSlidesEditor.workspace.js?v=20260929-1"></script>
-    <script src="/static/js/pages/project/slides_editor/projectSlidesEditor.antBridge.js?v=20261012-editor-export"></script>
+    <script src="/static/js/pages/project/slides_editor/projectSlidesEditor.antBridge.js?v=20261013-editor-share"></script>
     <div id="antdRoot"></div>
     <script id="antdData" type="application/json">{{ {
         'page': 'slides-editor', 'projectId': project.project_id, 'title': project.title,
         'standardExport': standard_pptx_export_enabled | default(false),
         'autoRepair': enable_auto_layout_repair | default(false)
     } | tojson }}</script>
-    <script type="module" src="/static/antd/app.js"></script>
+    <script type="module" src="/static/antd/app.js?v=0.4.0-quick-edit-v3"></script>
 </body>
 
 </html>

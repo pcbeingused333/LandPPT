@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { App, Button, Drawer, Dropdown, Space } from 'antd';
-import { BellOutlined, MenuOutlined, UserOutlined, SettingOutlined, LogoutOutlined } from '@ant-design/icons';
+import { App, Button, Drawer, Dropdown, Space, Tooltip } from 'antd';
+import { BellOutlined, MenuOutlined, UserOutlined, SettingOutlined, LogoutOutlined, GithubOutlined, MailOutlined } from '@ant-design/icons';
+import { version } from '../package.json';
 import { modalFocus } from './components/modal-focus';
 import { NotificationDrawer, SiteAnnouncement } from './components/shell-feedback';
 import type { ApiData } from './api';
@@ -72,6 +73,6 @@ export function Shell({ data, children, pending = '' }: { data: ShellData; child
     <SiteAnnouncement notice={notice} />
     <NotificationDrawer open={notificationOpen} state={notifications} center={center.current} />
     <main id="appMain" tabIndex={-1} aria-busy={!!pending} className={`app-main${authPage ? ' auth-main' : ''}`}>{children}</main>
-    <footer className="app-footer">LandPPT · v0.3.3 <a href="https://github.com/sligter/LandPPT" target="_blank" rel="noreferrer">GitHub</a><a id="footerSponsorLink" className="is-hidden" href="/sponsors">赞助感谢</a><a href="mailto:support@landppt.com">商务合作</a></footer>
+    <footer className="app-footer"><span>LandPPT · v{version}</span><Tooltip title="GitHub" trigger={['hover', 'focus']}><a className="app-footer-icon" aria-label="GitHub" href="https://github.com/sligter/LandPPT" target="_blank" rel="noreferrer"><GithubOutlined aria-hidden /></a></Tooltip><a id="footerSponsorLink" className="is-hidden" href="/sponsors">赞助感谢</a><Tooltip title="商务合作" trigger={['hover', 'focus']}><a className="app-footer-icon" aria-label="商务合作" href="mailto:support@landppt.com"><MailOutlined aria-hidden /></a></Tooltip></footer>
   </div>;
 }

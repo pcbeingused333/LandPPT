@@ -3,6 +3,7 @@
 {% block page_data %}
 "page": "projects",
 "currentPage": {{ page }}, "pageSize": {{ page_size }}, "total": {{ total }}, "statusFilter": {{ status_filter | tojson }},
+"searchQuery": {{ (search_query | default('', true)) | tojson }},
 "projects": [{% for project in projects %}{
     "project_id": {{ project.project_id | tojson }}, "title": {{ project.title | tojson }}, "topic": {{ project.topic | tojson }},
     "scenario": {{ project.scenario | tojson }}, "status": {{ project.status | tojson }},

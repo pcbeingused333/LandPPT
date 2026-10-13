@@ -56,7 +56,7 @@ observability:
 
 image:
   repository: bradleylzh/landppt
-  tag: "0.3.3"
+  tag: "0.4.0"
   pullPolicy: IfNotPresent
 
 imagePullSecrets: []

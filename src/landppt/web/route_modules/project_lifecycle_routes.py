@@ -150,14 +150,17 @@ async def web_projects_list(
     page: int = 1,
     status: str | None = None,
     user: User = Depends(get_current_user_required),
+    search: str | None = None,
 ):
     """项目列表页。"""
     try:
+        search = (search or "").strip()
         projects_response = await ppt_service.project_manager.list_projects(
             page=page,
             page_size=10,
             status=status,
             user_id=user.id,
+            **({"search": search} if search else {}),
         )
         return templates.TemplateResponse(
             "pages/project/projects_list.html",
@@ -168,6 +171,7 @@ async def web_projects_list(
                 "page": projects_response.page,
                 "page_size": projects_response.page_size,
                 "status_filter": status,
+                "search_query": search,
             },
         )
     except Exception as exc:

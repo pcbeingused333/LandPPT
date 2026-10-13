@@ -8,10 +8,11 @@ export default defineConfig({
     outDir: '../src/landppt/web/static/antd',
     emptyOutDir: true,
     cssCodeSplit: false,
+    manifest: 'manifest.json',
     rolldownOptions: {
-      input: 'src/main.tsx',
+      input: { app: 'src/main.tsx', bootstrap: 'src/bootstrap.ts' },
       output: {
-        entryFileNames: 'app.js',
+        entryFileNames: chunk => chunk.name === 'bootstrap' ? 'app.js' : 'app-[hash].js',
         chunkFileNames: 'chunks/[name]-[hash].js',
         assetFileNames: 'app.[ext]',
       },

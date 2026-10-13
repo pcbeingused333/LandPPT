@@ -11,7 +11,7 @@
 
 **中文** | [English](README_EN.md)
 
-当前版本：**0.3.3**。
+当前版本：**0.4.0**。
 
 <div align="center">
   <img src="https://img.pub/p/e810c5680509b4f051a5.png" width="160" alt="LandPPT Logo" />

@@ -218,8 +218,11 @@ button, input, textarea { font: inherit; }
 .app-main .ant-card-head { border-bottom-color: #ececf0; }
 /* Keep the current value legible while a non-searchable select is open. */
 .ant-select-single.ant-select-open:not(.ant-select-show-search):not(.ant-select-disabled) .ant-select-content-has-value { opacity: 1; }
-.app-footer { display: flex; flex-wrap: wrap; justify-content: center; gap: 16px; padding: 16px 24px; color: #8a8a92; font-size: 12px; }
+.app-footer { display: flex; align-items: center; flex-wrap: wrap; justify-content: center; gap: 8px; padding: 12px 24px; color: #8a8a92; font-size: 12px; }
 .app-footer a { color: #6b7280; }
+.app-footer-icon { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 7px; font-size: 16px; }
+.app-footer-icon:hover { color: #111; background: #e8e8ec; }
+@media (max-width: 600px) { .app-footer-icon { width: 44px; height: 44px; } }
 .is-hidden { display: none !important; }
 .skip-link { position: fixed; top: -100px; left: 16px; background: #fff; padding: 8px; z-index: 2000; }
 .skip-link:focus { top: 4px; }
@@ -268,6 +271,8 @@ h2 { margin: 0; font-size: 16px; font-weight: 600; }
 .project-topic { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin: 4px 0; }
 .projects-toolbar { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; margin: 0 0 16px; }
 .projects-toolbar .ant-select { width: 160px; }
+.projects-search { flex: 1 1 280px; max-width: 380px; min-width: 0; }
+.projects-status-filter { display: flex; align-items: center; gap: 8px; min-width: 0; }
 .projects-toolbar > .subtle { margin-left: auto; }
 .projects-pagination { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-top: 16px; }
 .project-detail-hero > div { min-width: 0; }
@@ -415,6 +420,25 @@ h2 { margin: 0; font-size: 16px; font-weight: 600; }
 .configuration-page .switch-field { align-self: start; border: 1px solid #ededf0; border-radius: 8px; padding: 4px 12px; background: #fafafa; }
 .configuration-page .settings-actions > .ant-space { width: auto; }
 .configuration-page .settings-savebar { padding: 10px 12px; border: 1px solid #e2e3e7; border-radius: 9px; background: #fff; box-shadow: 0 2px 6px #17171c04; }
+.configuration-page .settings-stack { gap: 12px; }
+.configuration-page .settings-fields { margin-top: 0; row-gap: 12px; }
+.configuration-page .settings-fields .ant-form-item { margin-bottom: 0; }
+.configuration-page .settings-fields .ant-form-item-extra { min-height: 0; line-height: 1.5; }
+.image-settings-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; align-items: start; }
+.image-settings-grid > .settings-stack { min-width: 0; }
+.image-settings-grid > .settings-stack:first-child:empty { display: none; }
+.image-settings-grid:has(> .settings-stack:first-child:empty) { grid-template-columns: minmax(0, 1fr); }
+.image-source-settings .settings-fields { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.image-source-settings .switch-field:only-child { grid-column: 1 / -1; }
+.image-credentials-help { margin: 0 0 12px; font-size: 12px; }
+.image-credential-heading { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.image-credential-heading strong { font-size: 13px; font-weight: 550; }
+.image-credential-heading .ant-tag { margin: 0 0 0 auto; font-size: 11px; }
+.image-credentials-collapse .ant-collapse-header { align-items: center !important; }
+.image-credentials-collapse .ant-collapse-body { padding: 12px; }
+@media (max-width: 1100px) { .image-source-settings .settings-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 900px) { .image-settings-grid { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 600px) { .image-source-settings .settings-fields { grid-template-columns: minmax(0, 1fr); } }
 .model-list-status { display: block; margin-top: 6px; color: #777781; font-size: 11px; line-height: 1.5; }
 .settings-model-input { padding-right: 36px; }
 .settings-model-input .ant-input-suffix { position: absolute; top: 0; bottom: 0; right: 0; margin: 0; }
@@ -527,6 +551,7 @@ h2 { margin: 0; font-size: 16px; font-weight: 600; }
   .projects-pagination .ant-pagination-item-link { height: 44px; }
   .projects-toolbar > .subtle { margin-left: 0; }
   .projects-toolbar label { font-size: 13px; }
+  .projects-toolbar .projects-search .ant-btn { width: 44px; min-width: 44px; }
   .project-detail-page input, .project-detail-page textarea, .ant-modal input, .ant-modal textarea { font-size: 16px !important; }
   .detail-version-row { flex-wrap: wrap; gap: 8px; }
   .detail-version-row > .ant-btn { margin-left: auto; }

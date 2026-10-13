@@ -149,6 +149,9 @@ def test_antd_pollinations_list_keeps_only_image_models(ui_page):
         current_config={"enable_image_service": True, "enable_ai_generation": True},
     )
     page.get_by_role("tab", name="图片服务", exact=True).click()
+    page.locator(".image-credentials-collapse .ant-collapse-header").filter(
+        has_text="Pollinations"
+    ).click()
     page.get_by_role("button", name="获取模型", exact=True).click()
     page.get_by_text("已获取 1 个模型", exact=True).wait_for()
     page.locator("#field-pollinations_model").click()

@@ -310,7 +310,7 @@ def test_navigation_uses_native_server_response_when_required(ui_page, reason):
     elif reason == "assets":
         state["handlers"]["/projects"] = lambda route: route.fulfill(
             body=state["render"]("/projects").replace(
-                "20261012-config-models", "changed-release"
+                "/static/antd/app.css?v=", "/static/antd/app.css?v=changed-release-"
             ),
             content_type="text/html; charset=utf-8",
         )

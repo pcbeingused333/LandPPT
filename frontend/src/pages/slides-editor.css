@@ -40,10 +40,58 @@
 @media (max-width: 700px) {
   .editor-thumbnail-menu .ant-dropdown-menu .ant-dropdown-menu-item { min-height: 44px; }
 }
-.landppt-editor .quick-edit-toolbar, .landppt-editor .quick-ai-edit-popover { border-radius: 8px; border-color: #dedede; background: #fff; box-shadow: 0 6px 20px #0000001a; }
-.landppt-editor .quick-edit-tool-btn { min-width: 32px; min-height: 32px; border-radius: 6px; background: #fff; color: #252936; }
-.landppt-editor .quick-edit-tool-btn.active { background: #111; color: #fff; }
-.landppt-editor .quick-ai-edit-popover-title, .landppt-editor .quick-ai-edit-popover-header { color: #252936; background: #fff; }
+.landppt-editor .quick-edit-toolbar, .landppt-editor .quick-ai-edit-popover { border-radius: 10px; border-color: #dedede; background: #fff; color: #252936; box-shadow: 0 6px 24px #0000001a, 0 2px 6px #0000000a; backdrop-filter: none; }
+.landppt-editor .quick-edit-toolbar { top: var(--quick-toolbar-top, 112px); left: var(--quick-toolbar-center, 50%); max-width: calc(100vw - 16px); padding: 6px; gap: 4px; overflow-x: auto; overscroll-behavior-x: contain; transition: opacity .15s, visibility .15s; }
+.landppt-editor .quick-edit-tool-btn { flex: 0 0 32px; width: 32px; height: 32px; min-width: 32px; min-height: 32px; border-radius: 6px; background: #fff; color: #252936; font-size: 14px; transition: background .15s, color .15s; }
+.landppt-editor .quick-edit-tool-btn:hover:not(:disabled) { background: #f2f2f2; color: #111; }
+.landppt-editor .quick-edit-tool-btn.active, .landppt-editor .quick-edit-tool-btn.active:hover:not(:disabled), .landppt-editor .quick-edit-tool-btn[aria-expanded="true"], .landppt-editor .quick-edit-tool-btn[aria-expanded="true"]:hover:not(:disabled) { background: #111; color: #fff; }
+.landppt-editor .quick-edit-tool-btn.danger:hover:not(:disabled) { color: #cf1322; background: #fff1f0; }
+.landppt-editor .quick-edit-tool-btn:disabled { opacity: 1; color: #b0b0b0; background: #fafafa; }
+.landppt-editor .editor-ant-native-icon { display: inline-flex; align-items: center; justify-content: center; font-size: 14px; font-style: normal; line-height: 1; }
+.landppt-editor .editor-ant-native-icon::before { display: none; }
+.landppt-editor :is(.quick-edit-tool-btn,.quick-ai-edit-btn,.quick-ai-edit-popover-header button,.quick-edit-color-input):focus-visible { outline: 2px solid #111; outline-offset: 2px; }
+.landppt-editor .quick-edit-toolbar .toolbar-divider { flex: 0 0 1px; background: #e8e8eb; }
+.landppt-editor .quick-edit-color-input { flex: 0 0 32px; width: 32px; height: 32px; min-height: 32px; padding: 4px; border: 1px solid #dedede; border-radius: 6px; background: #fff; }
+.landppt-editor .toolbar-status { display: none; flex: 0 0 auto; color: #555; background: #f5f5f5; }
+.landppt-editor .toolbar-status.visible { display: inline-block; }
+.landppt-editor .toolbar-status.success { color: #237804; background: #f6ffed; }
+.landppt-editor .toolbar-status.warning { color: #ad6800; background: #fffbe6; }
+.landppt-editor .quick-ai-edit-popover { display: flex; flex-direction: column; width: 380px; min-width: min(280px, calc(100vw - 20px)); min-height: 206px; max-width: calc(100vw - 20px); max-height: calc(100dvh - 20px); }
+.landppt-editor .quick-ai-edit-popover-header { flex: 0 0 auto; padding: 8px 12px; border-bottom: 1px solid #e8e8eb; color: #252936; background: #fff; }
+.landppt-editor .quick-ai-edit-popover-title { color: #252936; font-size: 14px; font-weight: 600; letter-spacing: normal; }
+.landppt-editor .quick-ai-edit-header-actions { display: flex; align-items: center; gap: 6px; }
+.landppt-editor .quick-ai-edit-popover-header button { width: 32px; height: 32px; border: 1px solid #e8e8eb; border-radius: 6px; background: #fff; color: #555; }
+.landppt-editor .quick-ai-edit-popover-header button:hover { color: #111; background: #f2f2f2; }
+.landppt-editor .quick-ai-edit-popover-vision.active, .landppt-editor .quick-ai-edit-popover-vision.active:hover { border-color: #111; background: #111; color: #fff; }
+.landppt-editor .quick-ai-edit-popover-body { display: flex; flex-direction: column; flex: 1 1 auto; gap: 12px; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 12px; }
+.landppt-editor .quick-ai-edit-popover.minimized .quick-ai-edit-popover-body { display: none; }
+.landppt-editor .quick-ai-edit-input { flex: 1 0 80px; width: 100%; min-height: 80px; max-height: none; margin: 0; padding: 8px 11px; resize: none; border: 1px solid #dedede; border-radius: 6px; color: #252936; background: #fff; font-size: 14px; line-height: 1.6; }
+.landppt-editor .quick-ai-edit-input::placeholder { color: #757575; }
+.landppt-editor .quick-ai-edit-input:focus { border-color: #111; box-shadow: 0 0 0 2px #1111110d; }
+.landppt-editor .quick-ai-edit-input:disabled { color: #858585; background: #fafafa; }
+.landppt-editor .quick-ai-edit-actions { flex: 0 0 auto; flex-wrap: wrap; gap: 8px; margin: 0; }
+.landppt-editor .quick-ai-edit-keyboard-hint { margin-right: auto; color: #6b7280; font-size: 12px; }
+.landppt-editor .quick-ai-edit-btn { display: inline-flex; justify-content: center; align-items: center; gap: 6px; min-height: 32px; padding: 4px 12px; border: 1px solid #dedede; border-radius: 6px; background: #fff; color: #252936; font-size: 14px; font-weight: 400; line-height: 22px; }
+.landppt-editor .quick-ai-edit-btn:hover:not(:disabled) { border-color: #111; background: #fafafa; color: #111; }
+.landppt-editor .quick-ai-edit-btn.primary, .landppt-editor .quick-ai-edit-btn.primary:hover:not(:disabled) { border-color: #111; background: #111; color: #fff; }
+.landppt-editor .quick-ai-edit-btn:disabled { opacity: 1; border-color: #e8e8eb; background: #f5f5f5; color: #999; }
+.landppt-editor .quick-ai-edit-status { flex: 0 0 auto; margin: 0; padding: 8px 10px; border: 1px solid #e8e8eb; border-radius: 6px; color: #555; background: #fafafa; font-size: 12px; line-height: 1.6; overflow-wrap: anywhere; }
+.landppt-editor .quick-ai-edit-status.loading { color: #555; }
+.landppt-editor .quick-ai-edit-status.loading::after, .landppt-editor .quick-ai-edit-popover.loading::before { display: none; }
+.landppt-editor .quick-ai-edit-popover.loading::after { top: 0; left: 0; right: auto; width: 30%; height: 2px; border-radius: 0; background: #111; box-shadow: none; animation: editor-quick-ai-progress 1.3s linear infinite; }
+.landppt-editor .quick-ai-edit-result { flex: 0 0 auto; gap: 8px; margin: 0; padding-top: 12px; border-top: 1px solid #e8e8eb; }
+@keyframes editor-quick-ai-progress { from { transform: translateX(-100%); } to { transform: translateX(340%); } }
+@media (max-width: 700px) {
+  .landppt-editor .quick-edit-tool-btn, .landppt-editor .quick-edit-color-input { flex-basis: 44px; width: 44px; height: 44px; min-height: 44px; }
+  .landppt-editor .quick-ai-edit-popover-header button { width: 44px; height: 44px; }
+  .landppt-editor .quick-ai-edit-btn { min-height: 44px; }
+  .landppt-editor .quick-ai-edit-input { font-size: 16px; }
+  .landppt-editor .quick-ai-edit-keyboard-hint { flex-basis: 100%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .landppt-editor .quick-ai-edit-popover.loading::after { width: 100%; animation: none; }
+  .landppt-editor .quick-ai-edit-popover.loading.minimized .quick-ai-edit-popover-title i { animation: none; }
+}
 
 /* Original roots remain body children for close/removeChild contracts. */
 .landppt-editor .editor-ant-modal-host { position: static !important; inset: auto !important; width: auto !important; height: 0 !important; min-height: 0 !important; padding: 0 !important; margin: 0 !important; overflow: visible !important; background: none !important; backdrop-filter: none !important; z-index: auto !important; animation: none !important; }
@@ -52,6 +100,29 @@
 .editor-ant-dialog .ant-modal-header, .editor-ant-dialog .ant-modal-footer { flex: 0 0 auto; }
 .editor-ant-dialog .ant-modal-body { min-height: 0; flex: 1 1 auto; max-height: none; overflow-y: auto; }
 .editor-ant-dialog .ant-modal-title { font-size: 16px; overflow-wrap: anywhere; }
+.editor-ant-share-host > .lp-share-modal-dialog { display: none !important; }
+.editor-share-overview { display: grid; grid-template-columns: 36px minmax(0,1fr) auto; align-items: center; gap: 12px; padding: 12px; border: 1px solid #e8e8eb; border-radius: 8px; background: #fafafa; }
+.editor-share-emblem { display: grid; place-items: center; flex: 0 0 36px; height: 36px; border: 1px solid #e8e8eb; border-radius: 8px; background: #fff; font-size: 18px; color: #111; }
+.editor-share-overview > div { flex: 1; min-width: 0; }
+.editor-share-overview strong { display: block; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 14px; }
+.editor-share-overview div > span { display: block; margin-top: 3px; color: #6b7280; font-size: 12px; }
+.editor-share-overview .ant-tag { margin-inline-end: 0; flex-shrink: 0; }
+.editor-share-links { display: grid; gap: 12px; margin-top: 16px; }
+.editor-share-link-card { min-width: 0; padding: 12px; border: 1px solid #e8e8eb; border-radius: 8px; }
+.editor-share-link-heading { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-bottom: 10px; }
+.editor-share-link-heading strong { font-size: 14px; }
+.editor-share-link-heading > span:last-child { margin-left: auto; color: #6b7280; font-size: 12px; }
+.editor-share-link-card .ant-input { min-width: 0; flex: 1; height: 32px; min-height: 32px; font-size: 12px; color: #6b7280; text-overflow: ellipsis; }
+.editor-share-link-card .ant-btn { flex: 0 0 32px; width: 32px; }
+.editor-share-hint { margin: 12px 0 0; color: #6b7280; font-size: 12px; line-height: 1.6; }
+.editor-share-footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+@media (max-width: 700px) {
+  .editor-ant-share-dialog .editor-share-link-card .ant-btn { width: 44px; min-width: 44px; height: 44px; }
+  .editor-ant-share-dialog .ant-input, .editor-ant-share-dialog .ant-btn { min-height: 44px; }
+  .editor-ant-share-dialog .ant-modal-close { width: 44px; height: 44px; }
+  .editor-share-overview { grid-template-columns: 36px minmax(0,1fr); gap: 8px; }
+  .editor-share-overview .ant-tag { grid-column: 2; justify-self: start; margin: 0; }
+}
 .editor-adapted-content { min-width: 0; }
 .editor-ant-dialog .editor-adapted-content > :is(.modal-dialog,.speech-modal-dialog,.outline-modal__content,.ai-optimize-modal__card,.tpl-dialog,.lp-share-modal-dialog,.agent-diff-panel,.image-library-container,.image-preview-container,.export-modal),
 .editor-ant-dialog .editor-adapted-content :is(.modal-content,.speech-modal,.speech-modal-content,.lp-share-modal-content) { position: static !important; width: 100% !important; max-width: none !important; height: auto !important; max-height: none !important; min-height: 0 !important; margin: 0 !important; padding: 0 !important; border: 0 !important; border-radius: 0 !important; box-shadow: none !important; background: transparent !important; transform: none !important; animation: none !important; }

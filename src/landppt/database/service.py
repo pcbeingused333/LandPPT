@@ -408,10 +408,12 @@ class DatabaseService:
     
     async def list_projects(self, page: int = 1, page_size: int = 10, 
                           status: Optional[str] = None,
-                          user_id: Optional[int] = None) -> ProjectListResponse:
+                          user_id: Optional[int] = None,
+                          search: Optional[str] = None) -> ProjectListResponse:
         """List projects with pagination. If user_id is provided, filters by owner."""
+        search_filters = {"search": search.strip()} if search and search.strip() else {}
         if status:
-            total_candidates = await self.project_repo.count_projects(user_id=user_id)
+            total_candidates = await self.project_repo.count_projects(user_id=user_id, **search_filters)
             if total_candidates == 0:
                 return ProjectListResponse(
                     projects=[],
@@ -425,6 +427,7 @@ class DatabaseService:
                 page=1,
                 page_size=total_candidates,
                 status=None,
+                **search_filters,
             )
             all_projects = [self._convert_db_project_to_api(db_project) for db_project in db_projects]
             filtered_projects = [project for project in all_projects if project.status == status]
@@ -438,8 +441,9 @@ class DatabaseService:
                 page=page,
                 page_size=page_size,
                 status=None,
+                **search_filters,
             )
-            total = await self.project_repo.count_projects(user_id=user_id, status=None)
+            total = await self.project_repo.count_projects(user_id=user_id, status=None, **search_filters)
             projects = [self._convert_db_project_to_api(db_project) for db_project in db_projects]
         
         return ProjectListResponse(
