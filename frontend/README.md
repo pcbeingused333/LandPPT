@@ -28,6 +28,10 @@ Node build stage and copies them into the Python stages.
 The build excludes these assets from normal discovery and force-includes them
 once, so a wheel built from the source distribution also contains one copy.
 Frontend CI validates this source-to-wheel release path before browser checks.
+Its browser dependencies are pinned in `tests/requirements-browser.txt`.
+Four shards run the complete browser suite without retries or skipped failures;
+each uploads its JUnit report and available workspace screenshots. UI checks wait
+for committed selection/focus, stream reconnection and final transition colors.
 
 ## Page boundaries
 

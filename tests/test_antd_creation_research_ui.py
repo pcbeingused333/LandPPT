@@ -645,9 +645,11 @@ def test_package_mode_switch_ignores_a_late_catalogue_response(ui_page):
     page.evaluate(
         "window.packageRequests[0](new Response(JSON.stringify({packages:[]})))"
     )
-    expect(
-        page.get_by_text("研究报告 · v2", exact=True).filter(visible=True)
-    ).to_be_visible()
+    selected_package = page.locator(".ant-select").filter(
+        has=page.get_by_role("combobox", name="已发布模板包", exact=True)
+    )
+    expect(selected_package).to_be_visible()
+    expect(selected_package).to_contain_text("研究报告 · v2")
     expect(page.get_by_text("暂无已发布模板包", exact=True)).to_have_count(0)
 
 

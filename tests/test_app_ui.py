@@ -944,9 +944,11 @@ def test_mail_settings_provider_and_secret_toggle_keep_values(ui_page, width, pr
     page.set_viewport_size({"width": width, "height": 844})
     load("pages/admin/smtp.html", path="/admin/smtp")
     page.locator(f'input[name="email_provider"][value="{provider}"]').check()
-    assert page.locator(f"#{provider}ConfigSection").is_visible()
+    from playwright.sync_api import expect
+
+    expect(page.locator(f"#{provider}ConfigSection")).to_be_visible()
     other = "smtp" if provider == "resend" else "resend"
-    assert not page.locator(f"#{other}ConfigSection").is_visible()
+    expect(page.locator(f"#{other}ConfigSection")).not_to_be_visible()
     field = page.locator(
         "#resend_api_key" if provider == "resend" else "#smtp_password"
     )

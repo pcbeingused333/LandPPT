@@ -3,9 +3,9 @@ name: Frontend validation
 on:
   push:
     branches: [main, master]
-    paths: ['frontend/**', 'src/landppt/web/**', 'pyproject.toml', 'tests/test_app_ui.py', 'tests/test_antd*.py', '.github/workflows/frontend.yml']
+    paths: ['frontend/**', 'src/landppt/web/**', 'pyproject.toml', 'tests/test_app_ui.py', 'tests/test_antd*.py', 'tests/test_template_package_workspace_ui.py', 'tests/requirements-browser.txt', '.github/workflows/frontend.yml']
   pull_request:
-    paths: ['frontend/**', 'src/landppt/web/**', 'pyproject.toml', 'tests/test_app_ui.py', 'tests/test_antd*.py', '.github/workflows/frontend.yml']
+    paths: ['frontend/**', 'src/landppt/web/**', 'pyproject.toml', 'tests/test_app_ui.py', 'tests/test_antd*.py', 'tests/test_template_package_workspace_ui.py', 'tests/requirements-browser.txt', '.github/workflows/frontend.yml']
   workflow_dispatch:
 
 permissions:
@@ -13,7 +13,34 @@ permissions:
 
 jobs:
   browser:
+    name: Browser regressions (${{ matrix.shard }})
     runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - shard: ui-1
+            tests: >-
+              tests/test_app_ui.py tests/test_antd_todo_ui.py tests/test_antd_editor_context_ui.py
+              tests/test_antd_projects_ui.py tests/test_antd_settings_compact_ui.py
+              tests/test_antd_editor_documents_ui.py tests/test_template_package_workspace_ui.py
+              tests/test_antd_email_login_ui.py
+          - shard: ui-2
+            tests: >-
+              tests/test_antd_editor_ui.py tests/test_antd_images_ui.py tests/test_antd_editor_export_ui.py
+              tests/test_antd_navigation_ui.py tests/test_antd_home_generator_ui.py tests/test_antd_quick_edit_ui.py
+              tests/test_antd_ui.py tests/test_antd_settings_performance_ui.py tests/test_antd_speech_dialog_mount_ui.py
+          - shard: ui-3
+            tests: >-
+              tests/test_antd_templates_ui.py tests/test_antd_community_ui.py tests/test_antd_editor_media_ui.py
+              tests/test_antd_progress_ui.py tests/test_antd_admin_ui.py tests/test_antd_generator_skeleton_ui.py
+              tests/test_antd_editor_share_ui.py tests/test_antd_home_ui.py
+          - shard: ui-4
+            tests: >-
+              tests/test_antd_creation_research_ui.py tests/test_antd_account_ui.py tests/test_antd_presentation_ui.py
+              tests/test_antd_pagination_ui.py tests/test_antd_remaining_ui.py tests/test_antd_admin_management_ui.py
+              tests/test_antd_settings_models_ui.py tests/test_antd_project_search_ui.py tests/test_antd_asset_updates_ui.py
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -26,7 +53,18 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - run: python -m pip install pytest jinja2 playwright build
+      - run: python -m pip install -r tests/requirements-browser.txt
       - run: python -m build --outdir artifacts/frontend-release
       - run: python -m playwright install --with-deps chromium
-      - run: python -m pytest tests/test_app_ui.py tests/test_antd_ui.py tests/test_antd_settings_performance_ui.py tests/test_antd_settings_models_ui.py tests/test_antd_settings_compact_ui.py tests/test_antd_asset_updates_ui.py tests/test_antd_navigation_ui.py tests/test_antd_projects_ui.py tests/test_antd_project_search_ui.py tests/test_antd_pagination_ui.py tests/test_antd_progress_ui.py tests/test_antd_account_ui.py tests/test_antd_email_login_ui.py tests/test_antd_admin_ui.py tests/test_antd_admin_management_ui.py tests/test_antd_community_ui.py tests/test_antd_images_ui.py tests/test_antd_templates_ui.py tests/test_antd_creation_research_ui.py tests/test_antd_home_generator_ui.py tests/test_antd_home_ui.py tests/test_antd_generator_skeleton_ui.py tests/test_antd_presentation_ui.py tests/test_antd_todo_ui.py tests/test_antd_editor_ui.py tests/test_antd_editor_media_ui.py tests/test_antd_editor_context_ui.py tests/test_antd_editor_export_ui.py tests/test_antd_editor_share_ui.py tests/test_antd_quick_edit_ui.py tests/test_antd_editor_documents_ui.py tests/test_antd_speech_dialog_mount_ui.py tests/test_antd_remaining_ui.py tests/test_template_package_workspace_ui.py -q
+      - name: Run browser regressions
+        env:
+          UI_TEST_FILES: ${{ matrix.tests }}
+        run: python -m pytest $UI_TEST_FILES -q --tb=short --junitxml=artifacts/browser-results.xml
+      - name: Upload regression reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: browser-results-${{ matrix.shard }}
+          path: |
+            artifacts/browser-results.xml
+            artifacts/template-package-workspace-layout/

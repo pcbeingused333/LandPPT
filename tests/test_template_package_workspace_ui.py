@@ -105,7 +105,9 @@ def assert_controls_fit(page):
                 const hit = document.elementFromPoint(box.x + box.width / 2, box.y + box.height / 2);
                 return {selector, fits: box.top >= bounds.top - 1 && box.bottom <= bounds.bottom + 1 &&
                     box.left >= bounds.left - 1 && box.right <= bounds.right + 1,
-                    reachable: hit === el || el.contains(hit)};
+                    reachable: hit === el || el.contains(hit),
+                    box: {x: box.x, y: box.y, width: box.width, height: box.height},
+                    bounds: {x: bounds.x, y: bounds.y, width: bounds.width, height: bounds.height}};
             });
         }"""
     )

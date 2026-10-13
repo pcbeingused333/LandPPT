@@ -92,6 +92,10 @@ def test_pause_reconnect_resume_and_restart_restore_only_pending_placeholders(ui
     assert page.locator(".generator-skeleton-card .ant-skeleton-active").count() == 0
     assert page.locator("#slide-1 iframe").get_attribute("srcdoc") == ORIGINAL
     page.get_by_role("button", name="继续", exact=True).click()
+    # Resume clears the backend cancellation flag before creating a new stream.
+    # The existing skeleton starts animating before that request completes.
+    page.wait_for_function("testStreams.length === 2 && testStreams.at(-1).readyState === 1")
+    expect(page.locator("#generatorStatusUI .ant-badge-status-text")).to_have_text("正在生成")
     expect(page.locator(".generator-skeleton-card .ant-skeleton-active").first).to_be_visible()
     page.evaluate("testStreams.at(-1).readyState = 0; testStreams.at(-1).onerror({})")
     expect(page.get_by_role("heading", name="正在恢复连接")).to_be_visible()

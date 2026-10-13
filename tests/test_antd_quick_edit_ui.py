@@ -67,8 +67,9 @@ def test_quick_controls_and_ai_states_fit_and_keep_contrast(
     bold = page.locator("#boldBtn")
     bold.scroll_into_view_if_needed()
     bold.hover()
+    expect(bold).to_have_css("background-color", "rgb(17, 17, 17)")
+    expect(bold).to_have_css("color", "rgb(255, 255, 255)")
     assert contrast(styles(bold)) >= 4.5
-    assert styles(bold)["background"] == "rgb(17, 17, 17)"
     assert bold.bounding_box()["height"] >= (44 if width <= 700 else 32)
     page.locator("#quickAiEditToggleBtn").click()
     popup = page.get_by_role("dialog", name="AI雕琢", exact=True)
@@ -95,12 +96,15 @@ def test_quick_controls_and_ai_states_fit_and_keep_contrast(
     assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
     vision = page.locator("#quickAiVisionToggleBtn")
     vision.hover()
+    expect(vision).to_have_css("background-color", "rgb(17, 17, 17)")
+    expect(vision).to_have_css("color", "rgb(255, 255, 255)")
     assert contrast(styles(vision)) >= 4.5
     if scene != "loading":
         apply = popup.get_by_role("button", name="应用", exact=True)
         apply.hover()
+        expect(apply).to_have_css("background-color", "rgb(17, 17, 17)")
+        expect(apply).to_have_css("color", "rgb(255, 255, 255)")
         assert contrast(styles(apply)) >= 4.5
-        assert styles(apply)["background"] == "rgb(17, 17, 17)"
     for button in popup.get_by_role("button").all():
         button.scroll_into_view_if_needed()
         assert button.bounding_box()["height"] >= (44 if width <= 700 else 32)

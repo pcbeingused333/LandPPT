@@ -140,9 +140,12 @@ def test_copy_and_paste_preserve_target_source_and_outline(ui_page, svg):
     original = slides_and_outline(page)
     menu = open_menu(page)
     page.keyboard.press("ArrowDown")
+    expect(menu.get_by_role("menuitem", name="重新生成", exact=True)).to_be_focused()
     page.keyboard.press("ArrowDown")
+    expect(menu.get_by_role("menuitem", name="复制到剪贴板")).to_be_focused()
     page.keyboard.press("Enter")
     expect(menu).not_to_be_visible()
+    page.wait_for_function("copiedSlideData !== null")
     assert not state["writes"] and not operations
     assert page.evaluate("currentSlideIndex") == 0
     menu = open_menu(page, index=0)
