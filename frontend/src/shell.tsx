@@ -51,7 +51,7 @@ export function Shell({ data, children, pending = '' }: { data: ShellData; child
     ...(data.user.is_admin ? [{ key: 'admin', label: <a href="/admin">管理后台</a>, icon: <SettingOutlined aria-hidden /> }] : []),
     { key: 'logout', label: '退出登录', icon: <LogoutOutlined aria-hidden />, onClick: logout },
   ] : [];
-  return <div className="app-shell">
+  return <div className={`app-shell${data.page === 'home' ? ' home-shell' : ''}`}>
     <a className="skip-link" href="#appMain">跳到主内容</a>
     <header className="app-header">
       <a className="app-brand" href="/">LandPPT</a>
@@ -72,7 +72,7 @@ export function Shell({ data, children, pending = '' }: { data: ShellData; child
     </Drawer>
     <SiteAnnouncement notice={notice} />
     <NotificationDrawer open={notificationOpen} state={notifications} center={center.current} />
-    <main id="appMain" tabIndex={-1} aria-busy={!!pending} className={`app-main${authPage ? ' auth-main' : ''}`}>{children}</main>
+    <main id="appMain" tabIndex={-1} aria-busy={!!pending} className={`app-main${authPage ? ' auth-main' : ''}${data.page === 'home' ? ' home-main' : ''}`}>{children}</main>
     <footer className="app-footer"><span>LandPPT · v{version}</span><Tooltip title="GitHub" trigger={['hover', 'focus']}><a className="app-footer-icon" aria-label="GitHub" href="https://github.com/sligter/LandPPT" target="_blank" rel="noreferrer"><GithubOutlined aria-hidden /></a></Tooltip><a id="footerSponsorLink" className="is-hidden" href="/sponsors">赞助感谢</a><Tooltip title="商务合作" trigger={['hover', 'focus']}><a className="app-footer-icon" aria-label="商务合作" href="mailto:support@landppt.com"><MailOutlined aria-hidden /></a></Tooltip></footer>
   </div>;
 }

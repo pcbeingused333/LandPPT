@@ -9,7 +9,7 @@ from playwright.sync_api import expect
 from test_app_ui import ROOT, browser, detail_project, template_environment, ui_page  # noqa: F401
 
 ROUTES = {
-    "/home": ("pages/home/index.html", "创建你的演示文稿", "home"),
+    "/home": ("pages/home/index.html", "让想法， 成为好演示。", "home"),
     "/dashboard": ("pages/project/project_dashboard.html", "项目仪表板", "dashboard"),
     "/projects": ("pages/project/projects_list.html", "项目列表", "projects"),
     "/create": ("pages/project/scenarios.html", "创建 PPT", "create-project"),

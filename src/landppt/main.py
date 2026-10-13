@@ -168,9 +168,9 @@ else:
 
 @app.get("/", response_class=HTMLResponse)
 async def root():
-    """Root endpoint - redirect to dashboard"""
+    """Open the product homepage; the workspace remains at /dashboard."""
     from fastapi.responses import RedirectResponse
-    return RedirectResponse(url="/dashboard", status_code=302)
+    return RedirectResponse(url="/home", status_code=302)
 
 @app.get("/favicon.ico")
 async def favicon():

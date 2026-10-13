@@ -92,7 +92,7 @@ def send(page, **event):
 
 @pytest.mark.parametrize("width,height", SIZES)
 @pytest.mark.parametrize(
-    "scene", ["home", "home-long-provider", "idle", "completed", "error"]
+    "scene", ["home", "idle", "completed", "error"]
 )
 def test_home_workspace_geometry_and_primary_actions(ui_page, width, height, scene):
     page, load = ui_page
@@ -103,9 +103,8 @@ def test_home_workspace_geometry_and_primary_actions(ui_page, width, height, sce
         load(
             "pages/home/index.html",
             path="/home",
-            ai_provider="openai" if scene == "home" else "unrecognised-provider-" * 30,
         )
-        page.get_by_role("heading", name="创建你的演示文稿").wait_for()
+        page.get_by_role("heading", name="让想法， 成为好演示。", exact=True).wait_for()
         action = page.get_by_role("link", name="开始创建 PPT", exact=True)
         expect(action).to_have_attribute("href", "/create")
     else:
@@ -142,44 +141,27 @@ def test_home_workspace_geometry_and_primary_actions(ui_page, width, height, sce
     assert not errors
 
 
-@pytest.mark.parametrize(
-    "provider,label",
-    [
-        ("landppt", "LandPPT"),
-        ("anthropic", "Anthropic Claude"),
-        ("google", "Google Gemini"),
-        ("gemini", "Google Gemini"),
-        ("ollama", "Ollama"),
-        ("local-custom", "local-custom"),
-    ],
-)
-def test_home_provider_and_navigation_are_existing_links(ui_page, provider, label):
+def test_home_product_links_and_workflow(ui_page):
     page, load = ui_page
-    load("pages/home/index.html", path="/home", ai_provider=provider)
-    expect(page.locator(".home-provider .ant-tag")).to_have_text(label)
+    load("pages/home/index.html", path="/home")
     assert page.get_by_role("list", name="创建流程").locator("li").count() == 3
-    for name, path in [("打开工作台", "/dashboard"), ("系统配置", "/ai-config")]:
+    for name, path in [("打开工作台", "/dashboard"), ("探索模板库", "/global-master-templates"), ("创建我的演示文稿", "/create")]:
         expect(page.get_by_role("link", name=name, exact=True)).to_have_attribute(
             "href", path
         )
-    assert [
-        item.get_attribute("href") for item in page.locator(".home-shortcut").all()
-    ] == ["/projects", "/global-master-templates", "/image-gallery"]
 
 
-def test_home_missing_provider_and_public_json_escape(ui_page):
+def test_home_payload_excludes_provider_configuration(ui_page):
     page, load = ui_page
     load("pages/home/index.html", path="/home", ai_provider=None)
-    page.get_by_role("heading", name="创建你的演示文稿").wait_for()
+    page.get_by_role("heading", name="让想法， 成为好演示。", exact=True).wait_for()
     assert page.locator(".home-provider").count() == 0
     load(
         "pages/home/index.html",
         path="/home",
         ai_provider="</script><script>window.injection=true</script>",
     )
-    expect(page.locator(".home-provider .ant-tag")).to_have_text(
-        "</script><script>window.injection=true</script>"
-    )
+    assert "aiProvider" not in json.loads(page.locator("#antdData").text_content())
     assert page.evaluate("window.injection") is None
 
 

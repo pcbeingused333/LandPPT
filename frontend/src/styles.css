@@ -40,28 +40,6 @@
   .unattended-ant .ant-card-head { padding: 8px 12px; }
   .unattended-ant .ant-collapse-header { min-height: 44px; }
 }
-.home-page { max-width: 1120px; margin: 0 auto; }
-.home-intro > .ant-card-body { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); padding: 32px !important; gap: 36px; align-items: center; }
-.home-eyebrow { font-size: 11px; letter-spacing: 1.2px; color: #6b7280; }
-.home-intro h1 { color: #111; font-size: 28px; font-weight: 650; line-height: 1.45; margin: 12px 0; letter-spacing: -.5px; }
-.home-intro-copy > p { color: #6b7280; margin: 0 0 24px; max-width: 440px; }
-.home-steps { margin: 0; padding: 0 0 0 28px; border-left: 1px solid #e8e8eb; list-style: none; }
-.home-steps li { display: flex; align-items: baseline; gap: 12px; padding: 10px 0; }
-.home-step-number { color: #9b9b9b; font: 12px ui-monospace, monospace; }
-.home-steps h2 { font-size: 14px; }
-.home-steps p { margin: 4px 0 0; font-size: 12px; color: #6b7280; }
-.home-provider { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 0; font-size: 12px; color: #6b7280; }
-.home-provider > span { min-width: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
-.home-provider .ant-tag { margin: 0; max-width: 100%; overflow-wrap: anywhere; white-space: normal; }
-.home-provider > a { flex-shrink: 0; }
-.home-shortcuts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
-.home-shortcut { display: flex; align-items: center; gap: 12px; padding: 20px 16px; border: 1px solid #e8e8eb; border-radius: 8px; background: white; min-width: 0; }
-.home-shortcut:hover { background: #fafafa; text-decoration: none; }
-.home-shortcut-icon { flex-shrink: 0; color: #595959; font-size: 18px; }
-.home-shortcut > div { flex: 1; min-width: 0; }
-.home-shortcut h3 { margin: 0; font-size: 14px; }
-.home-shortcut p { margin: 4px 0 0; color: #6b7280; font-size: 12px; }
-.home-shortcut > .anticon:last-child { color: #8a8a92; flex-shrink: 0; }
 .generator-ant-workspace.main-container { border-radius: 8px; background: white; backdrop-filter: none; box-shadow: none; }
 .generator-ant-chrome { flex-shrink: 0; }
 .generator-ant-heading { display: flex; align-items: center; gap: 12px; padding: 12px 16px; }
@@ -128,17 +106,11 @@
 .generator-ant-workspace .welcome-message-title { font-size: 18px; margin: 0 0 8px; color: #111; }
 .generator-ant-workspace .welcome-message-subtitle { font-size: 13px; margin: 0; color: #6b7280; }
 @media (max-width: 900px) {
-  .home-intro > .ant-card-body { padding: 24px !important; gap: 24px; }
-  .home-shortcuts { grid-template-columns: minmax(0, 1fr); }
   .generator-ant-heading { flex-wrap: wrap; }
   .generator-ant-actions { flex-basis: 100%; }
   .generator-ant-mode p > span { display: none; }
 }
 @media (max-width: 600px) {
-  .home-intro > .ant-card-body { grid-template-columns: minmax(0, 1fr); padding: 20px !important; gap: 20px; }
-  .home-intro h1 { font-size: 23px; }
-  .home-steps { border-left: 0; border-top: 1px solid #e8e8eb; padding: 12px 0 0; }
-  .home-provider { align-items: flex-start; }
   .generator-ant-heading { padding: 10px 12px; gap: 8px; }
   .generator-ant-title h1 { font-size: 15px; }
   .generator-ant-mode, .generator-ant-status { padding: 8px 12px; }

@@ -99,30 +99,10 @@ async def web_home(
     request: Request,
     user: User = Depends(get_current_user_required)
 ):
-    """Main web interface home page - redirect to dashboard for existing users"""
-    # Check if user has projects, if so redirect to dashboard
-    try:
-        projects_response = await ppt_service.project_manager.list_projects(page=1, page_size=1, user_id=user.id)
-        if projects_response.total > 0:
-            # User has projects, redirect to dashboard
-            from fastapi.responses import RedirectResponse
-            return RedirectResponse(url="/dashboard", status_code=302)
-    except:
-        pass  # If error, show index page
-
-    from ...services.db_config_service import get_db_config_service
-    config_service = get_db_config_service()
-    current_config = await config_service.get_all_config(user_id=user.id)
-
-    current_provider = current_config.get("default_ai_provider") or ai_config.default_ai_provider
-    if (isinstance(current_provider, str) and current_provider.strip().lower() == "gemini"):
-        current_provider = "google"
-
-    # New user or error, show index page
+    """Product showcase for new and returning users, independent of their projects."""
     return templates.TemplateResponse("pages/home/index.html", {
         "request": request,
-        "ai_provider": current_provider,
-        "available_providers": ai_config.get_available_providers()
+        "user": user,
     })
 
 

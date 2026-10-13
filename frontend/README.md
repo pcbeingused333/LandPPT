@@ -19,7 +19,7 @@ Dependencies and generated assets are ignored by Git.
 
 ```sh
 npm run check --prefix frontend
-python -m pytest tests/test_app_ui.py tests/test_antd_ui.py tests/test_antd_settings_performance_ui.py tests/test_antd_settings_models_ui.py tests/test_antd_settings_compact_ui.py tests/test_antd_asset_updates_ui.py tests/test_antd_navigation_ui.py tests/test_antd_projects_ui.py tests/test_antd_project_search_ui.py tests/test_antd_account_ui.py tests/test_antd_admin_ui.py tests/test_antd_admin_management_ui.py tests/test_antd_community_ui.py tests/test_antd_images_ui.py tests/test_antd_templates_ui.py tests/test_antd_creation_research_ui.py tests/test_antd_home_generator_ui.py tests/test_antd_generator_skeleton_ui.py tests/test_antd_presentation_ui.py tests/test_antd_todo_ui.py tests/test_antd_editor_ui.py tests/test_antd_editor_media_ui.py tests/test_antd_editor_context_ui.py tests/test_antd_editor_export_ui.py tests/test_antd_editor_share_ui.py tests/test_antd_quick_edit_ui.py tests/test_antd_editor_documents_ui.py tests/test_antd_speech_dialog_mount_ui.py tests/test_antd_remaining_ui.py tests/test_template_package_workspace_ui.py -q
+python -m pytest tests/test_app_ui.py tests/test_antd_ui.py tests/test_antd_settings_performance_ui.py tests/test_antd_settings_models_ui.py tests/test_antd_settings_compact_ui.py tests/test_antd_asset_updates_ui.py tests/test_antd_navigation_ui.py tests/test_antd_projects_ui.py tests/test_antd_project_search_ui.py tests/test_antd_account_ui.py tests/test_antd_admin_ui.py tests/test_antd_admin_management_ui.py tests/test_antd_community_ui.py tests/test_antd_images_ui.py tests/test_antd_templates_ui.py tests/test_antd_creation_research_ui.py tests/test_antd_home_generator_ui.py tests/test_antd_home_ui.py tests/test_antd_generator_skeleton_ui.py tests/test_antd_presentation_ui.py tests/test_antd_todo_ui.py tests/test_antd_editor_ui.py tests/test_antd_editor_media_ui.py tests/test_antd_editor_context_ui.py tests/test_antd_editor_export_ui.py tests/test_antd_editor_share_ui.py tests/test_antd_quick_edit_ui.py tests/test_antd_editor_documents_ui.py tests/test_antd_speech_dialog_mount_ui.py tests/test_antd_remaining_ui.py tests/test_template_package_workspace_ui.py -q
 ```
 
 Build before installing from source or publishing Python packages. Hatch includes
@@ -49,7 +49,8 @@ reads the existing authenticated HTML route with no data cache; only its public
 page payload and inert settings/community catalogues are used. Fetched scripts never run.
 The current link cancels pending navigation; later clicks abort earlier reads.
 Browser history, page titles, menu closure and focus are maintained. The server's
-existing home redirect is respected. Modified clicks and new tabs remain native.
+root redirect opens `/home`; that page stays on the showcase even for users with
+existing projects. Modified clicks and new tabs remain native.
 Authentication redirects, account/role changes, invalid responses and mismatched
 CSS release stamps fall back to native navigation. Bump that stamp for UI releases.
 Only the `/projects/:id` root participates; editor, task board, playback,
@@ -81,8 +82,18 @@ The generator's free-template preparation wizard now uses an Ant modal and
 ordinary controls, with fixed confirmation actions and preview/code views.
 Existing generation and document controllers remain explicit adapter boundaries.
 
-Home uses compact creation/management links, a three-step guide and public provider
-information, without new API calls. The existing `/home` redirect remains intact.
+Home is a dedicated product showcase, separate from `/dashboard`. Its editorial
+layout uses black actions, a warm paper background, three keyboard-accessible
+design examples, the creation workflow and editing/narration/export capabilities.
+The examples are local illustrations, labelled as design examples; switching
+them never generates a presentation or calls AI. The home-specific shell classes
+are removed when leaving the page. Local fonts and SVG/CSS artwork keep it free
+of image/CDN requests, and reduced-motion settings disable the sample transition.
+The root opens `/home`; the home route no longer queries projects or provider
+configuration. Existing authentication and login-to-workspace behavior remain
+intact. Creation and workspace actions use their existing routes and permissions.
+Responsive layout, example switching, keyboard controls, navigation and routing
+coverage live in `tests/test_antd_home_ui.py` and `tests/test_home_routes.py`.
 The generation workspace reads the controller's hidden control/status adapter
 through a MutationObserver and forwards actions to the same bound buttons. React
 Skeleton components show pending outline pages beside generated previews. The
