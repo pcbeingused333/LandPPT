@@ -19,7 +19,7 @@ Dependencies and generated assets are ignored by Git.
 
 ```sh
 npm run check --prefix frontend
-python -m pytest tests/test_app_ui.py tests/test_antd_ui.py tests/test_antd_settings_performance_ui.py tests/test_antd_settings_models_ui.py tests/test_antd_settings_compact_ui.py tests/test_antd_asset_updates_ui.py tests/test_antd_navigation_ui.py tests/test_antd_projects_ui.py tests/test_antd_project_search_ui.py tests/test_antd_account_ui.py tests/test_antd_admin_ui.py tests/test_antd_admin_management_ui.py tests/test_antd_community_ui.py tests/test_antd_images_ui.py tests/test_antd_templates_ui.py tests/test_antd_creation_research_ui.py tests/test_antd_home_generator_ui.py tests/test_antd_home_ui.py tests/test_antd_generator_skeleton_ui.py tests/test_antd_presentation_ui.py tests/test_antd_todo_ui.py tests/test_antd_editor_ui.py tests/test_antd_editor_media_ui.py tests/test_antd_editor_context_ui.py tests/test_antd_editor_export_ui.py tests/test_antd_editor_share_ui.py tests/test_antd_quick_edit_ui.py tests/test_antd_editor_documents_ui.py tests/test_antd_speech_dialog_mount_ui.py tests/test_antd_remaining_ui.py tests/test_template_package_workspace_ui.py -q
+python -m pytest tests/test_app_ui.py tests/test_antd_ui.py tests/test_antd_settings_performance_ui.py tests/test_antd_settings_models_ui.py tests/test_antd_settings_compact_ui.py tests/test_antd_asset_updates_ui.py tests/test_antd_navigation_ui.py tests/test_antd_projects_ui.py tests/test_antd_project_search_ui.py tests/test_antd_pagination_ui.py tests/test_antd_progress_ui.py tests/test_antd_account_ui.py tests/test_antd_email_login_ui.py tests/test_antd_admin_ui.py tests/test_antd_admin_management_ui.py tests/test_antd_community_ui.py tests/test_antd_images_ui.py tests/test_antd_templates_ui.py tests/test_antd_creation_research_ui.py tests/test_antd_home_generator_ui.py tests/test_antd_home_ui.py tests/test_antd_generator_skeleton_ui.py tests/test_antd_presentation_ui.py tests/test_antd_todo_ui.py tests/test_antd_editor_ui.py tests/test_antd_editor_media_ui.py tests/test_antd_editor_context_ui.py tests/test_antd_editor_export_ui.py tests/test_antd_editor_share_ui.py tests/test_antd_quick_edit_ui.py tests/test_antd_editor_documents_ui.py tests/test_antd_speech_dialog_mount_ui.py tests/test_antd_remaining_ui.py tests/test_template_package_workspace_ui.py -q
 ```
 
 Build before installing from source or publishing Python packages. Hatch includes
@@ -53,6 +53,10 @@ root redirect opens `/home`; that page stays on the showcase even for users with
 existing projects. Modified clicks and new tabs remain native.
 Authentication redirects, account/role changes, invalid responses and mismatched
 CSS release stamps fall back to native navigation. Bump that stamp for UI releases.
+Shared list pagination wraps within narrow containers while preserving 44px touch
+targets and the existing page, search and status callbacks. Large catalogues are
+covered in `tests/test_antd_pagination_ui.py`, including 5 and 100 pages across
+project, template, package, image and user lists.
 Only the `/projects/:id` root participates; editor, task board, playback,
 template-selection workspaces and authentication retain full navigation.
 Pagination, filtering and project duplication use the same authenticated
@@ -72,12 +76,22 @@ to the menu trigger; deletion keeps both confirmations. Shared Ant tokens use
 black actions, subtle card depth and distinct hover/focus states. Styling affects
 application controls only, not generated HTML/SVG inside presentation frames.
 
-All 26 page shells/catalogues now use Ant Design, including dashboard,
-project library/detail, configuration, accounts/authentication, administration,
+Application page shells/catalogues use Ant Design, including dashboard,
+project library/detail, configuration, accounts/password recovery, administration,
 community, images, templates, creation/research, home, playback, task board,
 generation workspace and PPT editor. The shared error page is also migrated.
 Announcements use Ant Alert and the notification center uses an Ant Drawer;
 its existing poller, read endpoints and desktop-permission flow remain intact.
+Login and registration retain their original black/white split layouts and native
+forms, restored from the pre-migration templates. Their dedicated CSS/JavaScript
+is shipped with the app; login/register switching, invitation requirements,
+OAuth provider flags, email-code cooldown and lazy Turnstile remain supported.
+The login account field accepts either username or registered email, using the
+existing `username` form key for both web and API login. Email matching ignores
+case and surrounding whitespace; exact legacy usernames take precedence.
+Password recovery and signed-in account pages continue to use Ant Design.
+Project percentages round and clamp at the UI boundary across dashboard,
+project lists/details and unattended tasks; API calculation precision is unchanged.
 The generator's free-template preparation wizard now uses an Ant modal and
 ordinary controls, with fixed confirmation actions and preview/code views.
 Existing generation and document controllers remain explicit adapter boundaries.

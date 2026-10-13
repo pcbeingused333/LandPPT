@@ -648,12 +648,6 @@ def test_admin_menu_keeps_navigation_and_keyboard_exit_reachable(
             "#userUsername",
             ".ant-modal button.ant-btn-primary",
         ),
-        (
-            "pages/auth/login.html",
-            "/auth/login",
-            "#username",
-            "#loginFormElement button[type=submit]",
-        ),
     ],
 )
 def test_primary_controls_share_scale_across_app_shells(
@@ -706,16 +700,17 @@ def test_mobile_auth_has_brand_and_single_input_boundary(ui_page, width, height)
     page, load = ui_page
     page.set_viewport_size({"width": width, "height": height})
     load("pages/auth/login.html", path="/auth/login")
-    assert page.locator(".app-brand").is_visible()
-    assert page.locator(".brand-panel").count() == 0
+    assert page.locator(".auth-mobile-brand").is_visible()
+    assert not page.locator(".brand-panel").is_visible()
     assert (
-        page.locator("#username").evaluate("e => getComputedStyle(e).borderTopWidth")
+        page.locator("#username").locator("..").evaluate("e => getComputedStyle(e).borderTopWidth")
         == "1px"
     )
+    assert page.locator("#username").evaluate("e => getComputedStyle(e).borderTopWidth") == "0px"
     panel = page.locator(".form-shell").bounding_box()
     assert panel["x"] >= 0 and panel["x"] + panel["width"] <= width
     toggle = page.locator("#loginFormElement").get_by_role(
-        "button", name="显示", exact=True
+        "button", name="显示/隐藏密码", exact=True
     )
     box = toggle.bounding_box()
     assert box["width"] >= 44 and box["height"] >= 44

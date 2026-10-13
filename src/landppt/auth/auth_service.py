@@ -9,7 +9,7 @@ import secrets
 import hashlib
 from typing import Optional, Dict, Any, List, Tuple
 from sqlalchemy.orm import Session
-from sqlalchemy import and_
+from sqlalchemy import and_, func
 
 from ..database.models import User, UserSession, UserAPIKey
 from ..core.config import app_config
@@ -259,12 +259,26 @@ class AuthService:
 
     
     def authenticate_user(self, db: Session, username: str, password: str) -> Optional[User]:
-        """Authenticate user with username and password"""
-        user = db.query(User).filter(
-            and_(User.username == username, User.is_active == True)
-        ).first()
-        
-        if user and user.check_password(password):
+        """Authenticate with an existing username or case-insensitive email."""
+        identifier = username.strip()
+        if not identifier:
+            return None
+
+        # Preserve exact username matching, including legacy email-shaped names.
+        user = db.query(User).filter(User.username == username).first()
+        if user is None and identifier != username:
+            user = db.query(User).filter(User.username == identifier).first()
+        if user is None and "@" in identifier:
+            matches = db.query(User).filter(
+                func.lower(User.email) == identifier.lower()
+            ).limit(2).all()
+            # Older databases may contain emails that differ only by case.
+            # Do not choose an arbitrary account for an ambiguous identifier.
+            if len(matches) != 1:
+                return None
+            user = matches[0]
+
+        if user and user.is_active and user.check_password(password):
             # Update last login time
             user.last_login = time.time()
             db.commit()

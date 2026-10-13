@@ -521,6 +521,8 @@ h2 { margin: 0; font-size: 16px; font-weight: 600; }
   .outline-slide-actions .ant-btn { width: 44px; }
   .projects-pagination .ant-pagination-item, .projects-pagination .ant-pagination-prev, .projects-pagination .ant-pagination-next { min-width: 44px; height: 44px; line-height: 42px; }
   .projects-pagination .ant-pagination-item-link { height: 44px; }
+  .projects-pagination .ant-space-item { min-width: 0; max-width: 100%; }
+  .projects-pagination .ant-pagination { max-width: 100%; flex-wrap: wrap; row-gap: 8px; }
   .projects-toolbar > .subtle { margin-left: 0; }
   .projects-toolbar label { font-size: 13px; }
   .projects-toolbar .projects-search .ant-btn { width: 44px; min-width: 44px; }

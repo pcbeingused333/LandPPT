@@ -86,7 +86,7 @@ export default function Auth({ data }: { data: ApiData }) {
     <div className="auth-heading"><h1>欢迎回来</h1><p className="subtle">登录后继续创作演示文稿</p></div>
     {data.error && <Alert type="error" title={data.error} showIcon className="page-error" />}{data.success && <Alert type="success" title={data.success} showIcon className="page-error" />}
     <Form id="loginFormElement" layout="vertical" requiredMark={false} disabled={submitting} initialValues={{ username: data.username || '' }} onFinish={values => { if (submitted.current) return; submitted.current = true; setSubmitting(true); postForm('/auth/login', values); }}>
-      <Form.Item name="username" label="用户名" htmlFor="username" rules={[{ required: true, whitespace: true, message: '请输入用户名' }]}><Input id="username" autoComplete="username" placeholder="输入用户名" /></Form.Item>
+      <Form.Item name="username" label="用户名或邮箱" htmlFor="username" rules={[{ required: true, whitespace: true, message: '请输入用户名或邮箱' }]}><Input id="username" autoComplete="username" placeholder="输入用户名或邮箱" /></Form.Item>
       <Form.Item name="password" label="密码" htmlFor="password" rules={[{ required: true, message: '请输入密码' }]}><Input.Password id="password" autoComplete="current-password" placeholder="输入密码" /></Form.Item><Button type="primary" htmlType="submit" loading={submitting} block>登录</Button>
     </Form>
     {(data.github || data.linuxdo) && <><Divider plain>或</Divider><div className="auth-oauth">{data.github && <Button href="/auth/github/login" block icon={<GithubOutlined aria-hidden />}>使用 GitHub 登录</Button>}{data.linuxdo && <Button href="/auth/linuxdo/login" block>使用 Linux Do 登录</Button>}</div></>}

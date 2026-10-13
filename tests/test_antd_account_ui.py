@@ -88,8 +88,8 @@ def test_account_forms_keep_native_post_fields_and_validate_confirmation(ui_page
         }
     elif mode == "login":
         auth(page, load)
-        page.get_by_label("用户名", exact=True).fill("demo-user")
-        page.get_by_label("密码", exact=True).fill("new-secret")
+        page.locator("#loginFormElement").get_by_label("用户名或邮箱", exact=True).fill("demo-user")
+        page.locator("#loginFormElement").get_by_label("密码", exact=True).fill("new-secret")
         submit = page.locator("#loginFormElement").get_by_role(
             "button", name="登录", exact=True
         )
@@ -114,7 +114,7 @@ def test_account_forms_keep_native_post_fields_and_validate_confirmation(ui_page
             "password" if mode == "register" else "new_password": ["new-secret"],
         }
         if mode == "register":
-            expected.update(username=["demo-user"], invite_code=[""])
+            expected.update(username=["demo-user"], invite_code=[""], ui=["standalone"])
     if mode != "login":
         submit.click()
         page.get_by_text("两次密码输入不一致", exact=True).wait_for()
@@ -140,9 +140,10 @@ def test_combined_registration_keeps_ui_context_and_failure_values(ui_page):
         register_invite_code="invite-1",
     )
     page.get_by_text("注册暂时失败", exact=True).wait_for()
-    page.get_by_label("验证码", exact=True).fill("123456")
-    page.get_by_label("密码", exact=True).fill("new-secret")
-    page.get_by_label("确认密码", exact=True).fill("new-secret")
+    form = page.locator("#registerFormElement")
+    form.get_by_label("验证码", exact=True).fill("123456")
+    form.get_by_label("密码", exact=True).fill("new-secret")
+    form.get_by_label("确认密码", exact=True).fill("new-secret")
     page.get_by_role("button", name="注册", exact=True).click()
     page.get_by_role("heading", name="表单已提交").wait_for()
     assert writes[0]["ui"] == ["login"]
@@ -160,16 +161,16 @@ def test_combined_auth_tabs_keep_unique_input_ids_and_independent_values(ui_page
         register_email="demo@example.invalid",
     )
     page.get_by_role("tab", name="登录", exact=True).click()
-    page.locator("#loginFormElement").get_by_label("用户名", exact=True).fill(
+    page.locator("#loginFormElement").get_by_label("用户名或邮箱", exact=True).fill(
         "login-user"
     )
-    ids = page.locator(".auth-page input[id]").evaluate_all(
+    ids = page.locator(".auth-shell input[id]").evaluate_all(
         "elements => elements.map(e=>e.id)"
     )
     assert len(ids) == len(set(ids))
     page.get_by_role("tab", name="注册", exact=True).click()
     assert (
-        page.locator("#registerForm").get_by_label("用户名", exact=True).input_value()
+        page.locator("#registerFormElement").get_by_label("用户名", exact=True).input_value()
         == "register-user"
     )
 
@@ -195,13 +196,14 @@ def test_oauth_registration_keeps_optional_and_required_invites(ui_page, require
     link = page.get_by_role("link", name="GitHub 注册", exact=True)
     if required:
         link.click()
-        page.get_by_text("请输入邀请码", exact=True).wait_for()
+        page.get_by_text("请先填写邀请码，再选择注册渠道。", exact=True).wait_for()
         assert urlsplit(page.url).path == "/auth/register"
         page.get_by_label("邀请码", exact=True).fill("team + &")
     link.click()
     page.wait_for_url("**/auth/github/login*")
     assert parse_qs(urlsplit(page.url).query) == (
-        {"invite_code": ["team + &"]} if required else {}
+        {"invite_code": ["team + &"], "redirect_url": ["/dashboard"]}
+        if required else {"redirect_url": ["/dashboard"]}
     )
 
 
@@ -215,7 +217,7 @@ def test_registration_closed_exposes_no_registration_or_oauth_form(ui_page):
         github_oauth_enabled=True,
     )
     page.get_by_text("注册已关闭", exact=True).wait_for()
-    assert page.locator(".auth-page form").count() == 0
+    assert page.locator(".auth-shell form").count() == 0
     assert page.locator('a[href="/auth/github/login"]').count() == 0
 
 
@@ -238,10 +240,11 @@ def test_code_send_failure_retains_email_and_retry_locks_countdown(ui_page):
         page.get_by_label("邮箱地址", exact=True).input_value()
         == "demo@example.invalid"
     )
-    assert page.get_by_label("用户名", exact=True).count() == 0
+    assert page.locator(".js-after-code").bounding_box()["height"] == 0
+    assert page.get_by_label("用户名", exact=True).is_disabled()
     page.get_by_role("button", name="发送验证码", exact=True).click()
     page.get_by_label("用户名", exact=True).wait_for()
-    assert page.get_by_role("button", name=re.compile(r"\d+s 后重发")).is_disabled()
+    assert page.get_by_role("button", name=re.compile(r"^\d+s$")).is_disabled()
     assert (
         writes
         == [
@@ -256,27 +259,32 @@ def test_code_send_failure_retains_email_and_retry_locks_countdown(ui_page):
     )
 
 
-def test_code_send_prevents_duplicate_pending_requests(ui_page):
+@pytest.mark.parametrize("mode", ["register", "reset"])
+def test_code_send_prevents_duplicate_pending_requests(ui_page, mode):
     page, load = ui_page
     held = []
     page.route("**/auth/api/send-code", lambda route: held.append(route))
-    auth(page, load, "reset")
+    auth(page, load, mode)
     page.get_by_label("邮箱地址", exact=True).fill("demo@example.invalid")
     page.get_by_role("button", name="发送验证码", exact=True).evaluate(
         "e => {e.click(); e.click()}"
     )
     page.wait_for_timeout(100)
     assert len(held) == 1
-    assert held[0].request.post_data_json == {
+    expected = {
         "email": "demo@example.invalid",
-        "code_type": "reset",
+        "code_type": "register" if mode == "register" else "reset",
         "turnstile_token": "",
     }
+    if mode == "register":
+        expected["invite_code"] = ""
+    assert held[0].request.post_data_json == expected
     held[0].fulfill(json={"success": True})
-    page.get_by_text("验证码已发送到您的邮箱，请查收", exact=True).wait_for()
+    page.get_by_text("验证码已发送到您的邮箱，请查收" + ("。" if mode == "register" else ""), exact=True).wait_for()
 
 
-def test_code_countdown_ends_and_allows_another_send(ui_page):
+@pytest.mark.parametrize("mode", ["register", "reset"])
+def test_code_countdown_ends_and_allows_another_send(ui_page, mode):
     page, load = ui_page
     writes = []
     page.clock.install()
@@ -287,11 +295,11 @@ def test_code_countdown_ends_and_allows_another_send(ui_page):
             route.fulfill(json={"success": True}),
         ),
     )
-    auth(page, load, "reset")
+    auth(page, load, mode)
     page.get_by_label("邮箱地址", exact=True).fill("demo@example.invalid")
     page.get_by_role("button", name="发送验证码", exact=True).click()
-    page.get_by_text("验证码已发送到您的邮箱，请查收", exact=True).wait_for()
-    assert page.get_by_role("button", name=re.compile(r"\d+s 后重发")).is_disabled()
+    page.get_by_text("验证码已发送到您的邮箱，请查收" + ("。" if mode == "register" else ""), exact=True).wait_for()
+    assert page.get_by_role("button", name=re.compile(r"^\d+s$" if mode == "register" else r"\d+s 后重发")).is_disabled()
     page.clock.fast_forward(61000)
     page.get_by_role("button", name="发送验证码", exact=True).click()
     page.wait_for_timeout(100)
@@ -321,7 +329,7 @@ def test_turnstile_only_mounts_for_active_registration_and_expires_token(ui_page
     page.get_by_text("测试人机验证", exact=True).wait_for()
     page.get_by_label("邮箱地址", exact=True).fill("demo@example.invalid")
     page.get_by_role("button", name="发送验证码", exact=True).click()
-    page.get_by_text("请先完成人机验证，通过后才可发送验证码", exact=True).wait_for()
+    page.get_by_text("请先完成人机验证，通过后才可发送验证码。", exact=True).wait_for()
     assert not writes
     page.evaluate(
         "window.challengeOptions[0].callback('expired-test-token'); window.challengeOptions[0]['expired-callback']()"
@@ -330,13 +338,20 @@ def test_turnstile_only_mounts_for_active_registration_and_expires_token(ui_page
     assert not writes
     page.evaluate("window.challengeOptions[0].callback('valid-test-token')")
     page.get_by_role("button", name="发送验证码", exact=True).click()
-    page.get_by_text("验证码已发送到您的邮箱，请查收", exact=True).wait_for()
+    page.get_by_text("验证码已发送到您的邮箱，请查收。", exact=True).wait_for()
     assert writes[0]["turnstile_token"] == "valid-test-token"
     page.get_by_role("tab", name="登录", exact=True).click()
     assert page.evaluate("window.removedChallenges") == ["1"]
+    page.get_by_role("tab", name="注册", exact=True).click()
+    page.wait_for_function("window.challengeOptions.length === 2")
+    page.evaluate("window.challengeOptions[0].callback('late-token-from-removed-widget')")
+    assert page.locator('input[name="turnstile_token"]').input_value() == ""
+    page.evaluate("window.challengeOptions[1].callback('new-widget-token')")
+    assert page.locator('input[name="turnstile_token"]').input_value() == "new-widget-token"
 
 
-def test_turnstile_script_failure_can_retry_without_bypassing_verification(ui_page):
+@pytest.mark.parametrize("mode", ["register", "reset"])
+def test_turnstile_script_failure_can_retry_without_bypassing_verification(ui_page, mode):
     page, load = ui_page
     scripts = []
 
@@ -353,11 +368,11 @@ def test_turnstile_script_failure_can_retry_without_bypassing_verification(ui_pa
     auth(
         page,
         load,
-        "reset",
+        mode,
         turnstile_enabled=True,
         turnstile_site_key="public-test-site",
     )
-    page.get_by_text("人机验证加载失败，请检查网络后重试", exact=True).wait_for()
+    page.get_by_text(re.compile(r"人机验证加载失败")).wait_for()
     page.get_by_role("button", name="重试", exact=True).click()
     page.get_by_text("测试人机验证", exact=True).wait_for()
     assert len(scripts) == 2
@@ -612,7 +627,7 @@ def test_account_pages_bound_long_content_and_keyboard_password_toggle(
     page.on("pageerror", lambda error: errors.append(str(error)))
     if scene in ("login", "register", "reset"):
         auth(page, load, scene, username="demo-user", email="demo@example.invalid")
-        scope = page.locator(".auth-page")
+        scope = page.locator(".auth-page" if scene == "reset" else ".auth-shell")
     elif scene == "credits":
         credit_fixture(page)
         load("pages/account/user_credits.html", path="/credits")
@@ -627,7 +642,7 @@ def test_account_pages_bound_long_content_and_keyboard_password_toggle(
     password = scope.locator('input[type="password"]:visible').first
     if password.count():
         password = scope.locator("#" + password.get_attribute("id"))
-        toggle = password.locator("..").get_by_role("button", name="显示", exact=True)
+        toggle = password.locator("..").get_by_role("button", name="显示/隐藏密码" if scene in ("login", "register") else "显示", exact=True)
         toggle = toggle.element_handle()
         toggle.focus()
         page.keyboard.press("Space")

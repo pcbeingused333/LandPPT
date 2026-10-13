@@ -1,0 +1,5 @@
+@import url('https://fonts.loli.net/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+@import url('/static/css/shared/ui.css?v=20261003-black');
+@import url('/static/css/pages/auth/auth.core.css?v=0.4.0-auth-progress-v2');
+@import url('/static/css/pages/auth/auth.motion.css');
+@import url('/static/css/pages/auth/auth.social.css');

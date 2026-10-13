@@ -3,6 +3,7 @@ import { Alert, App, Button, Card, Collapse, Progress, Space, Tag } from 'antd';
 import { RobotOutlined, StopOutlined, ReloadOutlined } from '@ant-design/icons';
 import { errorText, request, type ApiData } from '../api';
 import { modalFocus } from './modal-focus';
+import { progressPercent } from '../progress';
 
 type Monitor = { refresh(): void; destroy(): void; stopped: boolean };
 type Options = { container: HTMLElement; projectId: string; initiallyActive: boolean; onRender(run: ApiData | null): void; onError(error: Error): void; onUpdate(run: ApiData): void; onComplete(run: ApiData): void };
@@ -59,7 +60,7 @@ export function UnattendedPanel({ projectId, initiallyActive, onUpdate, onComple
   const current = planned.find(stage => stage.status === 'running');
   const state = run?.task_status || run?.status || 'pending';
   const active = !!run && !terminal.includes(state);
-  const percent = Math.max(0, Math.min(100, Number(run?.overall_progress) || 0));
+  const percent = progressPercent(run?.overall_progress);
   return <Card size="small" className="unattended-ant" title={<h2><RobotOutlined aria-hidden /> 无人值守任务</h2>} extra={<Space wrap><Tag color={state === 'failed' ? 'error' : state === 'completed' ? 'success' : 'default'}>{labels[run?.status || state] || display(run?.status || state)}</Tag>{active && <Button danger icon={<StopOutlined aria-hidden />} aria-label="停止无人值守任务" disabled={pending} onClick={stop}>停止</Button>}{run?.download_url && <Button href={run.download_url}>下载视频</Button>}</Space>}>
     {error && <Alert type="warning" title={error} action={<Button icon={<ReloadOutlined aria-hidden />} onClick={() => monitor.current?.refresh()}>重试</Button>} />}
     {run && <><p className="unattended-ant-topic" title={display(run.topic)}>{active && current ? `正在${display(current.name || current.id)} · 第 ${done + 1}/${planned.length} 步` : display(run.topic)}</p><Progress size="small" percent={percent} strokeColor="#111" status={state === 'failed' ? 'exception' : 'normal'} aria-label="任务总进度" />

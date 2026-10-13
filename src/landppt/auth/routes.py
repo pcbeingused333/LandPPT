@@ -192,12 +192,12 @@ async def login_page(
 @router.post("/auth/login")
 async def login(
     request: Request,
-    username: str = Form(...),
+    username: str = Form(..., description="用户名或邮箱"),
     password: str = Form(...),
     db: Session = Depends(get_db),
     auth_service: AuthService = Depends(get_auth_service)
 ):
-    """Handle login form submission"""
+    """Handle username/email and password login form submission."""
     registration_ctx = await _registration_template_ctx()
     try:
         # Authenticate user
@@ -206,7 +206,7 @@ async def login(
         if not user:
             return templates.TemplateResponse("pages/auth/login.html", {
                 "request": request,
-                "error": "用户名或密码错误",
+                "error": "账号或密码错误",
                 "username": username,
                 "active_tab": "login",
                 **_turnstile_template_ctx(),
@@ -243,7 +243,7 @@ async def login(
             samesite="lax"
         )
         
-        logger.info(f"User {username} logged in successfully")
+        logger.info("User %s logged in successfully", user.username)
         return response
         
     except Exception as e:
@@ -358,16 +358,16 @@ async def change_password(
 @router.post("/api/auth/login")
 async def api_login(
     request: Request,
-    username: str = Form(...),
+    username: str = Form(..., description="用户名或邮箱"),
     password: str = Form(...),
     db: Session = Depends(get_db),
     auth_service: AuthService = Depends(get_auth_service)
 ):
-    """API login endpoint"""
+    """API login; the username form field also accepts an account email."""
     user = auth_service.authenticate_user(db, username, password)
     
     if not user:
-        raise HTTPException(status_code=401, detail="用户名或密码错误")
+        raise HTTPException(status_code=401, detail="账号或密码错误")
     
     session_id = auth_service.create_session(db, user)
 

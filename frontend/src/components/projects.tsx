@@ -4,6 +4,7 @@ import { EyeOutlined, EditOutlined, FullscreenOutlined, CopyOutlined, DeleteOutl
 import { request } from '../api';
 import { modalFocus } from './modal-focus';
 import { navigatePage } from '../navigation';
+import { progressPercent } from '../progress';
 
 export interface Project {
   project_id: string; title: string; topic?: string; scenario: string; updated: string; status: string; progress: number | null;
@@ -12,7 +13,7 @@ export const projectStates: Record<string, [string, string]> = { completed: ['�
 export const projectPath = (project: Pick<Project, 'project_id'>) => `/projects/${encodeURIComponent(project.project_id)}`;
 export function ProjectStatus({ project }: { project: Project }) {
   const state = projectStates[project.status] || ['异常状态', 'error'];
-  return <div className="project-status"><Tag color={state[1]}>{state[0]}</Tag>{project.status === 'in_progress' && project.progress != null && <Progress size="small" percent={project.progress} />}</div>;
+  return <div className="project-status"><Tag color={state[1]}>{state[0]}</Tag>{project.status === 'in_progress' && project.progress != null && <Progress size="small" percent={progressPercent(project.progress)} />}</div>;
 }
 
 export function useProjectActions(onRename: (id: string, title: string) => void) {

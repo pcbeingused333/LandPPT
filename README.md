@@ -108,7 +108,7 @@ LandPPT 将「写大纲 → 做版式 → 配图 → 写讲稿 → 导出」整�
 ### 平台与运维
 
 - Docker 单容器 / Compose 多服务；后台任务（PDF / PPTX / 讲解视频）异步执行  
-- 本地账号、GitHub / Linux Do OAuth、邮件验证、注册限流  
+- 本地账号支持用户名或邮箱配合密码登录；GitHub / Linux Do OAuth、邮件验证、注册限流
 - 可选积分系统、SMTP / Resend、Cloudflare Turnstile  
 - CI/CD 同时发布应用与 PPTX 渲染器镜像；Helm 提供共享存储和渲染器网络隔离，Argo CD 完整同步先迁移数据库再更新应用。
 

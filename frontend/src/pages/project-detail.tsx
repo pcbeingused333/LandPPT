@@ -5,6 +5,7 @@ import { request, type ApiData } from '../api';
 import { modalFocus } from '../components/modal-focus';
 import { projectPath, projectStates } from '../components/projects';
 import { navigatePage } from '../navigation';
+import { progressPercent } from '../progress';
 
 type Confirmation = { kind: 'archive' | 'delete' | 'restore' | 'slide-delete'; version?: number; index?: number; final?: boolean };
 const text = (value: unknown) => typeof value === 'string' ? value : value == null ? '' : JSON.stringify(value, null, 2);
@@ -178,9 +179,9 @@ export default function ProjectDetail({ data }: { data: ApiData }) {
           ...(project.requirements ? [{ key: 'requirements', label: '特殊要求', children: project.requirements, span: 2 }] : []),
         ]} />
       </Card>
-      {data.board && <Card size="small" title={<span className="detail-card-title"><DashboardOutlined aria-hidden />进度概览</span>} className="detail-progress-card"><div className="detail-progress-summary"><div><strong>{project.status === 'completed' ? '演示文稿已就绪' : activeStage?.name || '等待下一阶段'}</strong><p className="subtle">{data.board.stages.filter((stage: ApiData) => stage.status === 'completed').length} / {data.board.stages.length} 个阶段已完成</p></div><span>{data.board.progress}<small>%</small></span></div><Progress percent={data.board.progress} size="small" showInfo={false} strokeColor={project.status === 'completed' ? '#389e0d' : '#111'} /><Collapse ghost className="detail-stage-list" defaultActiveKey={project.status === 'completed' ? [] : ['stages']} items={[{
+      {data.board && <Card size="small" title={<span className="detail-card-title"><DashboardOutlined aria-hidden />进度概览</span>} className="detail-progress-card"><div className="detail-progress-summary"><div><strong>{project.status === 'completed' ? '演示文稿已就绪' : activeStage?.name || '等待下一阶段'}</strong><p className="subtle">{data.board.stages.filter((stage: ApiData) => stage.status === 'completed').length} / {data.board.stages.length} 个阶段已完成</p></div><span>{progressPercent(data.board.progress)}<small>%</small></span></div><Progress percent={progressPercent(data.board.progress)} size="small" showInfo={false} strokeColor={project.status === 'completed' ? '#389e0d' : '#111'} /><Collapse ghost className="detail-stage-list" defaultActiveKey={project.status === 'completed' ? [] : ['stages']} items={[{
         key: 'stages', label: <span>阶段状态 <span className="subtle">{data.board.stages.length} 个阶段</span></span>, children: data.board.stages.map((stage: ApiData) => <div key={stage.id} className="stage-row">
-          <div className="stage-info"><strong>{stage.name}</strong><p className="stage-description">{stage.description}</p>{stage.status === 'running' && <Progress size="small" percent={stage.progress} />}</div>
+          <div className="stage-info"><strong>{stage.name}</strong><p className="stage-description">{stage.description}</p>{stage.status === 'running' && <Progress size="small" percent={progressPercent(stage.progress)} />}</div>
           {stage.status === 'completed' ? <Tag color="success" icon={<CheckCircleOutlined aria-hidden />}>已完成</Tag> : <Button size="small" href={`${base}/todo`} danger={stage.status === 'failed'}>{stage.status === 'running' ? '查看进度' : stage.status === 'failed' ? '重试' : stage.id === 'outline_generation' ? '生成大纲' : stage.id === 'ppt_creation' ? '生成PPT' : '开始'}</Button>}
         </div>),
       }]} /></Card>}
