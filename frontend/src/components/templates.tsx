@@ -107,7 +107,7 @@ let workspaceLoading: Promise<any> | undefined;
 // and ordinary form controls are rendered by the shared Ant surface adapter.
 export function packageWorkspace() {
   if (!workspaceLoading) workspaceLoading = (async () => {
-    const css = document.createElement('link'); css.rel = 'stylesheet'; css.href = '/static/css/template-packages.css?v=20261012'; document.head.append(css);
+    const css = document.createElement('link'); css.rel = 'stylesheet'; css.href = '/static/css/template-packages.css?v=20261013-workspace-grid'; document.head.append(css);
     for (const name of ['template-packages', 'template-package-workspace', 'template-package-pptx']) {
       await new Promise<void>((resolve, reject) => {
         const script = document.createElement('script'); script.src = `/static/js/${name}.js?v=20261012`;

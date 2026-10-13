@@ -1,5 +1,6 @@
 """AI editing controls must stay inside the workspace without scrolling."""
 
+import json
 from pathlib import Path
 
 import pytest
@@ -111,7 +112,9 @@ def assert_controls_fit(page):
             });
         }"""
     )
-    assert all(result["fits"] and result["reachable"] for result in results), results
+    assert all(result["fits"] and result["reachable"] for result in results), json.dumps(
+        results, ensure_ascii=False, indent=2
+    )
     assert page.locator(".pw-body").evaluate("el => el.scrollTop") == 0
     assert page.locator(".pw-stage").evaluate("el => el.scrollTop") == 0
     assert page.locator(".package-workspace").evaluate(
@@ -145,6 +148,19 @@ def test_ai_controls_are_visible_without_scrolling(workspace_page, width, height
             }));
             document.querySelector('.pw-status').textContent = '已保存到草稿。'.repeat(30);
         }"""
+    )
+    assert_controls_fit(page)
+    assert not errors, errors
+
+
+def test_wide_input_font_does_not_push_ai_button_outside_workspace(workspace_page):
+    page, package, errors = workspace_page
+    page.set_viewport_size({"width": 320, "height": 568})
+    page.evaluate("pkg => window.PackageWorkspace.open(pkg)", package)
+    # Font fallback and user font scaling can increase an input's intrinsic
+    # width. The editor must still share the available width with its AI button.
+    page.locator(".pw-page-ai input").evaluate(
+        "el => el.style.font = '20px monospace'"
     )
     assert_controls_fit(page)
     assert not errors, errors

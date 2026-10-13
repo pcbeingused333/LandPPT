@@ -437,6 +437,8 @@ def test_project_detail_draft_and_legacy_content_remain_bounded(
 
 @pytest.mark.parametrize("template", ["projects_list", "project_dashboard"])
 def test_project_dialog_traps_focus_and_restores_trigger(ui_page, template):
+    from playwright.sync_api import expect
+
     page, load = ui_page
     load(f"pages/project/{template}.html")
     trigger = page.get_by_role("button", name="重命名").first
@@ -451,21 +453,24 @@ def test_project_dialog_traps_focus_and_restores_trigger(ui_page, template):
         page.keyboard.press(key)
         assert page.evaluate("!!document.activeElement.closest('.ant-modal-wrap')")
     page.keyboard.press("Escape")
-    assert not dialog.is_visible()
-    assert trigger.evaluate("e => e === document.activeElement")
+    expect(dialog).not_to_be_visible()
+    expect(trigger).to_be_focused()
 
 
 def test_config_tabs_support_keyboard_selection(ui_page):
+    from playwright.sync_api import expect
+
     page, load = ui_page
     load("pages/settings/ai_config.html", path="/ai-config")
     tabs = page.get_by_role("tablist")
     tabs.get_by_role("tab", name="AI 提供者", exact=True).focus()
     page.keyboard.press("ArrowRight")
-    page.keyboard.press("Enter")
     selected = tabs.get_by_role("tab", name=re.compile("生成参数$"))
-    assert selected.get_attribute("aria-selected") == "true"
-    assert selected.evaluate("e => e === document.activeElement")
-    assert page.locator("#generation-params").is_visible()
+    expect(selected).to_be_focused()
+    page.keyboard.press("Enter")
+    expect(selected).to_have_attribute("aria-selected", "true")
+    expect(selected).to_be_focused()
+    expect(page.locator("#generation-params")).to_be_visible()
     tabs.get_by_role("tab", name="AI 提供者", exact=True).click()
     assert (
         tabs.get_by_role("tab", name="AI 提供者", exact=True).get_attribute(
@@ -606,6 +611,8 @@ def test_long_template_card_fits_mobile_without_changing_preview_document(ui_pag
 def test_admin_menu_keeps_navigation_and_keyboard_exit_reachable(
     ui_page, width, height
 ):
+    from playwright.sync_api import expect
+
     page, load = ui_page
     page.set_viewport_size({"width": width, "height": height})
     load("pages/admin/users.html", path="/admin/users")
@@ -621,9 +628,9 @@ def test_admin_menu_keeps_navigation_and_keyboard_exit_reachable(
     drawer = page.get_by_role("dialog", name="导航", exact=True)
     drawer.get_by_role("link", name="管理后台", exact=True).wait_for()
     page.keyboard.press("Escape")
-    assert not drawer.is_visible()
-    assert nav.is_visible()
-    assert toggle.evaluate("e => e === document.activeElement")
+    expect(drawer).not_to_be_visible()
+    expect(nav).to_be_visible()
+    expect(toggle).to_be_focused()
 
 
 @pytest.mark.parametrize("width", [1440, 390])
@@ -653,6 +660,8 @@ def test_admin_menu_keeps_navigation_and_keyboard_exit_reachable(
 def test_primary_controls_share_scale_across_app_shells(
     ui_page, width, template, path, field, button
 ):
+    from playwright.sync_api import expect
+
     page, load = ui_page
     page.set_viewport_size({"width": width, "height": 844})
     load(template, path=path)
@@ -663,7 +672,8 @@ def test_primary_controls_share_scale_across_app_shells(
     elif path == "/admin/users":
         page.get_by_role("button", name="新建用户", exact=True).click()
     control = page.locator(field)
-    assert control.is_visible()
+    expect(control).to_be_visible()
+    control.hover()
     assert control.evaluate("e => getComputedStyle(e).fontSize") == (
         "16px" if width < 600 else "14px"
     )
@@ -886,6 +896,8 @@ def test_provider_switches_share_size_and_keep_keyboard_linkage(
 
 @pytest.mark.parametrize("width", [390, 320])
 def test_image_source_keyboard_toggle_and_json_field_remain_usable(ui_page, width):
+    from playwright.sync_api import expect
+
     page, load = ui_page
     page.set_viewport_size({"width": width, "height": 844})
     load("pages/settings/ai_config.html", path="/ai-config")
@@ -898,12 +910,12 @@ def test_image_source_keyboard_toggle_and_json_field_remain_usable(ui_page, widt
     ]:
         control = page.locator("#field-" + name)
         control.click()
-        assert page.locator("#field-" + dependent).is_visible()
+        expect(page.locator("#field-" + dependent)).to_be_visible()
         control.focus()
         page.keyboard.press("Space")
-        assert page.locator("#field-" + dependent).count() == 0
+        expect(page.locator("#field-" + dependent)).to_have_count(0)
         page.keyboard.press("Space")
-        assert page.locator("#field-" + dependent).is_visible()
+        expect(page.locator("#field-" + dependent)).to_be_visible()
     resolution = page.locator('textarea[name="ai_image_resolution_presets"]')
     resolution.fill(json.dumps({"openai_image": ["1536x1024"] * 80}))
     box = resolution.bounding_box()
@@ -1201,38 +1213,41 @@ def test_gallery_long_titles_and_card_actions_fit_their_cards(gallery_page, widt
 @pytest.mark.parametrize("width", [1440, 320])
 @pytest.mark.parametrize("key", ["Enter", "Space"])
 def test_gallery_thumbnail_opens_detail_with_keyboard(gallery_page, width, key):
+    from playwright.sync_api import expect
+
     page, images, requests = gallery_page
     page.set_viewport_size({"width": width, "height": 844})
     thumbnail = page.locator(".image-card-preview").first
     thumbnail.focus()
     page.keyboard.press(key)
     page.get_by_role("dialog", name="图片详情", exact=True).wait_for(state="visible")
-    assert (
+    expect(
         page.get_by_role("dialog")
         .get_by_text(images[0]["title"], exact=True)
-        .is_visible()
-    )
+    ).to_be_visible()
     assert any(url.endswith("/detail/gallery-0") for _, url in requests)
     page.keyboard.press("Escape")
-    assert not page.get_by_role("dialog", name="图片详情", exact=True).is_visible()
-    assert thumbnail.evaluate("e=>e===document.activeElement")
+    expect(page.get_by_role("dialog", name="图片详情", exact=True)).not_to_be_visible()
+    expect(thumbnail).to_be_focused()
 
 
 @pytest.mark.parametrize("width", [1440, 320])
 def test_gallery_batch_selection_keeps_state_and_clears_on_exit(gallery_page, width):
+    from playwright.sync_api import expect
+
     page, _, _ = gallery_page
     page.set_viewport_size({"width": width, "height": 844})
     trigger = page.get_by_role("button", name="批量选择", exact=True)
     trigger.click()
-    assert trigger.get_attribute("aria-pressed") == "true"
-    assert page.locator(".image-batch-toolbar").is_visible()
+    expect(trigger).to_have_attribute("aria-pressed", "true")
+    expect(page.locator(".image-batch-toolbar")).to_be_visible()
     page.locator(".image-card-check input").first.check()
-    assert page.get_by_text("已选择 1 张", exact=True).is_visible()
-    assert page.locator(".image-card-selected").count() == 1
+    expect(page.get_by_text("已选择 1 张", exact=True)).to_be_visible()
+    expect(page.locator(".image-card-selected")).to_have_count(1)
     trigger.click()
-    assert trigger.get_attribute("aria-pressed") == "false"
-    assert page.locator(".image-card-check input").count() == 0
-    assert page.locator(".image-card-selected").count() == 0
+    expect(trigger).to_have_attribute("aria-pressed", "false")
+    expect(page.locator(".image-card-check input")).to_have_count(0)
+    expect(page.locator(".image-card-selected")).to_have_count(0)
     assert page.evaluate("document.documentElement.scrollWidth") <= width
 
 
