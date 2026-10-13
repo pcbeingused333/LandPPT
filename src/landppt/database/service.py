@@ -23,6 +23,8 @@ from .models import (
     SlideData as DBSlideData,
     PPTTemplate as DBPPTTemplate,
     GlobalMasterTemplate as DBGlobalMasterTemplate,
+    SpeechScript,
+    NarrationAudio,
 )
 from ..api.models import (
     PPTProject, TodoBoard, TodoStage, ProjectListResponse,
@@ -918,9 +920,6 @@ class DatabaseService:
         if not project:
             return False
 
-        if op_type == "insert":
-            return True
-
         slide_rows = list(await self.slide_repo.get_slides_by_project_id(project_id))
         slides_json = list(project.slides_data or [])
 
@@ -929,17 +928,23 @@ class DatabaseService:
         except (TypeError, ValueError):
             return False
 
-        changed = False
+        page_count = max(len(slide_rows), len(slides_json), len((project.outline or {}).get("slides") or []))
+        if from_index < 0 or from_index >= page_count + (op_type == "insert"):
+            return False
+
+        if op_type == "insert":
+            await self._remap_page_documents(project_id, op_type, from_index)
+            project.updated_at = time.time()
+            await self.session.commit()
+            return True
 
         if op_type == "delete":
             if 0 <= from_index < len(slide_rows):
                 removed = slide_rows.pop(from_index)
                 await self.session.delete(removed)
-                changed = True
 
             if 0 <= from_index < len(slides_json):
                 slides_json.pop(from_index)
-                changed = True
 
         elif op_type == "move":
             try:
@@ -949,19 +954,21 @@ class DatabaseService:
 
             if from_index == to_index:
                 return True
+            if to_index < 0 or to_index > page_count:
+                return False
+            to_index = min(to_index, page_count - 1)
 
             if 0 <= from_index < len(slide_rows):
                 moved_row = slide_rows.pop(from_index)
                 slide_rows.insert(max(0, min(to_index, len(slide_rows))), moved_row)
-                changed = True
 
             if 0 <= from_index < len(slides_json):
                 moved_json = slides_json.pop(from_index)
                 slides_json.insert(max(0, min(to_index, len(slides_json))), moved_json)
-                changed = True
 
-        if not changed:
-            return True
+        await self._remap_page_documents(
+            project_id, op_type, from_index, to_index if op_type == "move" else None
+        )
 
         for index, slide in enumerate(slide_rows):
             slide.slide_index = index
@@ -975,6 +982,39 @@ class DatabaseService:
         project.updated_at = time.time()
         await self.session.commit()
         return True
+
+    async def _remap_page_documents(self, project_id, operation, source, target=None):
+        """Keep every speech language and audio cache attached to its page."""
+        for model in (SpeechScript, NarrationAudio):
+            rows = list((await self.session.scalars(
+                select(model).where(model.project_id == project_id)
+            )).all())
+            changes = []
+            for row in rows:
+                index = row.slide_index
+                if operation == "delete" and index == source:
+                    await self.session.delete(row)
+                    continue
+                if operation == "insert":
+                    destination = index + 1 if index >= source else index
+                elif operation == "delete":
+                    destination = index - 1 if index > source else index
+                elif index == source:
+                    destination = target
+                elif source < target and source < index <= target:
+                    destination = index - 1
+                elif source > target and target <= index < source:
+                    destination = index + 1
+                else:
+                    destination = index
+                if destination != index:
+                    changes.append((row, destination))
+                    # Temporary unique positions avoid audio cache collisions on swaps.
+                    row.slide_index = -row.id - 1
+            await self.session.flush()
+            for row, destination in changes:
+                row.slide_index = destination
+            await self.session.flush()
 
     async def duplicate_project(
         self,

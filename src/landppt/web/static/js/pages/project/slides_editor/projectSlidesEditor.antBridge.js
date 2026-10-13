@@ -1,5 +1,17 @@
 // UI adapter only. Native editor modules still own slide data and API requests.
 (() => {
+    const documentKeys = new WeakMap(), stableDocumentKeys = new Map(); let documentSequence = 0;
+    function documentPages() {
+        const counts = new Map();
+        slidesData.forEach(slide => { if (slide.slide_id) counts.set(slide.slide_id, (counts.get(slide.slide_id) || 0) + 1); });
+        const pages = slidesData.map(slide => {
+            if (!documentKeys.has(slide)) documentKeys.set(slide, counts.get(slide.slide_id) === 1 && stableDocumentKeys.get(slide.slide_id) || `editor-page-${++documentSequence}`);
+            return { key: documentKeys.get(slide), slideId: slide.slide_id || null, title: slide.title || '' };
+        });
+        stableDocumentKeys.clear();
+        pages.forEach(page => { if (counts.get(page.slideId) === 1) stableDocumentKeys.set(page.slideId, page.key); });
+        return pages;
+    }
     const types = [
         ['.modal', '.modal-title, .speech-modal-title', '.btn-close, .speech-modal-close', '.modal-footer, .speech-modal-footer', 920],
         ['.outline-modal', '.outline-modal__title', '.outline-modal__close', '.outline-modal__footer', 760],
@@ -79,6 +91,10 @@
         return {
             mode: currentMode, current: currentSlideIndex, count: slidesData.length,
             title: slidesData[currentSlideIndex]?.title || '', selected: selectedSlideIndices.size,
+            documentPages: documentPages(),
+            documentPanel: document.getElementById('slidesSidebar').dataset.editorPanel || 'slides',
+            documentDirty: document.getElementById('slidesSidebar').dataset.documentDirty === 'true',
+            documentSaving: document.getElementById('slidesSidebar').dataset.documentSaving === 'true',
             svg: currentSlideIsSvg(), sidebar: !document.querySelector('.editor-container').classList.contains('sidebar-collapsed'),
             aiOpen: document.getElementById('aiEditSidebar').classList.contains('open'),
             aiWidth: Number.parseFloat(document.getElementById('aiEditSidebar').style.width) || 480,
@@ -91,6 +107,33 @@
     }
     window.LandPPTEditorUI = {
         read,
+        applyDocument(key, snapshot) {
+            const index = documentPages().findIndex(page => page.key === key);
+            if (index < 0 || index !== snapshot.slide_index) return;
+            const slide = slidesData[index];
+            if (slide.slide_id && snapshot.slide_id !== slide.slide_id) return;
+            if (snapshot.slide_id) slide.slide_id = snapshot.slide_id;
+            if (!projectOutline) projectOutline = { slides: [] };
+            if (!Array.isArray(projectOutline.slides)) projectOutline.slides = [];
+            projectOutline.slides[index] = snapshot.outline;
+            window.projectOutline = projectOutline;
+            if (snapshot.outline.title) slide.title = snapshot.outline.title;
+            ['slide_type', 'content_points', 'description'].forEach(field => {
+                if (field in snapshot.outline) slide[field] = snapshot.outline[field];
+            });
+            const title = document.querySelector(`.slide-thumbnail[data-slide-index="${index}"] .slide-title`);
+            if (title) {
+                const badge = title.querySelector('.slide-mode-badge');
+                title.textContent = `${index + 1}. ${slide.title}`;
+                if (badge) title.appendChild(badge);
+            }
+        },
+        openSpeechDocument(language, preview) {
+            currentSpeechLanguage = language;
+            const selector = document.getElementById('speechLanguage');
+            if (selector) selector.value = language;
+            if (preview) showCurrentSpeechScripts(); else showSpeechScriptDialog();
+        },
         subscribe(listener) {
             let previous = '', queued = false, disposed = false;
             const update = () => {
@@ -116,7 +159,7 @@
                 if (signature !== previous) { previous = signature; listener(state); }
             };
             const observer = new MutationObserver(() => { if (!queued) { queued = true; queueMicrotask(update); } });
-            observer.observe(document.body, { subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: ['class', 'style', 'hidden', 'disabled', 'open'] });
+            observer.observe(document.body, { subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: ['class', 'style', 'hidden', 'disabled', 'open', 'data-editor-panel', 'data-document-dirty', 'data-document-saving'] });
             update();
             return () => { disposed = true; observer.disconnect(); };
         },

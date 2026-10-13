@@ -19,7 +19,7 @@ Dependencies and generated assets are ignored by Git.
 
 ```sh
 npm run check --prefix frontend
-python -m pytest tests/test_app_ui.py tests/test_antd_ui.py tests/test_antd_settings_performance_ui.py tests/test_antd_settings_models_ui.py tests/test_antd_settings_compact_ui.py tests/test_antd_asset_updates_ui.py tests/test_antd_navigation_ui.py tests/test_antd_projects_ui.py tests/test_antd_project_search_ui.py tests/test_antd_account_ui.py tests/test_antd_admin_ui.py tests/test_antd_admin_management_ui.py tests/test_antd_community_ui.py tests/test_antd_images_ui.py tests/test_antd_templates_ui.py tests/test_antd_creation_research_ui.py tests/test_antd_home_generator_ui.py tests/test_antd_generator_skeleton_ui.py tests/test_antd_presentation_ui.py tests/test_antd_todo_ui.py tests/test_antd_editor_ui.py tests/test_antd_editor_media_ui.py tests/test_antd_editor_context_ui.py tests/test_antd_editor_export_ui.py tests/test_antd_editor_share_ui.py tests/test_antd_quick_edit_ui.py tests/test_antd_remaining_ui.py tests/test_template_package_workspace_ui.py -q
+python -m pytest tests/test_app_ui.py tests/test_antd_ui.py tests/test_antd_settings_performance_ui.py tests/test_antd_settings_models_ui.py tests/test_antd_settings_compact_ui.py tests/test_antd_asset_updates_ui.py tests/test_antd_navigation_ui.py tests/test_antd_projects_ui.py tests/test_antd_project_search_ui.py tests/test_antd_account_ui.py tests/test_antd_admin_ui.py tests/test_antd_admin_management_ui.py tests/test_antd_community_ui.py tests/test_antd_images_ui.py tests/test_antd_templates_ui.py tests/test_antd_creation_research_ui.py tests/test_antd_home_generator_ui.py tests/test_antd_generator_skeleton_ui.py tests/test_antd_presentation_ui.py tests/test_antd_todo_ui.py tests/test_antd_editor_ui.py tests/test_antd_editor_media_ui.py tests/test_antd_editor_context_ui.py tests/test_antd_editor_export_ui.py tests/test_antd_editor_share_ui.py tests/test_antd_quick_edit_ui.py tests/test_antd_editor_documents_ui.py tests/test_antd_speech_dialog_mount_ui.py tests/test_antd_remaining_ui.py tests/test_template_package_workspace_ui.py -q
 ```
 
 Build before installing from source or publishing Python packages. Hatch includes
@@ -103,6 +103,23 @@ The PPT editor remains a standalone workspace. Ant controls replace its header,
 view modes, save/export/regenerate menus and AI drawer; thumbnail, source,
 quick-edit and SVG controllers retain their data ownership. A ResizeObserver
 invokes the original frame-sizing functions when the new toolbar changes size.
+The left sidebar now switches between slides, outline and speech. Text is loaded
+on demand, with a page picker, reading/editing modes, fixed save footer and
+Chinese/English speech drafts. Drafts remain in this editor session across page,
+tab and language switches; leaving the page with unsaved text triggers the browser
+warning. The toolbar Save and Ctrl/Cmd+S inside the sidebar save the active text.
+Manual speech creation uses no AI; the existing generation/settings and complete
+preview dialogs are accessible from the speech pane. Authenticated GET/PATCH
+`/api/projects/{id}/editor-documents/{index}` endpoints require ownership and use
+page identity, content hashes and transactional project compare-and-swap to reject
+stale writes. Outline patches preserve unknown fields, other pages, workflow
+metadata, HTML/SVG and canvas edit flags. Speech edits retain generation settings
+and isolate each language. Native insertion/deletion/sorting now remap speech and
+audio cache indices, with temporary positions avoiding unique cache collisions;
+copies receive new page IDs. Failed loads/saves retain drafts and expose retry;
+reloading dirty text requires explicit discard. Mobile panes use the existing
+sidebar overlay and 44px controls. Regression coverage is in
+`tests/test_antd_editor_documents_ui.py` and `tests/test_editor_document_service.py`.
 Thumbnail context actions use a grouped Ant menu with the target page title,
 clipboard availability and a separate destructive action. The original nine
 handlers still perform edits, copy/paste, insertion, duplication and exports.
@@ -113,6 +130,12 @@ focus, and cancelling a confirmation restores the target thumbnail. Presentation
 artwork, selection and native operation guards remain unchanged.
 An editor-only adapter mounts original dialog nodes into Ant frames, keeping
 body-child removal, listeners, form values and asynchronous footer insertion.
+Once the adapter is mounted, speech preview/settings shells are staged invisibly
+until their original content moves inside the Ant frame. They remain measurable
+to the bridge, including when React commits late; the legacy body/backdrop never
+paints before the modern dialog. Without React, the original preview stays visible.
+Frame-level handoff/reopen/fallback coverage is in
+`tests/test_antd_speech_dialog_mount_ui.py`.
 Native chat, SVG and editor package dialogs use nonmodal `show()` inside those
 frames, retaining their close events and SVG dirty-state confirmation. Their
 existing `showModal()` behavior remains the fallback outside this workspace.

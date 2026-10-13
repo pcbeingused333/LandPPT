@@ -11,12 +11,13 @@ import { EditorThumbnailMenu, type EditorContextMenu } from '../components/edito
 import { EditorExportDialog, type EditorExportProgress } from '../components/editor-export-dialog';
 import { EditorShareDialog, type EditorShareLinks, type EditorShareAction } from '../components/editor-share-dialog';
 import { EditorQuickIcons } from '../components/editor-quick-icons';
+import { EditorDocumentSidebar, type DocumentBridge } from '../components/editor-document-sidebar';
 import '../components/native-surfaces.css';
 import './slides-editor.css';
 
 type DialogRecord = { key: number; node: HTMLElement; type: string[]; title: string; closable: boolean; origin: HTMLElement | null; footer?: HTMLElement | null; exportProgress?: EditorExportProgress; shareLinks?: EditorShareLinks };
 type EditorState = ApiData & { dialogs: DialogRecord[]; toasts: ApiData[]; contextMenu: EditorContextMenu | null };
-type Bridge = { read(): EditorState; subscribe(listener: (state: EditorState) => void): () => void; call(name: string, ...args: unknown[]): any; click(id: string): void; close(record: DialogRecord): void; runContextAction(action: string): void; dismissContextMenu(): void; cancelExport(): void; dismissExport(): void; runShareAction(record: DialogRecord, action: EditorShareAction): void };
+type Bridge = DocumentBridge & { read(): EditorState; subscribe(listener: (state: EditorState) => void): () => void; click(id: string): void; close(record: DialogRecord): void; runContextAction(action: string): void; dismissContextMenu(): void; cancelExport(): void; dismissExport(): void; runShareAction(record: DialogRecord, action: EditorShareAction): void };
 const controller = () => (window as typeof window & { LandPPTEditorUI: Bridge }).LandPPTEditorUI;
 
 // Keep the exact native form nodes/listeners; Ant owns their bounded frame.
@@ -73,6 +74,11 @@ export default function SlidesEditor({ data }: { data: ApiData }) {
   const [saving, setSaving] = useState(false); const savingLock = useRef(false);
   const previousToasts = useRef(new Map<string, string>()); const moreRef = useRef<HTMLButtonElement>(null);
   const taskDialog = [...state.dialogs].reverse().find(record => record.node.querySelector('.speech-modal-body-preview'));
+  useLayoutEffect(() => {
+    // Stage speech shells before the observer/React handoff can paint legacy UI.
+    document.body.classList.add('editor-ant-dialogs-ready');
+    return () => { document.body.classList.remove('editor-ant-dialogs-ready'); };
+  }, []);
   useEffect(() => controller().subscribe(setState), []);
   useLayoutEffect(() => {
     const resize = () => {
@@ -107,7 +113,7 @@ export default function SlidesEditor({ data }: { data: ApiData }) {
   async function save() {
     if (savingLock.current) return;
     savingLock.current = true; setSaving(true);
-    try { await controller().call('saveSlide'); } finally { savingLock.current = false; setSaving(false); }
+    try { if (controller().saveDocument) await controller().saveDocument!(); else await controller().call('saveSlide'); } finally { savingLock.current = false; setSaving(false); }
   }
   const call = (name: string, ...args: unknown[]) => controller().call(name, ...args);
   const items = [
@@ -122,7 +128,7 @@ export default function SlidesEditor({ data }: { data: ApiData }) {
     <div className="editor-ant-view"><Segmented aria-label="编辑视图" value={state.mode === 'quickedit' ? 'preview' : state.mode} options={[
       { value: 'preview', label: '预览', icon: <EyeOutlined aria-hidden /> }, { value: 'edit', label: '代码', icon: <CodeOutlined aria-hidden /> }, { value: 'split', label: '分屏' },
     ]} onChange={mode => call('setMode', mode)} /><Button disabled={!state.count} type={state.mode === 'quickedit' ? 'primary' : 'default'} icon={<EditOutlined aria-hidden />} onClick={() => call('toggleQuickEditMode')}>{state.svg ? '编辑 SVG' : '快速编辑'}</Button>{state.packageContent && <Button onClick={() => controller().click('packageContentEditorBtn')}>内容与版式</Button>}</div>
-    <Space wrap size={8} className="editor-ant-actions"><Button disabled={!state.count} icon={<PlayCircleOutlined aria-hidden />} onClick={() => controller().click('slideshowBtn')}>放映</Button><Button type="primary" disabled={!state.count} loading={saving} icon={<SaveOutlined aria-hidden />} onClick={save}>保存</Button><Button disabled={!state.count} icon={<RobotOutlined aria-hidden />} onClick={() => controller().click('aiEditBtn')}>AI 编辑</Button>
+    <Space wrap size={8} className="editor-ant-actions"><Button disabled={!state.count} icon={<PlayCircleOutlined aria-hidden />} onClick={() => controller().click('slideshowBtn')}>放映</Button><Button type="primary" disabled={!state.count || state.documentPanel !== 'slides' && !state.documentDirty} loading={saving || state.documentSaving} icon={<SaveOutlined aria-hidden />} onClick={save}>{state.documentPanel === 'outline' ? '保存大纲' : state.documentPanel === 'speech' ? '保存讲稿' : '保存'}</Button><Button disabled={!state.count} icon={<RobotOutlined aria-hidden />} onClick={() => controller().click('aiEditBtn')}>AI 编辑</Button>
       <Dropdown trigger={['click']} menu={{ items: [
         { key: 'current', label: '重新生成当前页', onClick: () => call('quickRegenerateSlide') }, { key: 'selected', label: `重新生成所选页（${state.selected}）`, onClick: () => call('regenerateSelectedSlides') }, { key: 'all', label: '重新生成全部', danger: true, onClick: () => call('regenerateAllSlides') },
       ] }}><Button disabled={!state.count} icon={<ReloadOutlined aria-hidden />}>重新生成</Button></Dropdown>
@@ -134,6 +140,7 @@ export default function SlidesEditor({ data }: { data: ApiData }) {
   </div>;
   return <>
     <EditorQuickIcons />
+    {createPortal(<EditorDocumentSidebar projectId={String(data.projectId)} pages={state.documentPages} current={state.current} selected={state.selected} dialogCount={state.dialogs.length} bridge={controller()} />, document.getElementById('editorAntSidebar')!)}
     <EditorThumbnailMenu state={state.contextMenu} run={controller().runContextAction} dismiss={controller().dismissContextMenu} />
     {createPortal(<header className="editor-ant-header"><Button aria-label="展开或收起幻灯片列表" aria-expanded={state.sidebar} aria-controls="slidesSidebar" icon={<BarsOutlined aria-hidden />} onClick={() => controller().click('slidesSidebarToggle')} /><div className="editor-ant-title"><h1 title={data.title}>{data.title}</h1><span>{state.count ? `第 ${state.current + 1} / ${state.count} 页` : "暂无幻灯片"}{state.svg && <Tag>SVG</Tag>}</span></div><Button href="/dashboard" icon={<ArrowLeftOutlined aria-hidden />}>返回工作台</Button></header>, document.getElementById('editorAntHeader')!)}
     {createPortal(toolbar, document.getElementById('editorAntToolbar')!)}

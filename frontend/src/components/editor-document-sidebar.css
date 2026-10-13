@@ -1,0 +1,51 @@
+.landppt-editor #slidesSidebar[data-editor-panel] { overflow: hidden; }
+.landppt-editor #slidesSidebar[data-editor-panel] > .editor-legacy-sidebar-heading { display: none; }
+.landppt-editor #editorAntSidebar { flex: 0 0 auto; min-height: 0; }
+.landppt-editor .workspace-body #slidesSidebar[data-editor-panel="outline"],
+.landppt-editor .workspace-body #slidesSidebar[data-editor-panel="speech"] { flex-basis: 336px !important; background: #fff; }
+.landppt-editor #slidesSidebar:is([data-editor-panel="outline"],[data-editor-panel="speech"]) > #editorAntSidebar { display: flex; flex: 1; overflow: hidden; }
+.landppt-editor #slidesSidebar:is([data-editor-panel="outline"],[data-editor-panel="speech"]) > .slides-container { display: none; }
+.editor-document-sidebar { display: flex; flex-direction: column; flex: 1; min-width: 0; min-height: 0; width: 100%; }
+.editor-document-tabs { flex: 0 0 auto; padding: 12px 10px 8px; border-bottom: 1px solid #eee; }
+.editor-document-tabs .ant-segmented { padding: 3px; font-size: 13px; }
+.editor-document-tabs .ant-segmented-item-label { padding-inline: 7px; }
+.editor-document-selection { padding: 8px 12px 4px; font-size: 11px; color: #737373; }
+.editor-document-selection .ant-tag { margin-top: 6px; font-size: 11px; }
+.editor-document-nav { display: flex; flex: 0 0 auto; gap: 6px; padding: 12px 12px 8px; }
+.editor-document-nav .ant-select { flex: 1; min-width: 0; }
+.editor-document-tools { display: flex; flex: 0 0 auto; gap: 6px; align-items: center; padding: 0 12px 12px; border-bottom: 1px solid #eee; }
+.editor-document-tools > span { margin-right: auto; font-size: 12px; color: #666; }
+.editor-document-tools > .ant-select { width: 108px; margin-right: auto; }
+.editor-document-sidebar .ant-select-input { min-height: 0 !important; height: 100% !important; margin: 0 !important; padding: 0 !important; border: 0 !important; background: transparent !important; box-shadow: none !important; line-height: inherit; }
+.editor-document-body { flex: 1 1 auto; min-height: 0; padding: 14px 12px; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; }
+.editor-document-body > .ant-alert { margin-bottom: 12px; }
+.editor-document-hint { margin: 0 0 14px; color: #737373; font-size: 12px; line-height: 1.6; }
+.editor-document-fields { display: flex; flex-direction: column; gap: 14px; border: 0; margin: 0; padding: 0; min-width: 0; }
+.editor-document-fields label { display: flex; flex-direction: column; gap: 6px; font-size: 12px; font-weight: 500; color: #454545; }
+.editor-document-fields label .ant-input, .editor-document-fields label .ant-select { font-size: 13px; font-weight: 400; }
+.editor-document-fields .ant-select { width: 100%; }
+.editor-document-points { display: flex; flex-direction: column; gap: 8px; }
+.editor-document-points > strong { font-size: 12px; font-weight: 500; }
+.editor-document-point { display: flex; align-items: flex-start; gap: 4px; }
+.editor-document-point > span { flex: 0 0 20px; padding-top: 5px; color: #999; font-size: 12px; }
+.editor-document-point .ant-input { font-size: 13px; }
+.editor-document-point .ant-btn { flex: 0 0 28px; }
+.editor-document-reading { font-size: 14px; color: #454545; }
+.editor-document-reading h2 { font-size: 16px; line-height: 1.5; font-weight: 600; color: #252936; margin: 0 0 12px; overflow-wrap: anywhere; }
+.editor-document-reading p, .editor-document-reading li { white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.8; }
+.editor-document-reading p { margin: 12px 0; }
+.editor-document-reading ol { padding-left: 22px; }
+.editor-document-reading li + li { margin-top: 8px; }
+.editor-document-reading aside { padding: 10px 12px; margin-top: 16px; border-left: 2px solid #d4d4d4; background: #fafafa; font-size: 12px; }
+.editor-document-reading aside p { margin: 6px 0 0; }
+.editor-document-speech-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 20px; padding-top: 12px; border-top: 1px solid #eee; }
+.editor-document-footer { display: flex; flex: 0 0 auto; align-items: center; justify-content: space-between; gap: 8px; padding: 12px; border-top: 1px solid #eee; background: #fafafa; }
+.editor-document-footer > div { min-width: 0; color: #737373; font-size: 11px; }
+.editor-document-footer small { display: block; margin-top: 2px; }
+@media (max-width: 700px) {
+  .landppt-editor .workspace-body #slidesSidebar:is([data-editor-panel="outline"],[data-editor-panel="speech"]) { width: min(336px, calc(100vw - 24px)); }
+  .editor-document-sidebar .ant-btn { min-height: 44px; }
+  .editor-document-sidebar .ant-select-single { height: 44px; }
+  .editor-document-tabs .ant-segmented-item-label { min-height: 40px; line-height: 40px; }
+  .editor-document-point > span { padding-top: 10px; }
+}

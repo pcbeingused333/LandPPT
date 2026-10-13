@@ -94,6 +94,10 @@
 }
 
 /* Original roots remain body children for close/removeChild contracts. */
+/* Keep display measurable for the bridge; expose speech content only after it
+   moves inside the Ant frame. Without a mounted adapter, native UI still works. */
+.landppt-editor.editor-ant-dialogs-ready > .modal:has(> .speech-modal-dialog):not(.editor-ant-modal-host) { opacity: 0 !important; visibility: hidden !important; pointer-events: none !important; }
+.landppt-editor.editor-ant-dialogs-ready > .modal > .speech-modal-dialog { visibility: hidden !important; }
 .landppt-editor .editor-ant-modal-host { position: static !important; inset: auto !important; width: auto !important; height: 0 !important; min-height: 0 !important; padding: 0 !important; margin: 0 !important; overflow: visible !important; background: none !important; backdrop-filter: none !important; z-index: auto !important; animation: none !important; }
 .editor-ant-dialog { top: 16px; padding-bottom: 0; max-width: calc(100vw - 32px); }
 .editor-ant-dialog .ant-modal-container { display: flex; flex-direction: column; max-height: calc(100dvh - 32px); border-radius: 8px; }

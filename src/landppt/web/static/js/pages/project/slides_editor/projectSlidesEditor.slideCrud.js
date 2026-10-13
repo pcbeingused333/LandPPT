@@ -211,6 +211,7 @@ function renumberProjectOutlinePages() {
 
 function cloneSlideForInsert(sourceSlide, insertIndex) {
     const newSlide = cloneJsonValue(sourceSlide, {});
+    newSlide.slide_id = `slide-${window.crypto?.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`}`;
     newSlide.page_number = insertIndex + 1;
     newSlide.title = normalizeInsertedTitle(newSlide.title);
     if (typeof newSlide.html_content !== 'string') {
