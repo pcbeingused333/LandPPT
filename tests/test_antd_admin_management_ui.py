@@ -1,10 +1,14 @@
 """User and redemption management contracts against built Ant Design assets."""
 
+import ast
+import asyncio
+from concurrent.futures import ThreadPoolExecutor
+from types import SimpleNamespace
 from urllib.parse import parse_qs, urlsplit
 
 import pytest
 
-from test_app_ui import browser, ui_page  # noqa: F401
+from test_app_ui import ROOT, browser, ui_page  # noqa: F401
 
 
 USERS = [
@@ -63,6 +67,70 @@ CODES = [
         expires_at=None,
     ),
 ]
+
+
+class CreditsPageRejected(Exception):
+    pass
+
+
+def credits_page_context(enabled):
+    """Execute the real handler without importing database/auth services.
+
+    Existing template fixtures supply credits_enabled=True, which can hide a
+    missing route context. This regression derives that context from the route.
+    """
+    source = ROOT / "src/landppt/web/admin_routes.py"
+    tree = ast.parse(source.read_text(encoding="utf-8"))
+    handler = next(
+        node
+        for node in tree.body
+        if isinstance(node, ast.AsyncFunctionDef) and node.name == "admin_credits_page"
+    )
+    handler.decorator_list = []
+    namespace = dict(
+        Request=object,
+        User=object,
+        Depends=lambda dependency: None,
+        get_admin_user_required=lambda: None,
+        app_config=SimpleNamespace(enable_credits_system=enabled),
+        HTTPException=lambda **kwargs: CreditsPageRejected(kwargs),
+        templates=SimpleNamespace(
+            TemplateResponse=lambda name, context: (name, context)
+        ),
+    )
+    exec(
+        compile(ast.Module(body=[handler], type_ignores=[]), str(source), "exec"),
+        namespace,
+    )
+    # Playwright's sync driver already owns the calling thread's event loop.
+    with ThreadPoolExecutor(max_workers=1) as pool:
+        return pool.submit(
+            asyncio.run, namespace["admin_credits_page"](object(), USERS[0])
+        ).result()
+
+
+@pytest.mark.parametrize("width", [1440, 390])
+def test_enabled_credits_route_reaches_admin_ui_without_template_global(ui_page, width):
+    page, load = ui_page
+    page.set_viewport_size(dict(width=width, height=900))
+    template, context = credits_page_context(True)
+    assert template == "pages/admin/credits.html"
+    reads, writes = management(
+        page,
+        load,
+        section="credits",
+        user=context["user"],
+        credits_enabled=context.get("credits_enabled", False),
+    )
+    page.get_by_role("button", name="立即生成", exact=True).wait_for()
+    assert not page.get_by_text("积分系统未启用", exact=True).count()
+    assert not writes
+
+
+def test_disabled_credits_route_still_rejects_before_rendering():
+    with pytest.raises(CreditsPageRejected) as error:
+        credits_page_context(False)
+    assert error.value.args[0] == {"status_code": 404, "detail": "积分系统未启用"}
 
 
 def management(page, load, section="users", **values):

@@ -207,7 +207,8 @@ async def admin_credits_page(
         "pages/admin/credits.html",
         {
             "request": request,
-            "user": user
+            "user": user,
+            "credits_enabled": app_config.enable_credits_system,
         }
     )
 
