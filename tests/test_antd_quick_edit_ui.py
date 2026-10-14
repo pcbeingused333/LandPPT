@@ -19,7 +19,7 @@ def quick_editor(page, load, monkeypatch):
     page.get_by_role("button", name="快速编辑", exact=True).click()
     heading = page.frame_locator("#slideFrame").locator("h1")
     expect(heading).to_have_class(re.compile("quick-edit-highlight"))
-    heading.click(force=True)
+    heading.click()
     expect(page.locator("#boldBtn")).to_have_attribute("aria-pressed", "true")
     return state, original, heading
 
@@ -64,6 +64,8 @@ def test_quick_controls_and_ai_states_fit_and_keep_contrast(
     assert box["y"] >= 0 and box["y"] + box["height"] <= height + 1
     primary_bar = page.locator("#editorAntToolbar").bounding_box()
     assert box["y"] >= primary_bar["y"] + primary_bar["height"]
+    canvas = page.locator("#slideFrameWrapper").bounding_box()
+    assert canvas["y"] >= box["y"] + box["height"]
     bold = page.locator("#boldBtn")
     bold.scroll_into_view_if_needed()
     bold.hover()

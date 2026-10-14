@@ -11,7 +11,7 @@
 .editor-ant-toolbar { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px 16px; padding: 8px 12px; border-bottom: 1px solid #e8e8eb; background: #fff; }
 .editor-ant-view { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .editor-ant-actions { margin-left: auto; }
-.landppt-editor .workspace-body .slides-sidebar { flex-basis: 196px !important; background: #fafafa; border-right-color: #e8e8eb; }
+.landppt-editor .workspace-body .slides-sidebar { background: #fafafa; border-right-color: #e8e8eb; }
 .landppt-editor .slides-sidebar .small { font-size: 11px; }
 .landppt-editor .slide-title { font-size: 12px; padding: 6px 8px; height: auto; min-height: 32px; }
 .landppt-editor .slide-thumbnail { border: 1px solid #dedede; border-radius: 6px; }
@@ -42,6 +42,7 @@
 }
 .landppt-editor .quick-edit-toolbar, .landppt-editor .quick-ai-edit-popover { border-radius: 10px; border-color: #dedede; background: #fff; color: #252936; box-shadow: 0 6px 24px #0000001a, 0 2px 6px #0000000a; backdrop-filter: none; }
 .landppt-editor .quick-edit-toolbar { top: var(--quick-toolbar-top, 112px); left: var(--quick-toolbar-center, 50%); max-width: calc(100vw - 16px); padding: 6px; gap: 4px; overflow-x: auto; overscroll-behavior-x: contain; transition: opacity .15s, visibility .15s; }
+.landppt-editor .preview-pane.quick-edit-mode .slide-frame-container { padding-top: calc(var(--editor-quick-toolbar-height, 46px) + 16px); }
 .landppt-editor .quick-edit-tool-btn { flex: 0 0 32px; width: 32px; height: 32px; min-width: 32px; min-height: 32px; border-radius: 6px; background: #fff; color: #252936; font-size: 14px; transition: background .15s, color .15s; }
 .landppt-editor .quick-edit-tool-btn:hover:not(:disabled) { background: #f2f2f2; color: #111; }
 .landppt-editor .quick-edit-tool-btn.active, .landppt-editor .quick-edit-tool-btn.active:hover:not(:disabled), .landppt-editor .quick-edit-tool-btn[aria-expanded="true"], .landppt-editor .quick-edit-tool-btn[aria-expanded="true"]:hover:not(:disabled) { background: #111; color: #fff; }

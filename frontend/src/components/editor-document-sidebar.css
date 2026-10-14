@@ -1,15 +1,17 @@
-.landppt-editor #slidesSidebar[data-editor-panel] { overflow: hidden; }
+/* All three tabs share one rail; only their content region scrolls. */
+.landppt-editor .workspace-body #slidesSidebar[data-editor-panel] { --editor-sidebar-width: min(304px, calc(100vw - 24px)); flex: 0 0 var(--editor-sidebar-width) !important; width: var(--editor-sidebar-width); min-width: 0; overflow: hidden; }
 .landppt-editor #slidesSidebar[data-editor-panel] > .editor-legacy-sidebar-heading { display: none; }
 .landppt-editor #editorAntSidebar { flex: 0 0 auto; min-height: 0; }
-.landppt-editor .workspace-body #slidesSidebar[data-editor-panel="outline"],
-.landppt-editor .workspace-body #slidesSidebar[data-editor-panel="speech"] { flex-basis: 336px !important; background: #fff; }
+.landppt-editor #slidesSidebar[data-editor-panel] > .slides-container { flex: 1 1 0; min-height: 0; overflow-y: auto; overscroll-behavior-y: contain; scrollbar-gutter: stable; scrollbar-width: thin; }
+.landppt-editor #slidesSidebar[data-editor-panel] > .slides-container:focus-visible { outline: 2px solid #111; outline-offset: -3px; }
+.landppt-editor #slidesSidebar:is([data-editor-panel="outline"],[data-editor-panel="speech"]) { background: #fff; }
 .landppt-editor #slidesSidebar:is([data-editor-panel="outline"],[data-editor-panel="speech"]) > #editorAntSidebar { display: flex; flex: 1; overflow: hidden; }
 .landppt-editor #slidesSidebar:is([data-editor-panel="outline"],[data-editor-panel="speech"]) > .slides-container { display: none; }
 .editor-document-sidebar { display: flex; flex-direction: column; flex: 1; min-width: 0; min-height: 0; width: 100%; }
 .editor-document-tabs { flex: 0 0 auto; padding: 12px 10px 8px; border-bottom: 1px solid #eee; }
 .editor-document-tabs .ant-segmented { padding: 3px; font-size: 13px; }
 .editor-document-tabs .ant-segmented-item-label { padding-inline: 7px; }
-.editor-document-selection { padding: 8px 12px 4px; font-size: 11px; color: #737373; }
+.editor-document-selection { flex: 0 0 auto; padding: 8px 12px 4px; font-size: 11px; color: #737373; }
 .editor-document-selection .ant-tag { margin-top: 6px; font-size: 11px; }
 .editor-document-nav { display: flex; flex: 0 0 auto; gap: 6px; padding: 12px 12px 8px; }
 .editor-document-nav .ant-select { flex: 1; min-width: 0; }
@@ -17,7 +19,7 @@
 .editor-document-tools > span { margin-right: auto; font-size: 12px; color: #666; }
 .editor-document-tools > .ant-select { width: 108px; margin-right: auto; }
 .editor-document-sidebar .ant-select-input { min-height: 0 !important; height: 100% !important; margin: 0 !important; padding: 0 !important; border: 0 !important; background: transparent !important; box-shadow: none !important; line-height: inherit; }
-.editor-document-body { flex: 1 1 auto; min-height: 0; padding: 14px 12px; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; }
+.editor-document-body { flex: 1 1 auto; min-height: 0; padding: 14px 12px; overflow-y: auto; overscroll-behavior: contain; scrollbar-gutter: stable; scrollbar-width: thin; }
 .editor-document-body > .ant-alert { margin-bottom: 12px; }
 .editor-document-hint { margin: 0 0 14px; color: #737373; font-size: 12px; line-height: 1.6; }
 .editor-document-fields { display: flex; flex-direction: column; gap: 14px; border: 0; margin: 0; padding: 0; min-width: 0; }
@@ -43,7 +45,6 @@
 .editor-document-footer > div { min-width: 0; color: #737373; font-size: 11px; }
 .editor-document-footer small { display: block; margin-top: 2px; }
 @media (max-width: 700px) {
-  .landppt-editor .workspace-body #slidesSidebar:is([data-editor-panel="outline"],[data-editor-panel="speech"]) { width: min(336px, calc(100vw - 24px)); }
   .editor-document-sidebar .ant-btn { min-height: 44px; }
   .editor-document-sidebar .ant-select-single { height: 44px; }
   .editor-document-tabs .ant-segmented-item-label { min-height: 40px; line-height: 40px; }

@@ -112,7 +112,7 @@ def test_keyboard_opens_menu_skips_disabled_item_and_keeps_multiselection(
 @pytest.mark.parametrize("method", ["Tab", "click", "context", "scroll", "resize"])
 def test_menu_closes_and_can_reopen_after_leaving_thumbnail_context(ui_page, method):
     page, load = ui_page
-    state = setup(page, load)
+    state = setup(page, load, slide_count=12 if method == "scroll" else 2)
     menu = open_menu(page)
     if method == "Tab":
         page.keyboard.press("Tab")
@@ -122,7 +122,9 @@ def test_menu_closes_and_can_reopen_after_leaving_thumbnail_context(ui_page, met
     elif method == "context":
         page.locator(".editor-ant-title h1").click(button="right")
     elif method == "scroll":
-        page.locator(".slides-container").dispatch_event("scroll")
+        box = page.locator(".slides-container").bounding_box()
+        page.mouse.move(box["x"] + 2, box["y"] + box["height"] - 2)
+        page.mouse.wheel(0, 500)
     else:
         page.set_viewport_size(dict(width=1024, height=768))
     expect(menu).not_to_be_visible()

@@ -19,8 +19,8 @@ def revision(value):
     return hashlib.sha256(json.dumps(value, sort_keys=True).encode()).hexdigest()
 
 
-def document_setup(page, load, svg=False, empty=False):
-    state = setup(page, load, svg=svg, empty=empty)
+def document_setup(page, load, svg=False, empty=False, slide_count=2):
+    state = setup(page, load, svg=svg, empty=empty, slide_count=slide_count)
     state.update(
         document_reads=[], document_writes=[], document_fail=False, conflict=False
     )
@@ -39,6 +39,12 @@ def document_setup(page, load, svg=False, empty=False):
             description="保留说明",
         ),
     ]
+    outlines.extend(
+        dict(
+            title=f"实施阶段 {i + 1}", slide_type="content", content_points=["阶段目标"]
+        )
+        for i in range(2, slide_count)
+    )
     scripts = {
         (0, "zh"): dict(
             id=1,
@@ -50,6 +56,7 @@ def document_setup(page, load, svg=False, empty=False):
             speaker_notes="停顿后继续",
         )
     }
+    state.update(outlines=outlines, scripts=scripts)
 
     def api(route):
         req = route.request
@@ -119,12 +126,16 @@ def test_sidebar_layout_modes_and_artwork_unchanged(ui_page, size, svg):
     state = document_setup(page, load, svg=svg)
     assert state["document_reads"] == []  # Text is fetched only on demand.
     original = page.evaluate("slidesData.map(slide=>slide.html_content)")
+    panel(page, "幻灯片")
+    sidebar = page.locator("#slidesSidebar")
+    initial_box = sidebar.bounding_box()
+    canvas = page.locator(".editor-content").bounding_box()
     panel(page, "大纲")
     expect(page.get_by_role("textbox", name="大纲标题", exact=True)).to_have_value(
         "封面"
     )
-    sidebar = page.locator("#slidesSidebar")
     assert sidebar.bounding_box()["width"] <= min(336, size[0] - 24) + 1
+    assert sidebar.bounding_box()["width"] == pytest.approx(initial_box["width"], abs=1)
     footer = page.locator(".editor-document-footer")
     box = footer.bounding_box()
     assert box["y"] >= 0 and box["y"] + box["height"] <= size[1] + 1
@@ -132,6 +143,7 @@ def test_sidebar_layout_modes_and_artwork_unchanged(ui_page, size, svg):
     page.get_by_role("button", name="阅读文稿", exact=True).click()
     expect(page.locator(".editor-document-reading h2")).to_have_text("封面")
     panel(page, "讲稿")
+    assert sidebar.bounding_box()["width"] == pytest.approx(initial_box["width"], abs=1)
     expect(page.locator(".editor-document-reading p").first).to_contain_text(
         "讲稿只显示一次"
     )
@@ -147,12 +159,72 @@ def test_sidebar_layout_modes_and_artwork_unchanged(ui_page, size, svg):
     )
     panel(page, "幻灯片")
     expect(page.locator(".slide-thumbnail").first).to_be_visible()
+    assert sidebar.bounding_box() == initial_box
+    assert page.locator(".editor-content").bounding_box() == canvas
     assert page.evaluate("slidesData.map(slide=>slide.html_content)") == original
     assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
     assert (
         state["document_writes"] == []
         and state["writes"] == []
         and state["errors"] == []
+    )
+
+
+@pytest.mark.parametrize("size", SIZES)
+@pytest.mark.parametrize("svg", [False, True])
+def test_long_slide_list_and_documents_scroll_with_fixed_tabs_and_footer(
+    ui_page, size, svg
+):
+    page, load = ui_page
+    page.set_viewport_size(dict(zip(("width", "height"), size)))
+    state = document_setup(page, load, svg=svg, slide_count=12)
+    state["outlines"][0]["content_points"] = [
+        f"第 {i + 1} 项实施要点" for i in range(24)
+    ]
+    state["scripts"][0, "zh"]["script_content"] = "长讲稿需要可以滚动阅读。\n" * 100
+    panel(page, "幻灯片")
+    tabs = page.locator(".editor-document-tabs")
+    tabs_box = tabs.bounding_box()
+    sidebar = page.locator("#slidesSidebar")
+    sidebar_box = sidebar.bounding_box()
+    slides = page.locator(".slides-container")
+    assert slides.evaluate("node => node.scrollHeight > node.clientHeight + 100")
+    slides.hover()
+    page.mouse.wheel(0, 100000)
+    page.wait_for_function(
+        "() => {const node=document.querySelector('.slides-container');return node.scrollTop > 100 && node.scrollTop + node.clientHeight >= node.scrollHeight - 2}"
+    )
+    last = page.locator(".slide-thumbnail").last.bounding_box()
+    assert last["y"] + last["height"] <= size[1] + 1
+    assert tabs.bounding_box() == tabs_box
+    assert page.evaluate("currentSlideIndex") == 0
+    scrolled = slides.evaluate("node => node.scrollTop")
+
+    for name in ("大纲", "讲稿"):
+        panel(page, name)
+        body = page.locator(".editor-document-body")
+        expect(body).to_have_attribute("aria-busy", "false")
+        expect(body.locator(".ant-skeleton")).to_have_count(0)
+        assert body.evaluate("node => node.scrollHeight > node.clientHeight + 100")
+        footer = page.locator(".editor-document-footer")
+        footer_box = footer.bounding_box()
+        body.hover()
+        page.mouse.wheel(0, 100000)
+        page.wait_for_function(
+            "() => {const node=document.querySelector('.editor-document-body');return node.scrollTop > 100 && node.scrollTop + node.clientHeight >= node.scrollHeight - 2}"
+        )
+        assert tabs.bounding_box() == tabs_box
+        assert sidebar.bounding_box() == sidebar_box
+        assert footer.bounding_box() == footer_box
+        assert footer_box["y"] + footer_box["height"] <= size[1] + 1
+
+    panel(page, "幻灯片")
+    assert slides.evaluate("node => node.scrollTop") == pytest.approx(scrolled, abs=1)
+    page.locator(".slide-thumbnail").last.click()
+    assert page.evaluate("currentSlideIndex") == 11
+    assert not state["writes"] and not state["document_writes"] and not state["errors"]
+    assert page.evaluate(
+        "document.documentElement.scrollHeight <= innerHeight + 1 && document.documentElement.scrollWidth <= innerWidth"
     )
 
 
@@ -196,6 +268,26 @@ def test_outline_drafts_follow_pages_tabs_and_save_without_artwork_requests(ui_p
     next_page(page)
     expect(title).to_have_value("第二页的草稿")
     assert state["writes"] == [] and state["errors"] == []
+
+
+def test_thumbnail_list_can_be_scrolled_from_the_keyboard(ui_page):
+    page, load = ui_page
+    state = document_setup(page, load, slide_count=12)
+    slides = page.get_by_role("region", name="幻灯片列表", exact=True)
+    slides.focus()
+    expect(slides).to_be_focused()
+    slides.press("End")
+    page.wait_for_function(
+        "() => {const node=document.querySelector('.slides-container');return node.scrollTop > 100 && node.scrollTop + node.clientHeight >= node.scrollHeight - 2}"
+    )
+    end = slides.evaluate("node => node.scrollTop")
+    slides.press("PageUp")
+    page.wait_for_function(
+        "end => document.querySelector('.slides-container').scrollTop < end - 100",
+        arg=end,
+    )
+    assert page.evaluate("currentSlideIndex") == 0
+    assert not state["writes"] and not state["document_writes"] and not state["errors"]
 
 
 def test_speech_manual_creation_language_drafts_and_saving_fields(ui_page):

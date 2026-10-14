@@ -90,6 +90,7 @@ export default function SlidesEditor({ data }: { data: ApiData }) {
         const center = Math.max(8 + width / 2, Math.min(rect.left + rect.width / 2, window.innerWidth - 8 - width / 2));
         quickToolbar.style.setProperty('--quick-toolbar-center', `${center}px`);
         quickToolbar.style.setProperty('--quick-toolbar-top', `${Math.max(8, Math.min(tools.getBoundingClientRect().bottom + 8, window.innerHeight - quickToolbar.offsetHeight - 8))}px`);
+        (pane as HTMLElement).style.setProperty('--editor-quick-toolbar-height', `${quickToolbar.offsetHeight}px`);
       }
       const wrapper = document.getElementById('slideFrameWrapper');
       if (wrapper && wrapper.clientWidth > 20 && wrapper.clientHeight > 20) controller().call('applyMainFrameScale');
@@ -98,6 +99,8 @@ export default function SlidesEditor({ data }: { data: ApiData }) {
     const observer = new ResizeObserver(resize);
     const pane = document.querySelector('.editor-content'); if (pane) observer.observe(pane);
     const sidebar = document.getElementById('slidesSidebar'); if (sidebar) observer.observe(sidebar);
+    const wrapper = document.getElementById('slideFrameWrapper'); if (wrapper) observer.observe(wrapper);
+    const quickToolbar = document.getElementById('quickEditToolbar'); if (quickToolbar) observer.observe(quickToolbar);
     const frame = requestAnimationFrame(resize);
     return () => { observer.disconnect(); cancelAnimationFrame(frame); };
   }, []);

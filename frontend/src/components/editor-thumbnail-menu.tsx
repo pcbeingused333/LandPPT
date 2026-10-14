@@ -51,15 +51,20 @@ export function EditorThumbnailMenu({ state, run, dismiss }: Props) {
       if (!(event.target instanceof Element) || !event.target.closest('.slide-thumbnail, .editor-thumbnail-menu')) dismiss();
     };
     const pane = document.querySelector('.slides-container');
+    // Focusing an offscreen thumbnail scrolls before contextmenu, but its
+    // queued scroll event can arrive after the menu opens. Close only when
+    // the list actually moves from the position where this menu opened.
+    const originTop = pane?.scrollTop, originLeft = pane?.scrollLeft;
+    const scroll = () => { if (pane?.scrollTop !== originTop || pane?.scrollLeft !== originLeft) dismiss(); };
     document.addEventListener('keydown', keys, true);
     document.addEventListener('contextmenu', context);
     window.addEventListener('resize', close);
-    pane?.addEventListener('scroll', close);
+    pane?.addEventListener('scroll', scroll);
     return () => {
       document.removeEventListener('keydown', keys, true);
       document.removeEventListener('contextmenu', context);
       window.removeEventListener('resize', close);
-      pane?.removeEventListener('scroll', close);
+      pane?.removeEventListener('scroll', scroll);
     };
   }, [state?.index, dismiss, !!state]);
 

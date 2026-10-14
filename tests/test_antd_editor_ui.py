@@ -36,7 +36,14 @@ IMAGE = dict(
 
 
 def setup(
-    page, load, svg=False, restricted=True, package=False, native=False, empty=False
+    page,
+    load,
+    svg=False,
+    restricted=True,
+    package=False,
+    native=False,
+    empty=False,
+    slide_count=2,
 ):
     state = dict(errors=[], reads=[], writes=[], fail=False)
     page.on("pageerror", lambda error: state["errors"].append(str(error)))
@@ -47,7 +54,9 @@ def setup(
             render_mode="svg" if svg else "html",
             html_content=SVG_HTML if svg else HTML,
         )
-        for i, title in enumerate(["封面", "实施计划"])
+        for i, title in enumerate(
+            ["封面", "实施计划"] + [f"实施阶段 {i + 1}" for i in range(2, slide_count)]
+        )
     ]
     if empty:
         slides = []
