@@ -727,6 +727,40 @@ class SponsorProfile(Base):
         }
 
 
+class ManagedAIProvider(Base):
+    """Administrator-maintained OpenAI-compatible service catalogue."""
+    __tablename__ = "managed_ai_providers"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    name: Mapped[str] = mapped_column(String(100), nullable=False)
+    logo_url: Mapped[str] = mapped_column(String(1000), default="", nullable=False)
+    description: Mapped[str] = mapped_column(Text, default="", nullable=False)
+    website_url: Mapped[str] = mapped_column(String(2000), default="", nullable=False)
+    registration_url: Mapped[str] = mapped_column(String(2000), default="", nullable=False)
+    base_url: Mapped[str] = mapped_column(String(1000), nullable=False)
+    default_model: Mapped[str] = mapped_column(String(200), default="", nullable=False)
+    recommended_models: Mapped[List[str]] = mapped_column(JSON, default=list, nullable=False)
+    use_responses_api: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    sort_order: Mapped[int] = mapped_column(Integer, default=0, nullable=False, index=True)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    created_at: Mapped[float] = mapped_column(Float, default=time.time, nullable=False)
+    updated_at: Mapped[float] = mapped_column(Float, default=time.time, onupdate=time.time, nullable=False)
+
+
+class UserAIProviderConfig(Base):
+    """Isolated user credentials; API keys are encrypted and never serialized."""
+    __tablename__ = "user_ai_provider_configs"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    provider_id: Mapped[str] = mapped_column(ForeignKey("managed_ai_providers.id"), nullable=False)
+    encrypted_api_key: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    model: Mapped[str] = mapped_column(String(200), nullable=False, default="")
+    accepted_base_url: Mapped[str] = mapped_column(String(1000), nullable=False, default="")
+    updated_at: Mapped[float] = mapped_column(Float, default=time.time, onupdate=time.time, nullable=False)
+    __table_args__ = (UniqueConstraint("user_id", "provider_id", name="uq_user_ai_provider"),)
+
+
 class VerificationCode(Base):
     """Email verification codes for registration and password reset"""
     __tablename__ = "verification_codes"

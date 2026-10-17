@@ -769,6 +769,12 @@ async def get_user_ai_provider_config(user_id: int, provider_name: Optional[str]
     config_service = get_db_config_service()
 
     user_config = await config_service.get_all_config(user_id=user_id)
+    resolved = provider_name or user_config.get("default_ai_provider") or "openai"
+    if resolved.startswith("custom:"):
+        from .managed_provider_service import resolve_managed_provider
+        config = await resolve_managed_provider(user_id, resolved)
+        config["llm_timeout_seconds"] = user_config.get("llm_timeout_seconds")
+        return config
     return _build_user_ai_provider_config(user_config, provider_name)
 
 
@@ -776,6 +782,12 @@ def get_user_ai_provider_config_sync(user_id: int, provider_name: Optional[str] 
     """Get AI provider configuration for a specific user using the sync DB session."""
     config_service = get_db_config_service()
     user_config = config_service.get_all_config_sync(user_id=user_id)
+    resolved = provider_name or user_config.get("default_ai_provider") or "openai"
+    if resolved.startswith("custom:"):
+        from .managed_provider_service import resolve_managed_provider_sync
+        config = resolve_managed_provider_sync(user_id, resolved)
+        config["llm_timeout_seconds"] = user_config.get("llm_timeout_seconds")
+        return config
     return _build_user_ai_provider_config(user_config, provider_name)
 
 
@@ -854,7 +866,13 @@ async def get_user_role_provider(
 
     from ..ai.providers import AIProviderFactory
 
-    provider_config = _build_user_ai_provider_config(user_config, provider_name)
+    provider_config = (
+        await get_user_ai_provider_config(user_id, provider_name)
+        if provider_name.startswith("custom:")
+        else _build_user_ai_provider_config(user_config, provider_name)
+    )
+    if not model:
+        settings["model"] = provider_config.get("model")
     actual_provider = provider_config.pop("provider_name")
     provider = AIProviderFactory.create_provider(actual_provider, provider_config)
     return provider, settings
@@ -896,7 +914,13 @@ def get_user_role_provider_sync(
         "model": model,
     }
 
-    provider_config = _build_user_ai_provider_config(user_config, provider_name)
+    provider_config = (
+        get_user_ai_provider_config_sync(user_id, provider_name)
+        if provider_name.startswith("custom:")
+        else _build_user_ai_provider_config(user_config, provider_name)
+    )
+    if not model:
+        settings["model"] = provider_config.get("model")
     actual_provider = provider_config.pop("provider_name")
     provider = AIProviderFactory.create_provider(actual_provider, provider_config)
     return provider, settings

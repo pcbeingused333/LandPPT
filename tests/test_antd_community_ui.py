@@ -3,6 +3,7 @@
 from urllib.parse import parse_qs, urlsplit
 
 import pytest
+from playwright.sync_api import expect
 
 from test_app_ui import browser, ui_page  # noqa: F401
 from test_antd_admin_management_ui import select
@@ -714,22 +715,109 @@ def test_mobile_secondary_actions_keep_save_visible_in_one_row(ui_page):
     ]
 
 
-def test_sponsor_preview_respects_public_display_setting(ui_page):
+@pytest.mark.parametrize("enabled", [False, True])
+def test_admin_can_preview_sponsors_before_publishing(ui_page, enabled):
     page, load = ui_page
     reads, writes = community(
-        page, load, "sponsors", settings={**SETTINGS, "sponsor_page_enabled": False}
+        page, load, "sponsors", settings={**SETTINGS, "sponsor_page_enabled": enabled}
     )
-    preview = page.get_by_text("预览公开页面", exact=True)
-    assert (
-        preview.evaluate('e=>e.closest(".ant-btn").getAttribute("aria-disabled")')
-        == "true"
-    )
-    page.get_by_label("公开赞助感谢页", exact=True).check()
-    assert (
-        page.get_by_role("link", name="预览公开页面", exact=True).get_attribute("href")
-        == "/sponsors"
-    )
+    preview = page.get_by_role("link", name="预览感谢页", exact=True)
+    expect(preview).to_be_enabled()
+    assert preview.get_attribute("href") == "/sponsors"
+    expect(page.get_by_text("名单与页面开关分别保存", exact=True)).to_be_visible()
     assert not writes
+
+
+@pytest.mark.parametrize("enabled", [False, True])
+def test_saved_sponsor_visibility_updates_footer_without_reload(ui_page, enabled):
+    page, load = ui_page
+    public = {"sponsor_page_enabled": not enabled, "site_notice": None}
+    page.route("**/api/community/public-settings", lambda route: route.fulfill(json=public))
+    community(page, load, "sponsors", settings={**SETTINGS, "sponsor_page_enabled": not enabled})
+    footer = page.locator("#footerSponsorLink")
+    expect(footer).to_have_text("赞助预览" if enabled else "赞助感谢")
+    page.evaluate("window.sponsorHeader = document.querySelector('.app-header')")
+    page.get_by_label("公开赞助感谢页", exact=True).set_checked(enabled)
+    expect(footer).to_have_text("赞助预览" if enabled else "赞助感谢")
+    writes = []
+
+    def save(route):
+        body = route.request.post_data_json
+        writes.append(body)
+        public["sponsor_page_enabled"] = body["sponsor_page_enabled"]
+        route.fulfill(json={"success": True, "settings": body})
+
+    page.route("**/admin/api/community/settings", save)
+    page.get_by_role("button", name="保存全部运营配置", exact=True).click()
+    expect(footer).to_have_text("赞助感谢" if enabled else "赞助预览")
+    assert len(writes) == 1 and writes[0]["sponsor_page_enabled"] is enabled
+    assert page.evaluate("window.sponsorHeader === document.querySelector('.app-header')")
+
+
+def test_failed_sponsor_visibility_save_keeps_footer_and_draft(ui_page):
+    page, load = ui_page
+    reads = []
+
+    def public_settings(route):
+        reads.append(route.request.url)
+        route.fulfill(json={"sponsor_page_enabled": False})
+
+    page.route("**/api/community/public-settings", public_settings)
+    community(page, load, "sponsors", settings={**SETTINGS, "sponsor_page_enabled": False})
+    expect(page.locator("#footerSponsorLink")).to_have_text("赞助预览")
+    page.get_by_label("公开赞助感谢页", exact=True).check()
+    page.route("**/admin/api/community/settings", lambda route: route.fulfill(status=500, json={"detail": "展示设置保存失败"}))
+    count = len(reads)
+    page.get_by_role("button", name="保存全部运营配置", exact=True).click()
+    expect(page.get_by_text("展示设置保存失败", exact=True)).to_be_visible()
+    expect(page.get_by_label("公开赞助感谢页", exact=True)).to_be_checked()
+    expect(page.locator("#footerSponsorLink")).to_have_text("赞助预览")
+    assert len(reads) == count
+
+
+def test_older_public_settings_response_cannot_replace_saved_visibility(ui_page):
+    page, load = ui_page
+    page.add_init_script("""
+      const originalFetch = window.fetch;
+      window.sponsorSettingsReads = [];
+      window.fetch = (url, options) => url === '/api/community/public-settings'
+        ? new Promise(resolve => window.sponsorSettingsReads.push(value =>
+          resolve(new Response(JSON.stringify(value)))))
+        : originalFetch(url, options);
+    """)
+    community(page, load, "sponsors")
+    page.wait_for_function("window.sponsorSettingsReads.length === 1")
+    page.evaluate("window.dispatchEvent(new Event('landppt:community-settings-saved'))")
+    page.wait_for_function("window.sponsorSettingsReads.length === 2")
+    page.evaluate("window.sponsorSettingsReads[1]({sponsor_page_enabled: true})")
+    expect(page.locator("#footerSponsorLink")).to_have_text("赞助感谢")
+    page.evaluate("""async () => {
+      window.sponsorSettingsReads[0]({sponsor_page_enabled: false});
+      await new Promise(requestAnimationFrame);
+    }""")
+    expect(page.locator("#footerSponsorLink")).to_have_text("赞助感谢")
+
+
+@pytest.mark.parametrize("width", [1440, 320])
+@pytest.mark.parametrize("role", ["guest", "user", "admin"])
+@pytest.mark.parametrize("enabled", [False, True])
+def test_sponsor_footer_visibility_follows_public_setting_and_role(ui_page, width, role, enabled):
+    page, load = ui_page
+    page.set_viewport_size(dict(width=width, height=900))
+    page.route("**/api/community/public-settings", lambda route: route.fulfill(json={"sponsor_page_enabled": enabled}))
+    user = None if role == "guest" else dict(username="sponsor-user", is_admin=role == "admin")
+    load("pages/community/sponsor_thanks.html", path="/sponsors", user=user, sponsors=[])
+    expect(page.get_by_role("heading", name="赞助感谢", exact=True)).to_be_visible()
+    footer = page.locator("#footerSponsorLink")
+    if enabled or role == "admin":
+        expect(footer).to_be_visible()
+        expect(footer).to_have_text("赞助感谢" if enabled else "赞助预览")
+        assert footer.get_attribute("href") == "/sponsors"
+        if width == 320:
+            assert footer.bounding_box()["height"] >= 44
+    else:
+        expect(footer).to_have_count(0)
+    assert page.evaluate("document.documentElement.scrollWidth") <= width
 
 
 @pytest.mark.parametrize("width,height", SIZES)
@@ -780,6 +868,20 @@ def test_public_sponsor_admin_preview_banner(ui_page, admin, preview):
     assert page.get_by_text(
         "管理员预览：当前赞助感谢页尚未公开。", exact=True
     ).count() == int(admin and preview)
+
+
+@pytest.mark.parametrize("width", [390, 320])
+def test_mobile_sponsor_preview_keeps_settings_action_below_explanation(ui_page, width):
+    page, load = ui_page
+    page.set_viewport_size(dict(width=width, height=844))
+    load("pages/community/sponsor_thanks.html", path="/sponsors", sponsors=[], preview_mode=True)
+    action = page.get_by_role("link", name="前往设置", exact=True)
+    expect(action).to_be_visible()
+    explanation = page.locator(".sponsor-thanks-page > .ant-alert .ant-alert-section")
+    text_box, action_box = explanation.bounding_box(), action.bounding_box()
+    assert action_box["y"] >= text_box["y"] + text_box["height"]
+    assert action.get_attribute("href") == "/admin/community#sponsors"
+    assert page.evaluate("document.documentElement.scrollWidth") <= width
 
 
 def test_public_sponsor_payload_contains_only_public_fields_and_escapes_text(ui_page):

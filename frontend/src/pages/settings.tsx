@@ -6,6 +6,7 @@ import { readSettingsSchema, type Field } from '../settings-schema';
 import JevSettings from './jev-settings';
 import { modalFocus } from '../components/modal-focus';
 import { ModelPicker } from '../components/model-picker';
+import ManagedProviders, { useManagedProviders } from '../components/managed-providers';
 
 const categories: Record<string, string> = { 'generation-params': 'generation_params', 'app-config': 'app_config', 'image-service': 'image_service' };
 const saveLabels: Record<string, string> = { 'generation-params': '保存生成参数', 'app-config': '保存应用配置', 'image-service': '保存配置' };
@@ -80,6 +81,7 @@ const SettingsField = memo(function SettingsField({ field, drafts, initialValue,
 });
 
 export default function Settings({ data }: { data: ApiData }) {
+  const managed = useManagedProviders();
   const panels = useMemo(readSettingsSchema, []);
   const allFields = useMemo(() => panels.flatMap(panel => panel.fields), [panels]);
   const initial = useMemo(() => Object.fromEntries(allFields.map(field => [field.name, data.config[field.name] ?? field.value])), [allFields, data.config]);
@@ -204,7 +206,8 @@ export default function Settings({ data }: { data: ApiData }) {
       const names = (records: unknown[]) => records
         .filter((model: any) => provider !== 'pollinations' || (typeof model === 'object' && Array.isArray(model?.output_modalities) && model.output_modalities.includes('image')))
         .map((model: any) => typeof model === 'string' ? model : model?.id || model?.name).filter((name: unknown): name is string => typeof name === 'string' && !!name.trim());
-      if (provider === 'landppt') list = (await request('/api/ai/providers/landppt/models', 'GET', undefined, signal)).models || [];
+      if (provider.startsWith('custom:')) list = (await request(`/api/managed-providers/${provider.slice(7)}/models`, 'POST', undefined, signal)).models || [];
+      else if (provider === 'landppt') list = (await request('/api/ai/providers/landppt/models', 'GET', undefined, signal)).models || [];
       else {
         let config = valuesRef.current;
         if (!config[`${provider}_api_key`]) {
@@ -231,6 +234,12 @@ export default function Settings({ data }: { data: ApiData }) {
     });
   }, [defaultProvider, run, message]);
   function renderField(field: Field) {
+    if (field.name.endsWith('_model_provider')) {
+      const options = managed.providers.map(provider => ({ value: provider.provider, label: provider.name + (!provider.is_active ? '（已停用）' : !provider.configured ? '（请先配置）' : ''), disabled: !provider.configured }));
+      const selected = String(valuesRef.current[field.name] || '');
+      if (selected.startsWith('custom:') && !options.some(option => option.value === selected)) options.push({ value: selected, label: '不可用的 AI 提供商', disabled: true });
+      field = { ...field, options: [...field.options, ...options] };
+    }
     return <SettingsField key={field.name} field={field} drafts={drafts} initialValue={initial[field.name]} pending={pending} error={fieldErrors[field.name]} models={models[field.name]} change={change} fetchModels={fetchModels} />;
   }
   function fieldsGrid(fields: Field[]) { return <Form layout="vertical" className="settings-fields">{fields.map(renderField)}</Form>; }
@@ -240,7 +249,8 @@ export default function Settings({ data }: { data: ApiData }) {
     if (key === 'ai-providers') {
       const providers = Object.keys(labels);
       return <div id={key} className="settings-stack">
-        <Card size="small" title={<span className="config-card-title"><ApiOutlined aria-hidden />AI 提供者</span>} extra={<Tag className="config-default-tag">默认：{labels[defaultProvider] || defaultProvider}</Tag>}>
+        {(managed.providers.length > 0 || managed.error) && <ManagedProviders catalogue={managed} current={defaultProvider} chooseDefault={chooseDefault} busy={!!pending || loading} />}
+        <Card size="small" title={<span className="config-card-title"><ApiOutlined aria-hidden />AI 提供者</span>} extra={<Tag className="config-default-tag">默认：{labels[defaultProvider] || managed.providers.find(provider => provider.provider === defaultProvider)?.name || '待配置'}</Tag>}>
           <Collapse className="provider-collapse" defaultActiveKey={[defaultProvider]} items={providers.map(provider => ({
             key: provider, label: <div className="provider-heading"><span className={`provider-mark${defaultProvider === provider ? ' provider-mark--default' : ''}`}>{providerMarks[provider]}</span><strong>{labels[provider]}</strong><Tag className="provider-status" icon={provider === 'landppt' || data.providerStatus[provider] ? <CheckCircleOutlined aria-hidden /> : undefined}>{provider === 'landppt' || data.providerStatus[provider] ? '可用' : '未配置'}</Tag></div>,
             children: <>
@@ -286,7 +296,7 @@ export default function Settings({ data }: { data: ApiData }) {
     </div>;
   }
   // Keep pane elements stable when only the selected tab or feedback changes.
-  const tabItems = useMemo(() => panels.map(panel => ({ key: panel.key, label: panel.label, icon: tabIcons[panel.key], children: renderPanel(panel.key) })), [panels, drafts, fieldErrors, models, pending, loading, defaultProvider, imageStatus, initial, data, change, fetchModels, run, message]);
+  const tabItems = useMemo(() => panels.map(panel => ({ key: panel.key, label: panel.label, icon: tabIcons[panel.key], children: renderPanel(panel.key) })), [panels, drafts, fieldErrors, models, pending, loading, defaultProvider, imageStatus, initial, data, change, fetchModels, run, message, managed.providers, managed.error, managed.loading]);
   return <div className="settings-page configuration-page">
     <div className="page-heading config-heading"><div><span className="config-heading-icon"><SettingOutlined aria-hidden /></span><div><h1>系统配置管理</h1><p>管理 AI、生成参数与应用服务</p></div></div></div>
     {error && <Alert className="page-error" role="alert" type="error" showIcon title={error} closable onClose={() => setError('')} />}

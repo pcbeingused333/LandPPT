@@ -3,7 +3,7 @@ import { App, type FormInstance } from 'antd';
 import { request, type ApiData } from '../api';
 
 export function AdminPage({ title, description, credits, children, className = '' }: { title: string; description: string; credits: boolean; children: ReactNode; className?: string }) {
-  const links = [['用户', '/admin/users'], ...(credits ? [['积分', '/admin/credits']] : []), ['运营', '/admin/community'], ['OAuth', '/admin/oauth'], ['邮件', '/admin/smtp']];
+  const links = [['用户', '/admin/users'], ...(credits ? [['积分', '/admin/credits']] : []), ['AI提供商', '/admin/ai-providers'], ['运营', '/admin/community'], ['OAuth', '/admin/oauth'], ['邮件', '/admin/smtp']];
   return <div className={'admin-page settings-page ' + className}><nav className="admin-navigation" aria-label="管理后台">{links.map(([label, href]) => <a key={href} href={href} aria-current={location.pathname === href ? 'page' : undefined}>{label}</a>)}</nav>
     <div className="page-heading"><div><h1>{title}</h1><p>{description}</p></div></div>{children}
   </div>;

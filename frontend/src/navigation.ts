@@ -9,6 +9,7 @@ export const sectionPaths: Record<string, string> = {
   '/image-generation-test': 'image-generation', '/sponsors': 'sponsor-thanks',
   '/admin': 'admin-users', '/admin/users': 'admin-users', '/admin/smtp': 'admin-settings',
   '/admin/oauth': 'admin-settings', '/admin/credits': 'admin-credits', '/admin/community': 'admin-community',
+  '/admin/ai-providers': 'admin-ai-providers',
 };
 
 function pageForPath(path: string) {

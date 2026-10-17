@@ -398,6 +398,9 @@ class DEEPResearchService:
                     return provider
             except Exception as e:
                 logger.warning(f"Failed to get user AI provider from database: {e}")
+                from .managed_provider_service import ManagedProviderError
+                if isinstance(e, ManagedProviderError):
+                    raise
 
         # 回退到全局配置
         return get_ai_provider()

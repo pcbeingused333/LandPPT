@@ -25,6 +25,7 @@ from ...ai import get_ai_provider, get_role_provider, AIMessage, MessageRole
 from ...ai.base import TextContent, ImageContent
 from ...core.config import ai_config, app_config
 from .ai_execution import ExecutionContext
+from ..managed_provider_service import ManagedProviderError, is_managed_provider
 from ..prompts import prompts_manager
 from ..research.enhanced_research_service import EnhancedResearchService
 from ..research.enhanced_report_generator import EnhancedReportGenerator
@@ -54,12 +55,21 @@ class RuntimeConfigService:
         try:
             loop = asyncio.get_running_loop()
             logger.debug('_get_current_ai_config called from running loop, using global config')
+            if self.user_id is not None:
+                from ..db_config_service import get_db_config_service
+                user_config = get_db_config_service().get_all_config_sync(user_id=self.user_id)
+                role_field = ai_config.MODEL_ROLE_FIELDS.get(role, (f'{role}_model_provider', ''))[0]
+                name = self.provider_name or user_config.get(role_field) or user_config.get('default_ai_provider')
+                if is_managed_provider(name):
+                    return self._extract_ai_config_from_user_config(user_config, role)
         except RuntimeError:
             if self.user_id is not None:
                 try:
                     result = self._get_current_ai_config_sync_impl(role)
                     if result:
                         return result
+                except ManagedProviderError:
+                    raise
                 except Exception as e:
                     logger.warning(f'Failed to get user AI config: {e}')
         return self._get_fallback_ai_config(role)
@@ -78,9 +88,17 @@ class RuntimeConfigService:
                 from ..db_config_service import get_db_config_service
                 config_service = get_db_config_service()
                 user_config = await config_service.get_all_config(user_id=self.user_id)
-                result = self._extract_ai_config_from_user_config(user_config, role)
+                role_field = ai_config.MODEL_ROLE_FIELDS.get(role, (f'{role}_model_provider', ''))[0]
+                name = self.provider_name or user_config.get(role_field) or user_config.get('default_ai_provider')
+                managed_config = None
+                if is_managed_provider(name):
+                    from ..db_config_service import get_user_ai_provider_config
+                    managed_config = await get_user_ai_provider_config(self.user_id, name)
+                result = self._extract_ai_config_from_user_config(user_config, role, managed_config)
                 if result:
                     return result
+            except ManagedProviderError:
+                raise
             except Exception as e:
                 logger.warning(f'Failed to get user AI config async, falling back to global: {e}')
         return self._get_fallback_ai_config(role)
@@ -99,11 +117,11 @@ class RuntimeConfigService:
             logger.warning(f'Failed to get MinerU config async, falling back to environment/defaults: {e}')
             return {'api_key': None, 'base_url': None}
 
-    def _extract_ai_config_from_user_config(self, user_config: dict, role: str='default'):
+    def _extract_ai_config_from_user_config(self, user_config: dict, role: str='default', managed_config=None):
         """从用户配置中提取AI配置"""
         role_key = (role or 'default').lower()
         role_provider_key, role_model_key = ai_config.MODEL_ROLE_FIELDS.get(role_key, ('default_model_provider', 'default_model_name') if role_key == 'default' else (f'{role_key}_model_provider', f'{role_key}_model_name'))
-        provider = user_config.get(role_provider_key) or user_config.get('default_ai_provider') or 'openai'
+        provider = self.provider_name or user_config.get(role_provider_key) or user_config.get('default_ai_provider') or 'openai'
         model = user_config.get(role_model_key)
         if not model:
             provider_model_key = f'{provider}_model'
@@ -113,6 +131,14 @@ class RuntimeConfigService:
         use_responses_api = False
         enable_reasoning = False
         reasoning_effort = 'medium'
+        if is_managed_provider(provider):
+            if managed_config is None:
+                from ..managed_provider_service import resolve_managed_provider_sync
+                managed_config = resolve_managed_provider_sync(self.user_id, provider)
+            api_key = managed_config['api_key']
+            base_url = managed_config['base_url']
+            model = model or managed_config.get('model')
+            use_responses_api = managed_config.get('use_responses_api', False)
         if provider == 'openai':
             api_key = user_config.get('openai_api_key')
             base_url = user_config.get('openai_base_url')

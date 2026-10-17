@@ -80,7 +80,7 @@ class LandPPTChatModel(BaseChatModel):
 
     def _build_provider_config(self, **kwargs: Any) -> Dict[str, Any]:
         provider_name = (kwargs.get("provider") or self.provider or ai_config.default_ai_provider).strip()
-        base_config = ai_config.get_provider_config(provider_name)
+        base_config = {} if provider_name.startswith("custom:") else ai_config.get_provider_config(provider_name)
         merged = dict(base_config)
         merged.update({k: v for k, v in kwargs.items() if v is not None and k != "provider"})
 

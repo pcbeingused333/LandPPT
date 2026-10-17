@@ -64,6 +64,19 @@
 .home-format-strip > div { display: flex; flex-wrap: wrap; gap: 14px 28px; color: var(--home-muted); }
 .home-format-strip > div > span + span { position: relative; }
 .home-format-strip > div > span + span::before { content: ''; position: absolute; left: -15px; top: 8px; width: 3px; height: 3px; background: #b9bbae; border-radius: 50%; }
+.home-sponsors { display: grid; grid-template-columns: minmax(0, .7fr) minmax(0, 2fr); gap: 40px; align-items: center; padding-block: 32px; border-bottom: 1px solid var(--home-line); }
+.home-sponsors-intro h2 { margin: 12px 0 10px; font-size: 24px; line-height: 1.5; font-weight: 600; letter-spacing: -.5px; }
+.home-sponsors-intro p { margin: 0 0 8px; color: var(--home-muted); font-size: 12px; line-height: 1.9; }
+.home-sponsors-intro .home-text-link { font-size: 12px; }
+.home-sponsor-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr)); gap: 12px; list-style: none; padding: 0; margin: 0; min-width: 0; }
+.home-sponsor-list > li { display: flex; align-items: center; gap: 12px; min-width: 0; padding: 16px; border: 1px solid var(--home-line); border-radius: 8px; background: #fcfcf9; }
+.home-sponsor-list .ant-avatar { flex: 0 0 auto; color: #55594c; background: #e9ebe1; }
+.home-sponsor-copy { flex: 1; min-width: 0; }
+.home-sponsor-copy h3 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; margin: 0 0 4px; font-size: 14px; font-weight: 600; line-height: 1.5; }
+.home-sponsor-copy p { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; margin: 0; color: var(--home-muted); font-size: 12px; line-height: 1.7; }
+.home-sponsor-link { display: grid; place-items: center; flex: 0 0 36px; min-height: 36px; margin-right: -8px; border-radius: 6px; color: var(--home-ink); }
+.home-sponsor-link:hover { color: #111; background: #e9ebe1; }
+.home-sponsor-link:focus-visible { outline: 2px solid var(--home-ink); outline-offset: 2px; }
 .home-workflow { padding-block: 76px 68px; }
 .home-section-heading { display: flex; align-items: end; justify-content: space-between; gap: 24px; }
 .home-section-heading h2, .home-capabilities h2 { font-size: 34px; line-height: 1.5; font-weight: 600; letter-spacing: -1px; margin: 18px 0 0; }
@@ -127,6 +140,9 @@
   .home-example-options button { font-size: 12px; min-height: 44px; }
   .home-example-caption > span { max-width: none; }
   .home-format-strip { flex-direction: column; gap: 12px; }
+  .home-sponsors { grid-template-columns: minmax(0, 1fr); gap: 20px; }
+  .home-sponsors-intro p br { display: none; }
+  .home-sponsor-link { flex-basis: 44px; min-height: 44px; }
   .home-workflow { padding-block: 48px; }
   .home-section-heading { align-items: start; flex-direction: column; gap: 14px; }
   .home-section-heading h2 { font-size: 30px; }

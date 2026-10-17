@@ -81,7 +81,7 @@ class LLMManager:
         **kwargs: Any,
     ) -> BaseChatModel:
         provider_key = (provider or "openai").strip().lower()
-        if provider_key not in self.SUPPORTED_PROVIDERS:
+        if provider_key not in self.SUPPORTED_PROVIDERS and not provider_key.startswith("custom:"):
             raise ValueError(
                 f"Unsupported provider: {provider}. Supported: {list(self.SUPPORTED_PROVIDERS.keys())}"
             )
@@ -120,6 +120,8 @@ class LLMManager:
     def validate_configuration(self, provider: str, **kwargs: Any) -> bool:
         provider_key = (provider or "").strip().lower()
 
+        if provider_key.startswith("custom:"):
+            return bool(kwargs.get("api_key") and kwargs.get("base_url"))
         if provider_key in ("openai", "landppt", "302ai"):
             api_key = kwargs.get("api_key") or os.getenv("OPENAI_API_KEY") or os.getenv("302AI_API_KEY")
             return bool(api_key)

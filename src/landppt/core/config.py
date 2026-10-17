@@ -216,6 +216,8 @@ class AIConfig(BaseSettings):
 
     def _get_default_model_for_provider(self, provider: Optional[str]) -> Optional[str]:
         provider_key = self._normalize_provider(provider)
+        if provider_key and provider_key.startswith('custom:'):
+            return None
         if provider_key == "openai":
             return self._normalize_optional_str(self.openai_model)
         if provider_key == "anthropic":
@@ -266,6 +268,9 @@ class AIConfig(BaseSettings):
     def get_provider_config(self, provider: Optional[str] = None) -> Dict[str, Any]:
         """Get configuration for a specific AI provider"""
         provider = provider or self.default_ai_provider
+        if provider.startswith('custom:'):
+            from ..services.managed_provider_service import ManagedProviderError
+            raise ManagedProviderError('AI 提供商需要通过当前用户配置解析')
 
         # Built-in providers
         configs = {

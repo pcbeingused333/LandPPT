@@ -15,6 +15,7 @@ const sectionLoaders: SectionLoaders = {
   research: () => import('./pages/research'), 'image-generation': () => import('./pages/image-generation'), 'sponsor-thanks': () => import('./pages/sponsor-thanks'),
   'admin-settings': () => import('./pages/admin-settings'), 'admin-users': () => import('./pages/admin-users'),
   'admin-credits': () => import('./pages/admin-credits'), 'admin-community': () => import('./pages/admin-community'),
+  'admin-ai-providers': () => import('./pages/admin-ai-providers'),
 };
 const Dashboard = lazy(sectionLoaders.dashboard);
 const Settings = lazy(sectionLoaders.settings);
@@ -27,6 +28,7 @@ const AdminSettings = lazy(sectionLoaders['admin-settings']);
 const AdminUsers = lazy(sectionLoaders['admin-users']);
 const AdminCredits = lazy(sectionLoaders['admin-credits']);
 const AdminCommunity = lazy(sectionLoaders['admin-community']);
+const AdminAIProviders = lazy(sectionLoaders['admin-ai-providers']);
 const SponsorThanks = lazy(sectionLoaders['sponsor-thanks']);
 const ImageGallery = lazy(sectionLoaders['image-gallery']);
 const ImageGeneration = lazy(sectionLoaders['image-generation']);
@@ -39,7 +41,7 @@ const Presentation = lazy(() => import('./pages/presentation'));
 const Todo = lazy(() => import('./pages/todo'));
 const SlidesEditor = lazy(() => import('./pages/slides-editor'));
 const ErrorPage = lazy(() => import('./pages/error'));
-const pages = { dashboard: Dashboard, settings: Settings, projects: Projects, 'project-detail': ProjectDetail, profile: Profile, credits: Credits, auth: Auth, 'admin-settings': AdminSettings, 'admin-users': AdminUsers, 'admin-credits': AdminCredits, 'admin-community': AdminCommunity, 'sponsor-thanks': SponsorThanks, 'image-gallery': ImageGallery, 'image-generation': ImageGeneration, templates: Templates, 'template-selection': Templates, 'create-project': CreateProject, research: Research };
+const pages = { dashboard: Dashboard, settings: Settings, projects: Projects, 'project-detail': ProjectDetail, profile: Profile, credits: Credits, auth: Auth, 'admin-settings': AdminSettings, 'admin-users': AdminUsers, 'admin-credits': AdminCredits, 'admin-community': AdminCommunity, 'admin-ai-providers': AdminAIProviders, 'sponsor-thanks': SponsorThanks, 'image-gallery': ImageGallery, 'image-generation': ImageGeneration, templates: Templates, 'template-selection': Templates, 'create-project': CreateProject, research: Research };
 
 class PageBoundary extends Component<{ children: ReactNode }, { failed: boolean }> {
   state = { failed: false };

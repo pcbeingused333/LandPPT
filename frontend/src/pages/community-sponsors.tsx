@@ -22,11 +22,11 @@ export default function Sponsors() {
     for (const key of ['nickname', 'avatar_url', 'link_url', 'amount', 'bio', 'note']) body[key] = String(values[key] || '').trim() || (key === 'nickname' ? '' : null);
     try { await actions.run(editor?.id ? `/admin/api/sponsors/${editor.id}` : '/admin/api/sponsors', editor?.id ? 'PUT' : 'POST', body); setEditor(null); actions.message.success('赞助信息已保存'); load(); } catch { /* Keep the dialog and values for retry. */ }
   }
-  const status = (row: ApiData) => <Tag color={row.is_active ? 'success' : 'default'}>{row.is_active ? '公开展示' : '已隐藏'}</Tag>;
+  const status = (row: ApiData) => <Tag color={row.is_active ? 'success' : 'default'}>{row.is_active ? '允许展示' : '已隐藏'}</Tag>;
   const identity = (row: ApiData) => <div className="community-sponsor-identity"><Avatar src={safeURL(row.avatar_url)}>{String(row.nickname).slice(0, 1)}</Avatar><div><strong>{row.nickname}</strong>{row.bio && <p className="subtle">{row.bio}</p>}{safeURL(row.link_url) && <a href={safeURL(row.link_url)} target="_blank" rel="noopener noreferrer">访问主页</a>}</div></div>;
   const controls = (row: ApiData) => <Space size={0} className="admin-row-actions"><Button type="text" aria-label={`编辑 ${row.nickname}`} icon={<EditOutlined aria-hidden />} disabled={actions.pending} onClick={() => open(row)} /><Button type="text" danger aria-label={`删除 ${row.nickname}`} icon={<DeleteOutlined aria-hidden />} disabled={actions.pending} onClick={() => actions.confirm('删除赞助信息', `确定删除“${row.nickname}”吗？此操作无法撤销。`, async () => { await actions.run(`/admin/api/sponsors/${row.id}`, 'DELETE'); actions.message.success('赞助信息已删除'); load(); }, true)} /></Space>;
   return <Card size="small" title="赞助名单" className="community-sponsors">
-    <div className="admin-toolbar"><Button type="primary" onClick={() => open()} disabled={actions.pending}>新增赞助</Button><Button onClick={load} disabled={loading}>刷新名单</Button><span className="subtle">共 {rows.length} 位，按排序值展示</span></div>
+    <div className="admin-toolbar"><Button type="primary" onClick={() => open()} disabled={actions.pending}>新增赞助</Button><Button onClick={load} disabled={loading}>刷新名单</Button><span className="subtle">共 {rows.length} 位 · 允许展示 {rows.filter(row => row.is_active).length} 位</span></div>
     {readError && <Alert type="error" title={readError} action={<Button onClick={load}>重试</Button>} className="page-error" />}{actions.error && !editor && <Alert type="error" title={actions.error} className="page-error" />}
     <div className="account-table"><Table<ApiData> size="small" rowKey="id" loading={loading} dataSource={rows} pagination={false} scroll={{ x: 860 }} locale={{ emptyText: <Empty description="暂无赞助信息" /> }} columns={[
       { title: '赞助者', width: 270, render: (_, row) => identity(row) }, { title: '金额', width: 100, render: (_, row) => row.amount || '—' }, { title: '排序', width: 80, dataIndex: 'sort_order' }, { title: '展示状态', width: 130, render: (_, row) => status(row) }, { title: '备注', width: 180, render: (_, row) => row.note || '—' }, { title: '操作', width: 100, fixed: 'right', render: (_, row) => controls(row) },
@@ -37,7 +37,7 @@ export default function Sponsors() {
       <Form form={form} name="communitySponsor" layout="vertical" requiredMark={false} disabled={actions.pending} onFinish={save}>
         <Form.Item name="nickname" label="昵称" rules={[{ required: true, whitespace: true, message: '请填写昵称' }]}><Input /></Form.Item>
         <div className="settings-fields"><Form.Item name="avatar_url" label="头像 URL"><Input /></Form.Item><Form.Item name="link_url" label="主页 URL"><Input /></Form.Item><Form.Item name="amount" label="赞助金额" extra="支持金额文字，例如 ¥100"><Input /></Form.Item><Form.Item name="sort_order" label="排序值"><InputNumber precision={0} /></Form.Item></div>
-        <Form.Item name="bio" label="简介"><Input.TextArea rows={2} /></Form.Item><Form.Item name="note" label="备注"><Input.TextArea rows={2} /></Form.Item><Form.Item name="is_active" label="公开展示" valuePropName="checked"><Switch /></Form.Item>
+        <Form.Item name="bio" label="简介"><Input.TextArea rows={2} /></Form.Item><Form.Item name="note" label="备注" extra="将展示在公开感谢页，请填写适合公开的内容。"><Input.TextArea rows={2} /></Form.Item><Form.Item name="is_active" label="公开展示" extra="允许这位赞助者出现在感谢页；还需开启并保存上方的页面开关。" valuePropName="checked"><Switch /></Form.Item>
       </Form>
     </Modal>
   </Card>;

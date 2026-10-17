@@ -125,6 +125,9 @@ class SpeechScriptService:
             logger.warning(
                 f"Failed to initialize speech script AI provider from DB role config for user {self.user_id}: {e}"
             )
+            from .managed_provider_service import ManagedProviderError
+            if isinstance(e, ManagedProviderError):
+                raise
 
         # 2) If the configured provider cannot be created (e.g. missing system LandPPT key),
         # fall back to any working provider from the user's DB settings.

@@ -1,5 +1,11 @@
 {% extends "antd_base.html" %}
 {% block title %}LandPPT · 让想法，成为好演示{% endblock %}
 {% block page_data %}
-    "page": "home"
+    "page": "home",
+    "sponsors": [{% for sponsor in sponsors | default([]) %}{
+        "nickname": {{ sponsor.nickname | tojson }},
+        "avatar_url": {{ (sponsor.avatar_url | default(none)) | tojson }},
+        "bio": {{ (sponsor.bio | default(none)) | tojson }},
+        "link_url": {{ (sponsor.link_url | default(none)) | tojson }}
+    }{% if not loop.last %},{% endif %}{% endfor %}]
 {% endblock %}

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { App, Button, Drawer, Dropdown, Space, Tooltip } from 'antd';
-import { BellOutlined, MenuOutlined, UserOutlined, SettingOutlined, LogoutOutlined, GithubOutlined, MailOutlined } from '@ant-design/icons';
+import { BellOutlined, MenuOutlined, UserOutlined, SettingOutlined, LogoutOutlined, GithubOutlined, MailOutlined, HeartOutlined } from '@ant-design/icons';
 import { version } from '../package.json';
 import { modalFocus } from './components/modal-focus';
 import { NotificationDrawer, SiteAnnouncement } from './components/shell-feedback';
@@ -14,7 +14,6 @@ export interface ShellData {
 
 declare global {
   interface Window {
-    SiteNotice?: { loadPublicSettings(options: Record<string, string>): Promise<unknown> };
     NotificationCenter?: { mount(options: Record<string, unknown>): any };
   }
 }
@@ -25,12 +24,38 @@ export function Shell({ data, children, pending = '' }: { data: ShellData; child
   const menuTrigger = useRef<HTMLButtonElement>(null);
   const { modal, message } = App.useApp();
   const [notice, setNotice] = useState<ApiData>();
+  const [sponsorsEnabled, setSponsorsEnabled] = useState(false);
   const [notifications, setNotifications] = useState<ApiData>({});
   const [notificationOpen, setNotificationOpen] = useState(false);
   const center = useRef<any>(null);
   useEffect(() => {
     let disposed = false;
-    window.SiteNotice?.loadPublicSettings({ sponsorLink: 'footerSponsorLink' }).then(value => { if (!disposed) setNotice((value as ApiData)?.site_notice); });
+    let reading: AbortController | undefined;
+    async function refresh() {
+      reading?.abort();
+      const controller = new AbortController(); reading = controller;
+      try {
+        const response = await fetch('/api/community/public-settings', { credentials: 'same-origin', cache: 'no-store', signal: controller.signal });
+        if (!response.ok) return;
+        const settings = await response.json();
+        if (!disposed && !controller.signal.aborted) {
+          setNotice(settings.site_notice);
+          setSponsorsEnabled(settings.sponsor_page_enabled === true);
+        }
+      } catch { /* Retain the last known settings on transient failures. */ }
+    }
+    const visible = () => { if (document.visibilityState === 'visible') void refresh(); };
+    void refresh();
+    window.addEventListener('landppt:community-settings-saved', refresh);
+    document.addEventListener('visibilitychange', visible);
+    return () => {
+      disposed = true; reading?.abort();
+      window.removeEventListener('landppt:community-settings-saved', refresh);
+      document.removeEventListener('visibilitychange', visible);
+    };
+  }, [data]);
+  useEffect(() => {
+    let disposed = false;
     if (data.user) {
       center.current = window.NotificationCenter?.mount({ bell: 'navNotificationBell', badge: 'navNotificationBadge', renderUI: (value: ApiData) => { if (!disposed) setNotifications(value); }, onOpenChange: (open: boolean) => { if (!disposed) setNotificationOpen(open); }, notifyUI: (type: 'error' | 'success' | 'warning', content: string) => { if (!disposed) message[type](content); } });
       if (center.current?.panel) { center.current.panel.classList.add('app-notification-host'); center.current.panel.setAttribute('role', 'presentation'); }
@@ -73,6 +98,6 @@ export function Shell({ data, children, pending = '' }: { data: ShellData; child
     <SiteAnnouncement notice={notice} />
     <NotificationDrawer open={notificationOpen} state={notifications} center={center.current} />
     <main id="appMain" tabIndex={-1} aria-busy={!!pending} className={`app-main${authPage ? ' auth-main' : ''}${data.page === 'home' ? ' home-main' : ''}`}>{children}</main>
-    <footer className="app-footer"><span>LandPPT · v{version}</span><Tooltip title="GitHub" trigger={['hover', 'focus']}><a className="app-footer-icon" aria-label="GitHub" href="https://github.com/sligter/LandPPT" target="_blank" rel="noreferrer"><GithubOutlined aria-hidden /></a></Tooltip><a id="footerSponsorLink" className="is-hidden" href="/sponsors">赞助感谢</a><Tooltip title="商务合作" trigger={['hover', 'focus']}><a className="app-footer-icon" aria-label="商务合作" href="mailto:support@landppt.com"><MailOutlined aria-hidden /></a></Tooltip></footer>
+    <footer className="app-footer"><span>LandPPT · v{version}</span><Tooltip title="GitHub" trigger={['hover', 'focus']}><a className="app-footer-icon" aria-label="GitHub" href="https://github.com/sligter/LandPPT" target="_blank" rel="noreferrer"><GithubOutlined aria-hidden /></a></Tooltip>{(sponsorsEnabled || data.user?.is_admin) && <a id="footerSponsorLink" className="app-footer-sponsor" href="/sponsors"><HeartOutlined aria-hidden />{sponsorsEnabled ? '赞助感谢' : '赞助预览'}</a>}<Tooltip title="商务合作" trigger={['hover', 'focus']}><a className="app-footer-icon" aria-label="商务合作" href="mailto:support@landppt.com"><MailOutlined aria-hidden /></a></Tooltip></footer>
   </div>;
 }

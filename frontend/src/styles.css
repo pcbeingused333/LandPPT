@@ -194,7 +194,10 @@ button, input, textarea { font: inherit; }
 .app-footer a { color: #6b7280; }
 .app-footer-icon { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 7px; font-size: 16px; }
 .app-footer-icon:hover { color: #111; background: #e8e8ec; }
+.app-footer-sponsor { display: inline-flex; align-items: center; gap: 6px; min-height: 32px; padding: 0 8px; border-radius: 7px; }
+.app-footer-sponsor:hover { color: #111; background: #e8e8ec; text-decoration: none; }
 @media (max-width: 600px) { .app-footer-icon { width: 44px; height: 44px; } }
+@media (max-width: 600px) { .app-footer-sponsor { min-height: 44px; } }
 .is-hidden { display: none !important; }
 .skip-link { position: fixed; top: -100px; left: 16px; background: #fff; padding: 8px; z-index: 2000; }
 .skip-link:focus { top: 4px; }
@@ -449,12 +452,33 @@ h2 { margin: 0; font-size: 16px; font-weight: 600; }
 .community-invites .ant-card-head-title { white-space: normal; }
 .community-invites .ant-card-extra { flex-shrink: 0; }
 .sponsor-thanks-page { max-width: 1100px; margin: auto; }
-.sponsor-thanks-page .page-heading { margin-bottom: 0; }
+.sponsor-thanks-intro { padding: 28px 32px 0; border: 1px solid #e2e3e7; border-radius: 12px; background: #fbfaf7; }
+.sponsor-thanks-title { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding-bottom: 24px; }
+.sponsor-thanks-eyebrow { color: #73716a; font-size: 12px; letter-spacing: .08em; }
+.sponsor-thanks-intro h1 { margin: 8px 0; font-family: "Noto Serif SC", "Songti SC", SimSun, serif; font-size: 32px; line-height: 1.4; font-weight: 600; letter-spacing: .05em; }
+.sponsor-thanks-intro p { margin: 0; color: #6b7280; font-size: 13px; line-height: 1.8; }
+.sponsor-thanks-emblem { display: grid; place-items: center; flex-shrink: 0; width: 56px; height: 56px; border: 1px solid #dedbd3; border-radius: 50%; color: #55534d; font-size: 24px; }
+.sponsor-thanks-summary { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px 16px; padding: 14px 0; border-top: 1px solid #e6e3dc; color: #73716a; font-size: 12px; }
+.sponsor-thanks-summary strong { margin-right: 4px; color: #252936; font-size: 20px; font-variant-numeric: tabular-nums; }
 .sponsor-thanks-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr)); gap: 16px; }
-.sponsor-thanks-card h2 { overflow-wrap: anywhere; }
+.sponsor-thanks-card .ant-card-body { display: flex; flex-direction: column; height: 100%; padding: 20px; }
+.sponsor-thanks-card h2 { margin: 0 0 4px; font-size: 17px; line-height: 1.5; overflow-wrap: anywhere; }
+.sponsor-thanks-card .ant-avatar { color: #55534d; background: #f1efe9; }
+.sponsor-thanks-amount { color: #73716a; font-size: 12px; }
+.sponsor-thanks-bio { flex: 1; margin: 16px 0; color: #6b7280; font-size: 13px; line-height: 1.8; white-space: pre-wrap; }
 .sponsor-thanks-card p { overflow-wrap: anywhere; }
-.sponsor-thanks-card .ant-tag { white-space: normal; overflow-wrap: anywhere; margin-bottom: 8px; }
-.sponsor-thanks-link { display: flex; align-items: center; gap: 4px; width: fit-content; min-height: 32px; }
+.sponsor-thanks-card-footer { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; padding-top: 12px; border-top: 1px solid #f0f0f0; }
+.sponsor-thanks-card .ant-tag { white-space: normal; overflow-wrap: anywhere; margin: 0; max-width: 100%; }
+.sponsor-thanks-link { display: flex; align-items: center; gap: 4px; width: fit-content; min-height: 32px; margin-left: auto; font-size: 12px; }
+.sponsor-thanks-empty .ant-empty { margin-block: 24px; }
+@media (max-width: 600px) {
+  .sponsor-thanks-intro { padding: 20px 20px 0; }
+  .sponsor-thanks-title { gap: 12px; padding-bottom: 20px; }
+  .sponsor-thanks-intro h1 { font-size: 28px; }
+  .sponsor-thanks-emblem { width: 44px; height: 44px; font-size: 20px; }
+  .sponsor-thanks-page > .ant-alert { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: start; }
+  .sponsor-thanks-page > .ant-alert .ant-alert-actions { grid-column: 2; margin: 12px 0 0; }
+}
 .page-error { margin-bottom: 16px; overflow-wrap: anywhere; }
 .test-result-copy { overflow-wrap: anywhere; white-space: pre-wrap; }
 .test-result-image { width: 100%; border-radius: 6px; }

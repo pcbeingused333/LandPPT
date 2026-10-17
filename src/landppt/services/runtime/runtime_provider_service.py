@@ -25,6 +25,7 @@ from ...ai import get_ai_provider, get_role_provider, AIMessage, MessageRole
 from ...ai.base import TextContent, ImageContent
 from ...core.config import ai_config, app_config
 from .ai_execution import ExecutionContext
+from ..managed_provider_service import ManagedProviderError
 from ..prompts import prompts_manager
 from ..prompts.system_prompts import SystemPrompts
 from ..research.enhanced_research_service import EnhancedResearchService
@@ -62,10 +63,18 @@ class RuntimeProviderService:
                     loop_running = False
                 if loop_running:
                     provider_name = self.provider_name or getattr(self, '_user_default_provider', None) or ai_config.default_ai_provider
+                    # A managed service always requires the current user's credentials.
+                    selected = self.provider_name or get_db_config_service().get_config_value_sync(
+                        'default_ai_provider', user_id=self.user_id
+                    )
+                    if selected and selected.startswith('custom:'):
+                        return get_user_ai_provider_sync(self.user_id, selected)
                     return get_ai_provider(provider_name)
                 self._user_default_provider = self.provider_name or get_db_config_service().get_config_value_sync('default_ai_provider', user_id=self.user_id) or 'openai'
                 provider_name = self.provider_name or self._user_default_provider
                 return get_user_ai_provider_sync(self.user_id, provider_name)
+            except ManagedProviderError:
+                raise
             except Exception as e:
                 logger.warning(f'Failed to get user AI provider, falling back to default: {e}')
         provider_name = self.provider_name or ai_config.default_ai_provider
@@ -83,6 +92,14 @@ class RuntimeProviderService:
                     loop_running = False
                 if not loop_running:
                     return get_user_role_provider_sync(self.user_id, role, provider_override=self.provider_name)
+                from ..db_config_service import get_db_config_service
+                selected = get_db_config_service().get_all_config_sync(user_id=self.user_id)
+                role_provider_key = ai_config.MODEL_ROLE_FIELDS.get(role, (f'{role}_model_provider', ''))[0]
+                selected_provider = self.provider_name or selected.get(role_provider_key) or selected.get('default_ai_provider') or ''
+                if selected_provider.startswith('custom:'):
+                    return get_user_role_provider_sync(self.user_id, role, provider_override=self.provider_name)
+            except ManagedProviderError:
+                raise
             except Exception as e:
                 logger.warning(f'Failed to get user role provider, falling back to global: {e}')
         return get_role_provider(role, provider_override=self.provider_name)
@@ -103,8 +120,12 @@ class RuntimeProviderService:
                     model = user_config.get(provider_model_key)
                 settings = {'role': role, 'provider': provider_name, 'model': model}
                 provider = await get_user_ai_provider(self.user_id, provider_name)
+                if provider_name.startswith('custom:') and not model:
+                    settings['model'] = provider.model
                 logger.info(f"Got provider for role '{role}': {provider_name}, model: {model}")
                 return (provider, settings)
+            except ManagedProviderError:
+                raise
             except Exception as e:
                 logger.warning(f'Failed to get user role provider async, falling back to global: {e}')
         return get_role_provider(role, provider_override=self.provider_name)

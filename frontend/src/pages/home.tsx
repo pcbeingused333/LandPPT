@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Button } from 'antd';
 import { ArrowRightOutlined, ArrowUpOutlined, CheckOutlined, FileTextOutlined, PlayCircleOutlined, AppstoreOutlined, EditOutlined, SoundOutlined, DownloadOutlined } from '@ant-design/icons';
 import type { ApiData } from '../api';
+import HomeSponsors from './home-sponsors';
 import './home.css';
 
 const examples = [
@@ -38,7 +39,7 @@ function SlideArt({ theme }: { theme: string }) {
   </svg>;
 }
 
-export default function Home(_props: { data: ApiData }) {
+export default function Home({ data }: { data: ApiData }) {
   const [selected, setSelected] = useState(0);
   const example = examples[selected];
   return <div className="home-showcase">
@@ -66,6 +67,8 @@ export default function Home(_props: { data: ApiData }) {
     </section>
 
     <div className="home-format-strip home-wrap" aria-label="创作能力"><span>一个想法，多种可能。</span><div><span>自由设计</span><span>模板创作</span><span>AI 编辑</span><span>语音讲解</span><span>PPTX / PDF / HTML</span></div></div>
+
+    <HomeSponsors sponsors={data.sponsors || []} />
 
     <section className="home-workflow home-wrap" aria-labelledby="homeWorkflowTitle">
       <div className="home-section-heading"><div><span className="home-section-index">01 / THE PROCESS</span><h2 id="homeWorkflowTitle">从想法出发，<br />一路走到呈现。</h2></div><p>写作、设计与讲述，不必来回切换。<br />在同一个创作流程里，让内容慢慢成形。</p></div>

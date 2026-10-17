@@ -32,6 +32,7 @@ from ...auth.middleware import get_current_user_optional, get_current_user_requi
 from ...core.config import ai_config, app_config, resolve_timeout_seconds
 from ...database.database import AsyncSessionLocal, get_db
 from ...database.models import User
+from ...services.community_service import community_service
 from ...services.provider_test_utils import (
     DEFAULT_ANTHROPIC_BASE_URL,
     DEFAULT_ANTHROPIC_MODEL,
@@ -100,9 +101,17 @@ async def web_home(
     user: User = Depends(get_current_user_required)
 ):
     """Product showcase for new and returning users, independent of their projects."""
+    sponsors = []
+    try:
+        settings = await community_service.get_settings()
+        if settings.get("sponsor_page_enabled"):
+            sponsors = (await community_service.get_public_sponsors())[:6]
+    except Exception as exc:
+        logger.warning("Failed to load homepage sponsors: %s", exc)
     return templates.TemplateResponse("pages/home/index.html", {
         "request": request,
         "user": user,
+        "sponsors": sponsors,
     })
 
 
@@ -486,6 +495,13 @@ async def set_default_ai_provider(
         normalized = "google"
 
     allowed = {p.strip().lower() for p in ai_config.get_available_providers()}
+    if normalized.startswith("custom:"):
+        from ...services.managed_provider_service import ManagedProviderError, resolve_managed_provider
+        try:
+            await resolve_managed_provider(user.id, normalized)
+        except ManagedProviderError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from None
+        allowed.add(normalized)
     if normalized not in allowed:
         raise HTTPException(status_code=400, detail=f"Unsupported provider: {provider}")
 

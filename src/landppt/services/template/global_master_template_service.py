@@ -80,10 +80,15 @@ class GlobalMasterTemplateService:
                 
                 # Use get_user_ai_provider which properly handles landppt system-level config
                 provider = await get_user_ai_provider(self.user_id, provider_name)
+                if provider_name.startswith('custom:') and not model:
+                    settings['model'] = provider.model
                 logger.info(f"Got template provider successfully: {provider_name}, model: {model}")
                 return provider, settings
                 
             except Exception as e:
+                from ..managed_provider_service import ManagedProviderError
+                if isinstance(e, ManagedProviderError):
+                    raise
                 logger.error(f"Failed to get user template provider async: {e}", exc_info=True)
         else:
             logger.warning("user_id is None, falling back to global config")

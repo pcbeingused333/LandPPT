@@ -162,6 +162,9 @@ class OpenAIProvider(AIProvider):
                 "base_url": config.get("base_url"),
                 "timeout": timeout,
             }
+            if config.get("managed_provider"):
+                import httpx
+                client_kwargs["http_client"] = httpx.AsyncClient(timeout=timeout, follow_redirects=False)
             client_headers = build_opencode_client_headers(config.get("base_url"))
             if client_headers:
                 client_kwargs["default_headers"] = client_headers
@@ -555,6 +558,10 @@ class OpenAIProvider(AIProvider):
             
         except Exception as e:
             # 提供更详细的错误信息
+            if self.config.get("managed_provider"):
+                from ..services.managed_provider_service import ManagedProviderError
+                logger.warning("Managed AI request failed (%s)", type(e).__name__)
+                raise ManagedProviderError("AI 提供商调用失败，请检查密钥、模型和接口地址，或稍后重试") from None
             error_msg = str(e)
             if "Expecting value" in error_msg:
                 logger.error(f"OpenAI API JSON parsing error: {error_msg}. This usually indicates the API returned malformed JSON.")
@@ -607,6 +614,10 @@ class OpenAIProvider(AIProvider):
                 yield visible_chunk
 
         except Exception as e:
+            if self.config.get("managed_provider"):
+                from ..services.managed_provider_service import ManagedProviderError
+                logger.warning("Managed AI stream failed (%s)", type(e).__name__)
+                raise ManagedProviderError("AI 提供商流式调用失败，请检查配置或稍后重试") from None
             logger.error(f"OpenAI streaming error: {e}")
             raise
 
@@ -1663,8 +1674,14 @@ class AIProviderFactory:
             config = ai_config.get_provider_config(provider_name)
 
         # Built-in providers
-        if provider_name not in cls._providers:
+        managed = provider_name.startswith("custom:")
+        if provider_name not in cls._providers and not managed:
             raise ValueError(f"Unknown provider: {provider_name}")
+        if managed and not (config.get("api_key") and config.get("base_url")):
+            from ..services.managed_provider_service import ManagedProviderError
+            raise ManagedProviderError("AI 提供商配置不完整，请重新配置")
+        if managed:
+            config = {**config, "managed_provider": True}
 
         if use_cache:
             cache_key = f"{provider_name}:{cls._config_fingerprint(config)}"
@@ -1674,7 +1691,7 @@ class AIProviderFactory:
                     cls._provider_cache.move_to_end(cache_key)
                     return cached
 
-        provider_class = cls._providers[provider_name]
+        provider_class = OpenAIProvider if managed else cls._providers[provider_name]
         provider = provider_class(dict(config))
 
         if use_cache:
@@ -1712,6 +1729,9 @@ class AIProviderManager:
         """Get AI provider instance with caching"""
         if provider_name is None:
             provider_name = ai_config.default_ai_provider
+        if provider_name.startswith("custom:"):
+            from ..services.managed_provider_service import ManagedProviderError
+            raise ManagedProviderError("AI 提供商需要通过当前用户配置解析")
         if provider_name not in AIProviderFactory._providers:
             logger.warning(f"Unknown provider '{provider_name}', falling back to 'openai'")
             provider_name = "openai"

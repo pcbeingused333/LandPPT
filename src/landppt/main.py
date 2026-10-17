@@ -24,6 +24,7 @@ from .api.image_api import router as image_router
 
 from .web import router as web_router
 from .web.admin_routes import router as admin_router
+from .api.managed_provider_api import router as managed_provider_router
 from .web.community_routes import router as community_router
 from .web.credits_routes import router as credits_router
 from .auth import auth_router, create_auth_middleware
@@ -120,6 +121,7 @@ app.include_router(image_router, prefix="", tags=["Image Service"])
 # Web router must come before landppt_router to ensure specific endpoints take precedence
 app.include_router(web_router, prefix="", tags=["Web Interface"])
 app.include_router(admin_router, tags=["Admin Management"])
+app.include_router(managed_provider_router)
 app.include_router(community_router, tags=["Community Pages"])
 app.include_router(credits_router, tags=["Credits System"])
 app.include_router(openai_router, prefix="/v1", tags=["OpenAI Compatible"])

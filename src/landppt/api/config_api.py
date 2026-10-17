@@ -207,6 +207,12 @@ async def set_user_default_provider(
     user: User = Depends(get_current_user_required)
 ):
     """Set default AI provider for current user"""
+    if request.provider.startswith("custom:"):
+        from ..services.managed_provider_service import ManagedProviderError, resolve_managed_provider
+        try:
+            await resolve_managed_provider(user.id, request.provider)
+        except ManagedProviderError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from None
     try:
         config_service = get_db_config_service()
         success = await config_service.update_config(

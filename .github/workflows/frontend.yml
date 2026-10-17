@@ -41,6 +41,7 @@ jobs:
               tests/test_antd_creation_research_ui.py tests/test_antd_account_ui.py tests/test_antd_presentation_ui.py
               tests/test_antd_pagination_ui.py tests/test_antd_remaining_ui.py tests/test_antd_admin_management_ui.py
               tests/test_antd_settings_models_ui.py tests/test_antd_project_search_ui.py tests/test_antd_asset_updates_ui.py
+              tests/test_antd_managed_providers_ui.py
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -68,3 +69,4 @@ jobs:
           path: |
             artifacts/browser-results.xml
             artifacts/template-package-workspace-layout/
+            artifacts/ai-providers/
