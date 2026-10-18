@@ -44,7 +44,7 @@ class ConfigService:
             
             "anthropic_api_key": {"type": "password", "category": "ai_providers"},
             "anthropic_base_url": {"type": "url", "category": "ai_providers", "default": "https://api.anthropic.com"},
-            "anthropic_model": {"type": "select", "category": "ai_providers", "default": "claude-3.5-haiku-20240307"},
+            "anthropic_model": {"type": "select", "category": "ai_providers", "default": "claude-haiku-4-5-20251001"},
             "anthropic_enable_reasoning": {"type": "boolean", "category": "ai_providers", "default": "false"},
             "anthropic_reasoning_effort": {"type": "select", "category": "ai_providers", "default": "high"},
 
