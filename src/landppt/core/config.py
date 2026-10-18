@@ -84,7 +84,7 @@ class AIConfig(BaseSettings):
     # Google Gemini Configuration
     google_api_key: Optional[str] = Field(default=None, env="GOOGLE_API_KEY")
     google_base_url: str = Field(default="https://generativelanguage.googleapis.com", env="GOOGLE_BASE_URL")
-    google_model: str = Field(default="gemini-1.5-flash", env="GOOGLE_MODEL")
+    google_model: str = Field(default="gemini-3.8-flash", env="GOOGLE_MODEL")
     
     # Ollama Configuration
     ollama_base_url: str = Field(default="http://localhost:11434", env="OLLAMA_BASE_URL")

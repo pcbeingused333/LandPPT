@@ -1059,7 +1059,7 @@ class GoogleProvider(AIProvider):
             genai.configure(api_key=config.get("api_key"))
 
             self.client = genai
-            self.model_instance = genai.GenerativeModel(config.get("model", "gemini-1.5-flash"))
+            self.model_instance = genai.GenerativeModel(config.get("model", "gemini-3.8-flash"))
         except ImportError:
             logger.warning("Google Generative AI library not installed. Install with: pip install google-generativeai")
             self.client = None

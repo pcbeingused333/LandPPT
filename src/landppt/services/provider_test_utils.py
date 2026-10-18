@@ -4,7 +4,7 @@ from typing import Any, Dict, Tuple
 
 
 DEFAULT_GOOGLE_BASE_URL = "https://generativelanguage.googleapis.com"
-DEFAULT_GOOGLE_MODEL = "gemini-2.5-flash"
+DEFAULT_GOOGLE_MODEL = "gemini-3.8-flash"
 DEFAULT_ANTHROPIC_BASE_URL = "https://api.anthropic.com"
 DEFAULT_ANTHROPIC_MODEL = "claude-3-5-sonnet-20241022"
 
