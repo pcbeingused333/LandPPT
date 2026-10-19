@@ -36,6 +36,39 @@
 
 ---
 
+## ❤️ 赞助商
+
+<div align="center">
+
+<table width="100%">
+  <tr>
+    <td align="center" valign="top">
+      <a href="https://www.aiyoyoo.com/register?aff=YH2FW34DTFPH" target="_blank">
+        <img src="assets/sponsors/crazytoken-zh.png" alt="CrazyToken | 全模型服务，最高省 99%" width="100%"/>
+      </a>
+      <div align="left">
+        <br/>
+        ❤️ 感谢 <a href="https://www.aiyoyoo.com/register?aff=YH2FW34DTFPH" target="_blank"><strong>CrazyToken</strong></a> 对 LandPPT 的赞助支持！
+        <br/><br/>
+        <strong>CrazyToken | 接入全球主流大模型，让资料更快变成精彩演示，倍率低至 0.05x，最高省 99%</strong>
+        <br/><br/>
+        CrazyToken 提供 Claude、GPT、Gemini、Kimi、GLM、DeepSeek、Qwen、Grok 等主流模型 API，为文档要点提炼、大纲规划、逐页内容生成与演讲稿撰写提供模型支持。从工作汇报、教学课件到产品介绍，按不同制作环节选择合适的模型，让内容组织更高效。
+        <br/><br/>
+        💰 <strong>最低 0.05×，降低 PPT 制作成本</strong>：模型价格低至官方价格的 5%，Token 级账单透明可查，让长文档整理、多页生成与反复修改更省成本。<br/>
+        ✨ <strong>官方原生通道</strong>：不掺水、不混模、不压缩长上下文，为梳理资料重点、组织演示逻辑和保持内容连贯提供模型支持。<br/>
+        ⚡ <strong>稳定高速，高并发不限流</strong>：为多页内容生成和多任务处理提供稳定的 API 服务，减少制作过程中的调用等待。<br/>
+        🎁 <strong>新用户注册赠送 $20</strong>：通过<a href="https://www.aiyoyoo.com/register?aff=YH2FW34DTFPH" target="_blank">专属链接</a>注册即送 <strong>$20 体验额度</strong>，充值额外加赠；提供 <strong>1 对 1 远程配置服务</strong>，真人协助完成模型 API 配置。
+        <br/><br/>
+        👉 <a href="https://www.aiyoyoo.com/register?aff=YH2FW34DTFPH" target="_blank">立即体验 CrazyToken，注册即领 $20 体验额度</a>
+      </div>
+    </td>
+  </tr>
+</table>
+
+</div>
+
+---
+
 ## 目录
 
 - [项目简介](#项目简介)

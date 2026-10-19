@@ -36,6 +36,39 @@ Current version: **0.4.0**.
 
 ---
 
+## ❤️ Sponsors
+
+<div align="center">
+
+<table width="100%">
+  <tr>
+    <td align="center" valign="top">
+      <a href="https://www.aiyoyoo.com/register?aff=YH2FW34DTFPH" target="_blank">
+        <img src="assets/sponsors/crazytoken-en.png" alt="CrazyToken | All models, save up to 99%" width="100%"/>
+      </a>
+      <div align="left">
+        <br/>
+        ❤️ Thank you to <a href="https://www.aiyoyoo.com/register?aff=YH2FW34DTFPH" target="_blank"><strong>CrazyToken</strong></a> for sponsoring LandPPT!
+        <br/><br/>
+        <strong>CrazyToken | Access leading AI models and turn your materials into compelling presentations faster — rates as low as 0.05x, savings of up to 99%</strong>
+        <br/><br/>
+        CrazyToken offers APIs for leading models including Claude, GPT, Gemini, Kimi, GLM, DeepSeek, Qwen, and Grok, supporting key-point extraction from documents, outline planning, slide-by-slide content generation, and speech writing. From work reports and teaching slides to product presentations, choose the right model for each stage to organize your content more efficiently.
+        <br/><br/>
+        💰 <strong>As low as 0.05× to reduce presentation creation costs</strong>: Model pricing starts at just 5% of official prices, with transparent, token-level billing you can review. Spend less on organizing long documents, generating multiple slides, and making repeated revisions.<br/>
+        ✨ <strong>Native access through official channels</strong>: No watered-down responses, model mixing, or long-context compression. Get model support for identifying key information, structuring your presentation, and keeping the content coherent.<br/>
+        ⚡ <strong>Stable, fast, high-concurrency access with no rate limits</strong>: Reliable API services for multi-slide content generation and multitasking help reduce waiting time throughout the creation process.<br/>
+        🎁 <strong>$20 in free credits for new users</strong>: Register through the <a href="https://www.aiyoyoo.com/register?aff=YH2FW34DTFPH" target="_blank">exclusive link</a> to receive <strong>$20 in trial credits</strong>, plus additional bonuses when you top up. <strong>One-on-one remote setup assistance</strong> is also available, with a real person helping you configure your model API.
+        <br/><br/>
+        👉 <a href="https://www.aiyoyoo.com/register?aff=YH2FW34DTFPH" target="_blank">Try CrazyToken now and get $20 in trial credits</a>
+      </div>
+    </td>
+  </tr>
+</table>
+
+</div>
+
+---
+
 ## Table of Contents
 
 - [Overview](#overview)
