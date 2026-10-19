@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from typing import Any, Dict, Tuple
 
 
@@ -40,13 +41,25 @@ def build_google_generate_content_url(base_url: str, model: str) -> str:
     return f"{normalized_base_url}/v1beta/models/{normalized_model}:generateContent"
 
 
-def build_google_test_payload(prompt: str) -> Dict[str, Any]:
+def google_model_accepts_sampling_params(model: Any) -> bool:
+    """Gemini 3 and later deprecate temperature/top_p/top_k and ignore them.
+
+    See https://ai.google.dev/gemini-api/docs/generate-content/whats-new-gemini-3.8#migration-checklist
+    Models whose name has no recognizable Gemini version keep the old behaviour.
+    """
+    name = str(model or "").strip().lower().rsplit("/", 1)[-1]
+    match = re.match(r"gemini-(\d+)", name)
+    return not match or int(match.group(1)) < 3
+
+
+def build_google_test_payload(prompt: str, model: str = DEFAULT_GOOGLE_MODEL) -> Dict[str, Any]:
     """Google 测试请求走原生 Gemini 格式，避免误用 OpenAI 兼容协议。"""
+    generation_config: Dict[str, Any] = {}
+    if google_model_accepts_sampling_params(model):
+        generation_config["temperature"] = 0
     return {
         "contents": [{"parts": [{"text": prompt}]}],
-        "generationConfig": {
-            "temperature": 0,
-        },
+        "generationConfig": generation_config,
     }
 
 

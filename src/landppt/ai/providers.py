@@ -16,6 +16,7 @@ from typing import List, Dict, Any, Optional, AsyncGenerator, Union, Tuple
 
 from .base import AIProvider, AIMessage, AIResponse, MessageRole, TextContent, ImageContent, MessageContentType
 from ..core.config import ai_config, resolve_timeout_seconds
+from ..services.provider_test_utils import google_model_accepts_sampling_params
 
 logger = logging.getLogger(__name__)
 
@@ -1381,10 +1382,10 @@ class GoogleProvider(AIProvider):
                 raise RuntimeError("Google Gemini API key not configured")
 
             model = config.get("model", self.model) or self.model
-            generation_config: Dict[str, Any] = {
-                "temperature": config.get("temperature", 0.7),
-                "topP": config.get("top_p", 1.0),
-            }
+            generation_config: Dict[str, Any] = {}
+            if google_model_accepts_sampling_params(model):
+                generation_config["temperature"] = config.get("temperature", 0.7)
+                generation_config["topP"] = config.get("top_p", 1.0)
 
             prompt_text = self._messages_to_plaintext_prompt(messages)
             data = await self._rest_generate_content(
@@ -1409,10 +1410,10 @@ class GoogleProvider(AIProvider):
 
         try:
             # Configure generation parameters
-            generation_config = {
-                "temperature": config.get("temperature", 0.7),
-                "top_p": config.get("top_p", 1.0),
-            }
+            generation_config = {}
+            if google_model_accepts_sampling_params(self.model_instance.model_name):
+                generation_config["temperature"] = config.get("temperature", 0.7)
+                generation_config["top_p"] = config.get("top_p", 1.0)
             # 配置安全设置 - 设置为较宽松的安全级别以减少误拦截
             safety_settings = [
                 {
