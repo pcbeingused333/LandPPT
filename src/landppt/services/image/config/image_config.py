@@ -77,7 +77,7 @@ class ImageServiceConfig:
             'openai_image': {
                 'api_key': '',
                 'api_base': 'https://api.openai.com/v1',
-                'model': 'gpt-image-1',
+                'model': 'gpt-image-2.5-sunburst',
                 'default_size': '1024x1024',
                 'default_quality': 'auto',  # auto, low, medium, high
                 'rate_limit_requests': 50,  # 每分钟请求数
