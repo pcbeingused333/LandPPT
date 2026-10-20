@@ -65,7 +65,7 @@ class DatabaseConfigService:
 
             "google_api_key": {"type": "password", "category": "ai_providers"},
             "google_base_url": {"type": "url", "category": "ai_providers", "default": "https://generativelanguage.googleapis.com"},
-            "google_model": {"type": "text", "category": "ai_providers", "default": "gemini-2.5-flash"},
+            "google_model": {"type": "text", "category": "ai_providers", "default": "gemini-3.8-flash"},
             
             "ollama_base_url": {"type": "url", "category": "ai_providers", "default": "http://localhost:11434"},
             "ollama_model": {"type": "text", "category": "ai_providers", "default": "llama2"},

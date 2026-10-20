@@ -678,7 +678,7 @@ async def test_provider_connection(
             # Google/Gemini 和 Anthropic 不是 OpenAI 兼容协议，必须按原生接口测试。
             if provider == "google":
                 request_url = build_google_generate_content_url(base_url, model)
-                payload = build_google_test_payload("Hi")
+                payload = build_google_test_payload("Hi", model)
                 logger.info("Testing %s connection at: %s (transport=gemini_generate_content)", provider, request_url)
 
                 primary_status = None
