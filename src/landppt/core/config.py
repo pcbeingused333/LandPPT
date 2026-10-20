@@ -61,7 +61,7 @@ class AIConfig(BaseSettings):
     # OpenAI Configuration
     openai_api_key: Optional[str] = Field(default=None, env="OPENAI_API_KEY")
     openai_base_url: str = Field(default="https://api.openai.com/v1", env="OPENAI_BASE_URL")
-    openai_model: str = Field(default="gpt-3.5-turbo", env="OPENAI_MODEL")
+    openai_model: str = Field(default="gpt-4.1", env="OPENAI_MODEL")
     openai_use_responses_api: bool = Field(default=False, env="OPENAI_USE_RESPONSES_API")
     openai_enable_reasoning: bool = Field(default=False, env="OPENAI_ENABLE_REASONING")
     openai_reasoning_effort: str = Field(default="medium", env="OPENAI_REASONING_EFFORT")

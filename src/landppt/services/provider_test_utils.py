@@ -4,6 +4,7 @@ import re
 from typing import Any, Dict, Tuple
 
 
+DEFAULT_OPENAI_MODEL = "gpt-4.1"
 DEFAULT_GOOGLE_BASE_URL = "https://generativelanguage.googleapis.com"
 DEFAULT_GOOGLE_MODEL = "gemini-3.8-flash"
 DEFAULT_ANTHROPIC_BASE_URL = "https://api.anthropic.com"
