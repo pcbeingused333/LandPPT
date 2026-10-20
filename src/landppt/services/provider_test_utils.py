@@ -7,7 +7,9 @@ from typing import Any, Dict, Tuple
 DEFAULT_GOOGLE_BASE_URL = "https://generativelanguage.googleapis.com"
 DEFAULT_GOOGLE_MODEL = "gemini-3.8-flash"
 DEFAULT_ANTHROPIC_BASE_URL = "https://api.anthropic.com"
-DEFAULT_ANTHROPIC_MODEL = "claude-3-5-sonnet-20241022"
+DEFAULT_ANTHROPIC_MODEL = "claude-sonnet-4-6"
+# The Messages API requires max_tokens; the probe only needs a short reply.
+ANTHROPIC_TEST_MAX_TOKENS = 64
 
 
 def normalize_provider_name(provider: Any) -> str:
@@ -111,6 +113,7 @@ def build_anthropic_test_payload(prompt: str, reasoning_effort: str = "") -> Dic
     """Anthropic 测试使用官方 messages 协议。"""
     payload = {
         "messages": [{"role": "user", "content": prompt}],
+        "max_tokens": ANTHROPIC_TEST_MAX_TOKENS,
         "temperature": 0,
     }
     if reasoning_effort:

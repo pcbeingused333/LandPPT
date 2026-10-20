@@ -75,7 +75,7 @@ class AIConfig(BaseSettings):
     # Anthropic Configuration
     anthropic_api_key: Optional[str] = Field(default=None, env="ANTHROPIC_API_KEY")
     anthropic_base_url: str = Field(default="https://api.anthropic.com", env="ANTHROPIC_BASE_URL")
-    anthropic_model: str = Field(default="claude-3-haiku-20240307", env="ANTHROPIC_MODEL")
+    anthropic_model: str = Field(default="claude-haiku-4-5-20251001", env="ANTHROPIC_MODEL")
     anthropic_enable_reasoning: bool = Field(default=False, env="ANTHROPIC_ENABLE_REASONING")
     anthropic_reasoning_effort: str = Field(default="high", env="ANTHROPIC_REASONING_EFFORT")
     # Anthropic Messages API 必须显式给 max_tokens；此前硬编码 4096/8192，整页 SVG 与长 HTML 会被截断。

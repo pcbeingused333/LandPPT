@@ -1,4 +1,5 @@
 from landppt.services.provider_test_utils import (
+    ANTHROPIC_TEST_MAX_TOKENS,
     build_anthropic_messages_url,
     build_anthropic_test_payload,
     build_google_generate_content_url,
@@ -30,10 +31,10 @@ def test_google_test_payload_does_not_set_output_token_limit():
     assert "maxOutputTokens" not in payload["generationConfig"]
 
 
-def test_anthropic_test_payload_does_not_set_output_token_limit():
+def test_anthropic_test_payload_sets_required_max_tokens():
     payload = build_anthropic_test_payload("Hi")
 
-    assert "max_tokens" not in payload
+    assert payload["max_tokens"] == ANTHROPIC_TEST_MAX_TOKENS
 
 
 def test_anthropic_test_payload_sets_reasoning_effort():

@@ -1075,7 +1075,7 @@ async def test_anthropic_provider_proxy(
         data = await request.json()
         base_url = data.get('base_url', 'https://api.anthropic.com')
         api_key = data.get('api_key', '')
-        model = data.get('model', 'claude-3-5-sonnet-20241022')
+        model = data.get('model', DEFAULT_ANTHROPIC_MODEL)
         enable_reasoning = _coerce_bool(data.get("enable_reasoning"))
         reasoning_effort = _normalize_reasoning_effort("anthropic", data.get("reasoning_effort"))
 
