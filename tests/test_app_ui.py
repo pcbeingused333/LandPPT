@@ -802,6 +802,9 @@ def test_every_settings_tab_keeps_form_fields_inside_page(ui_page, width, tab):
         for provider in ["LandPPT", "Anthropic Claude", "Google Gemini"]:
             panel.locator(".ant-collapse-header").filter(has_text=provider).click()
         panel.locator(".ant-collapse-header").filter(has_text="模型任务配置").click()
+    elif tab == "jev-config":
+        # The card hides its form until the settings request finishes.
+        panel.get_by_label("模型名称", exact=True).wait_for(state="visible")
     elif tab == "image-service":
         for name in [
             "enable_image_service",
