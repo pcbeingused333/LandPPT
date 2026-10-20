@@ -983,6 +983,7 @@ class AnthropicProvider(AIProvider):
             ]
 
             last_error: Optional[str] = None
+            yielded_text = False
 
             for index, (auth_name, auth_header) in enumerate(auth_methods):
                 is_last_method = index == len(auth_methods) - 1
@@ -1025,7 +1026,14 @@ class AnthropicProvider(AIProvider):
                                             if delta.get('type') == 'text_delta':
                                                 text = delta.get('text', '')
                                                 if text:
+                                                    yielded_text = True
                                                     yield text
+                                        elif event_data.get('type') == 'error':
+                                            # overloaded_error / api_error mid-stream: the reply is cut short
+                                            error = event_data.get('error') or {}
+                                            raise Exception(
+                                                f"Stream error {error.get('type', 'unknown')}: {error.get('message', '')}"
+                                            )
                                     except json.JSONDecodeError:
                                         pass
                             return  # Success, exit the function
@@ -1033,7 +1041,8 @@ class AnthropicProvider(AIProvider):
                 except Exception as auth_error:
                     last_error = str(auth_error)
                     logger.debug(f"Auth method {auth_name} failed: {auth_error}")
-                    if is_last_method:
+                    if is_last_method or yielded_text:
+                        # retrying after text went out would repeat it
                         raise
                     continue  # Try next auth method
 
