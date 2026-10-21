@@ -38,6 +38,7 @@ from ...services.provider_test_utils import (
     DEFAULT_ANTHROPIC_MODEL,
     DEFAULT_GOOGLE_BASE_URL,
     DEFAULT_GOOGLE_MODEL,
+    DEFAULT_OPENAI_MODEL,
     build_anthropic_messages_url,
     build_anthropic_test_payload,
     build_google_generate_content_url,
@@ -661,12 +662,12 @@ async def test_provider_connection(
 
         if not model:
             default_models = {
-                'openai': 'gpt-3.5-turbo',
+                'openai': DEFAULT_OPENAI_MODEL,
                 'anthropic': DEFAULT_ANTHROPIC_MODEL,
                 'google': DEFAULT_GOOGLE_MODEL,
                 'landppt': 'gpt-4o',
             }
-            model = default_models.get(provider, 'gpt-3.5-turbo')
+            model = default_models.get(provider, DEFAULT_OPENAI_MODEL)
 
         timeout_seconds = resolve_timeout_seconds(
             config.get("llm_timeout_seconds"),
