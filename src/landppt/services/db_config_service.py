@@ -238,7 +238,7 @@ class DatabaseConfigService:
             # OpenAI Image Generation Configuration
             "openai_image_api_key": {"type": "password", "category": "image_service"},
             "openai_image_api_base": {"type": "url", "category": "image_service", "default": "https://api.openai.com/v1"},
-            "openai_image_model": {"type": "text", "category": "image_service", "default": "gpt-image-1"},
+            "openai_image_model": {"type": "text", "category": "image_service", "default": "gpt-image-2.5-sunburst"},
             "openai_image_quality": {"type": "select", "category": "image_service", "default": "auto"},
 
             # Image Search Providers

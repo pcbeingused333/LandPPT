@@ -1,5 +1,5 @@
 """
-OpenAI 图片生成提供者 (GPT-Image / gpt-image-1)
+OpenAI 图片生成提供者 (GPT-Image / gpt-image-2.5-sunburst)
 支持通过OpenAI兼容API进行图片生成
 """
 
@@ -30,7 +30,7 @@ class OpenAIImageProvider(ImageGenerationProvider):
         # API配置
         self.api_key = config.get('api_key')
         self.api_base = config.get('api_base', 'https://api.openai.com/v1')
-        self.model = config.get('model', 'gpt-image-1')
+        self.model = config.get('model', 'gpt-image-2.5-sunburst')
         self.default_size = config.get('default_size', '1024x1024')
         self.default_quality = config.get('default_quality', 'auto')
         self.response_format = config.get('response_format')
@@ -527,6 +527,13 @@ class OpenAIImageProvider(ImageGenerationProvider):
     async def get_available_models(self) -> List[Dict[str, Any]]:
         """获取可用模型列表"""
         return [
+            {
+                'id': 'gpt-image-2.5-sunburst',
+                'name': 'GPT Image 2.5 Sunburst',
+                'description': 'OpenAI GPT Image generation model',
+                'max_resolution': '1536x1024',
+                'supported_styles': ['natural', 'vivid']
+            },
             {
                 'id': 'gpt-image-1',
                 'name': 'GPT Image 1',
