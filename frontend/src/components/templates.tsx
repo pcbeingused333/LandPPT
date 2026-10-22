@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { Alert, Button, Dropdown, Modal, Select, Spin, type MenuProps } from 'antd';
-import { MoreOutlined } from '@ant-design/icons';
+import { Alert, Button, Dropdown, Modal, Select, Space, Spin, Typography, type MenuProps } from 'antd';
+import { LeftOutlined, MoreOutlined, RightOutlined } from '@ant-design/icons';
 import { request, errorText, type ApiData } from '../api';
 import { modalFocus } from './modal-focus';
 
@@ -51,19 +51,30 @@ export function TemplateThumbnail({ template }: { template: ApiData }) {
   return error ? <div className="template-preview-fallback"><span>预览加载失败</span><Button onClick={() => setRetry(value => value + 1)}>重试预览</Button></div> : html ? <TemplateFrame html={html} title={template.template_name + '预览'} /> : <div className="template-preview-fallback"><Spin /><span>正在加载预览…</span></div>;
 }
 
-export function TemplatePreview({ template, onClose }: { template: ApiData; onClose: () => void }) {
+export function TemplatePreview({ template, onClose, onSelect, selectLabel = '使用此模板', selectDisabled = false }: { template: ApiData; onClose: () => void; onSelect?: () => void; selectLabel?: string; selectDisabled?: boolean }) {
   useTemplateModalFocus();
   const components: ApiData[] = template.manifest?.components || [];
   const [component, setComponent] = useState(components[0]?.id); const [html, setHTML] = useState(template.html_template || ''); const [error, setError] = useState(''); const [retry, setRetry] = useState(0);
+  const selectedIndex = Math.max(0, components.findIndex(item => item.id === component));
+  const thumbnailStart = Math.floor(selectedIndex / 6) * 6;
+  const previewURL = (id: string) => `${packageAPI}/${template.id}/preview/${encodeURIComponent(id)}?h=${(template.content_hash || '').slice(0, 12)}`;
   useEffect(() => {
     if (components.length || template.html_template) return;
     const controller = new AbortController(); setError('');
     request(`${templateAPI}/${template.id}/preview`, 'GET', undefined, controller.signal).then(data => { if (!data.html_template) throw new Error('模板预览内容为空'); if (!controller.signal.aborted) setHTML(data.html_template); }).catch(reason => { if (!controller.signal.aborted) setError(reason.message); });
     return () => controller.abort();
   }, [template.id, retry]);
-  return <Modal open centered width={1000} title={template.template_name || '模板预览'} footer={<Button onClick={onClose}>关闭预览</Button>} onCancel={onClose} modalRender={modalFocus}>
+  return <Modal open centered width={1000} title={template.template_name || '模板预览'} footer={<Space><Button onClick={onClose}>关闭预览</Button>{onSelect && <Button type="primary" disabled={selectDisabled} onClick={onSelect}>{selectLabel}</Button>}</Space>} onCancel={onClose} modalRender={modalFocus} className="template-detail-modal">
+    {(template.description || template.manifest?.description) && <Typography.Paragraph type="secondary" ellipsis={{ rows: 3, expandable: true, symbol: '展开说明' }}>{template.description || template.manifest.description}</Typography.Paragraph>}
     {components.length > 0 && <Select aria-label="预览版式" className="template-preview-select" value={component} onChange={setComponent} options={components.map(item => ({ value: item.id, label: `${families[item.family] || item.family} · ${item.description}` }))} />}
-    {error ? <Alert type="error" title={error} action={<Button onClick={() => setRetry(value => value + 1)}>重试</Button>} /> : components.length ? <TemplateFrame src={`${packageAPI}/${template.id}/preview/${encodeURIComponent(component)}`} title="模板包版式预览" /> : html ? <TemplateFrame html={sampleHTML(html, template.template_name || '模板预览')} title="完整模板预览" /> : <div className="page-loading" role="status"><Spin />正在加载预览…</div>}
+    <div className={components.length ? 'template-detail-layout' : undefined}><div className="template-detail-main">
+    {error ? <Alert type="error" title={error} action={<Button onClick={() => setRetry(value => value + 1)}>重试</Button>} /> : components.length ? <TemplateFrame src={previewURL(component)} title="模板包版式预览" /> : html ? <TemplateFrame html={sampleHTML(html, template.template_name || '模板预览')} title="完整模板预览" /> : <div className="page-loading" role="status"><Spin />正在加载预览…</div>}
+    {components.length > 0 &&
+      <div className="template-detail-pagination"><Button aria-label="上一个版式" icon={<LeftOutlined aria-hidden />} disabled={selectedIndex === 0} onClick={() => setComponent(components[selectedIndex - 1].id)} /><Typography.Text aria-live="polite">版式 {selectedIndex + 1} / {components.length} · {families[components[selectedIndex]?.family] || components[selectedIndex]?.family}</Typography.Text><Button aria-label="下一个版式" icon={<RightOutlined aria-hidden />} disabled={selectedIndex === components.length - 1} onClick={() => setComponent(components[selectedIndex + 1].id)} /></div>
+    }</div>
+    {components.length > 0 &&
+      <div className="template-detail-thumbnails" role="group" aria-label="版式缩略图">{components.slice(thumbnailStart, thumbnailStart + 6).map((item, offset) => <Button key={item.id} className="template-detail-thumbnail" aria-label={`预览版式 ${thumbnailStart + offset + 1} ${families[item.family] || item.family}`} aria-pressed={component === item.id} type={component === item.id ? 'primary' : 'default'} onClick={() => setComponent(item.id)}><TemplateFrame src={previewURL(item.id)} title={`版式缩略图 ${thumbnailStart + offset + 1}`} /><span>{thumbnailStart + offset + 1} · {families[item.family] || item.family}</span></Button>)}</div>
+    }</div>
     <p className="subtle">预览使用示例内容，按原始画布比例显示。</p>
   </Modal>;
 }

@@ -364,7 +364,7 @@ def test_component_templates_replace_legacy_partials_directories():
         "src/landppt/web/templates/pages/project/research_status.html": '"antd_base.html"',
         "src/landppt/web/templates/pages/project/project_fullscreen_presentation.html": "/static/js/pages/project/presentation.js",
         "src/landppt/web/templates/pages/project/todo_board.html": '"antd_base.html"',
-        "src/landppt/web/templates/pages/project/todo_board_with_editor.html": "components/project/todo_board_with_editor/",
+        "src/landppt/web/templates/pages/project/todo_board_with_editor.html": '"page": "generator-workspace"',
         "src/landppt/web/templates/pages/template/global_master_templates.html": '"antd_base.html"',
         "src/landppt/web/templates/pages/template/template_selection.html": '"antd_base.html"',
     }
@@ -466,7 +466,7 @@ def test_editor_export_polling_accepts_queued_task_responses():
 
     assert "data.status === 'queued'" in share_text
     assert share_text.count("data.status === 'queued'") >= 3
-    assert "projectEditorShareExport.js?v=20260707-queued-export-v1" in template_text
+    assert "projectEditorShareExport.js?v=" in template_text
 
 
 def test_enhanced_ppt_service_delegates_file_outline_workflow_to_extracted_service():

@@ -228,7 +228,7 @@ def test_running_export_cannot_be_dismissed_or_cancelled_by_mask_or_escape(ui_pa
     dialog = show_export(page)
     page.keyboard.press("Escape")
     page.locator(".ant-modal-wrap").click(position=dict(x=4, y=4))
-    page.evaluate("LandPPTEditorUI.dismissExport()")
+    page.evaluate("LandPPTEditorSurfaces.dismissExport()")
     expect(dialog).to_be_visible()
     assert page.evaluate("[...selectedSlideIndices]") == selected
     assert not state["writes"] and not state["errors"]
@@ -249,7 +249,7 @@ def test_native_cancel_waits_for_abort_cleanup_and_does_not_duplicate_requests(u
     assert page.evaluate("exportFixture.signal.aborted")
     assert page.evaluate("exportFixture.aborted") == 1
     assert page.evaluate("isClientExporting")
-    page.evaluate("LandPPTEditorUI.cancelExport()")
+    page.evaluate("LandPPTEditorSurfaces.cancelExport()")
     page.keyboard.press("Escape")
     expect(dialog).to_be_visible()
     assert page.evaluate("exportFixture.aborted") == 1

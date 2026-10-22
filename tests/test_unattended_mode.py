@@ -471,25 +471,14 @@ def test_outline_and_speech_stages_enforce_credits():
 
 
 def test_workspace_stands_down_while_an_unattended_run_owns_the_project():
-    """Otherwise landing on the board opens a second, competing outline stream."""
-    js = (
-        SRC / "web" / "templates" / "components" / "project" / "todo_board" / "extra_js_1.html"
-    ).read_text(encoding="utf-8")
-    assert "const unattendedActive =" in js
-
-    resume = js[js.index("function shouldResumeOutlineGenerationOnLoad()") :][:400]
-    assert "if (unattendedActive)" in resume
-    assert resume.index("if (unattendedActive)") < resume.index("hasConfirmedRequirements")
-
-    auto_start = js[js.index("function checkAutoStartOutline()") :][:600]
-    assert "if (unattendedActive)" in auto_start
-
-    for module, marker in (
-        ("project_workspace_routes.py", '"unattended_active": await has_active_unattended_run'),
-        ("outline_requirements_routes.py", '"unattended_active": await has_active_unattended_run'),
-    ):
-        source = (SRC / "web" / "route_modules" / module).read_text(encoding="utf-8")
-        assert marker in source, f"{module} must pass the flag into the template"
+    source = (REPO / "frontend/src/controllers/outline-controller.ts").read_text(encoding="utf-8")
+    resume = source[source.index("const shouldResume =") :][:300]
+    assert resume.index("!options.unattended") < resume.index("options.confirmed")
+    start = source[source.index("function startRun(") :][:350]
+    assert "options.unattended" in start
+    for module in ("project_workspace_routes.py", "outline_requirements_routes.py"):
+        route = (SRC / "web/route_modules" / module).read_text(encoding="utf-8")
+        assert '"unattended_active": await has_active_unattended_run' in route
 
 
 def test_a_cancelled_run_is_not_surfaced_as_a_failure():
@@ -557,17 +546,14 @@ def test_the_workspace_refreshes_when_the_outline_lands():
 def test_the_editor_workspace_stands_down_during_an_unattended_run():
     """Its 暂停/停止 buttons set only the slide cancel flag, which the pipeline reads
     as a generation failure and which abandons every remaining stage."""
-    js = (
-        SRC / "web" / "templates" / "components" / "project" / "todo_board_with_editor"
-        / "script_1.html"
-    ).read_text(encoding="utf-8")
-
-    assert "const unattendedActive =" in js
-    assert "const shouldAutoStart = !unattendedActive" in js
-    assert "const canControlGeneration = !unattendedActive;" in js
-
-    buttons = js[js.index("const canControlGeneration") :][:400]
-    assert "canControlGeneration ? 'inline-block' : 'none'" in buttons
+    # Manual action guards and readonly unattended recovery are exercised by
+    # frontend/tests/generator-controller.test.mjs and the real Ant UI tests.
+    # Rendering documents cannot start work; the controller alone owns transport.
+    surface = (REPO / "frontend/src/components/generator-documents.tsx").read_text(encoding="utf-8")
+    assert "new EventSource" not in surface
+    assert "slides/cancel" not in surface
+    assert "slides/clear-cancel" not in surface
+    assert "setInterval(checkPPTStatus" not in surface
 
 
 def test_queue_dispatch_persists_the_task_id_before_enqueueing():
@@ -1600,12 +1586,9 @@ class TestMonitorSurfaces:
         assert "factory.mount(" in component
 
     def test_monitor_containers_exist(self):
-        components = SRC / "web" / "templates" / "components" / "project"
-        board = (components / "todo_board" / "content_1.html").read_text(encoding="utf-8")
-        editor = (components / "todo_board_with_editor" / "body_1.html").read_text(encoding="utf-8")
-        assert 'id="workspace-body"' in board
-        component = (SRC.parent.parent / "frontend/src/pages/todo.tsx").read_text(encoding="utf-8")
-        assert 'id="unattendedMonitor"' in component
+        component = (REPO / "frontend/src/pages/todo.tsx").read_text(encoding="utf-8")
+        editor = (REPO / "frontend/src/pages/generator-chrome.tsx").read_text(encoding="utf-8")
+        assert component.count('id="unattendedMonitor"') == 1
         assert 'id="unattendedMonitor"' in editor
 
     def test_notification_bell_is_in_the_logged_in_nav_only(self):
@@ -1749,50 +1732,23 @@ class TestTemplatesRender:
         )
         assert creation_page_data(html)["templateOptions"] == []
 
-    def test_workspace_shows_an_honest_placeholder_not_a_fake_skeleton(
-        self, env, fixtures
-    ):
-        js = (
-            SRC
-            / "web"
-            / "templates"
-            / "components"
-            / "project"
-            / "todo_board"
-            / "extra_js_1.html"
-        ).read_text(encoding="utf-8")
-        assert "renderUnattendedOutlinePlaceholder" in js
-        hydrate = js[js.index("function hydrateOutlineSectionFromProjectState") :][:900]
-        # The placeholder must replace showOutlineSection(), not sit next to it.
-        assert "renderUnattendedOutlinePlaceholder();" in hydrate
-        assert hydrate.index("renderUnattendedOutlinePlaceholder();") < hydrate.index(
-            "showOutlineSection();"
+    def test_workspace_shows_an_honest_placeholder_not_a_fake_skeleton(self, env, fixtures):
+        html = env.get_template("pages/project/todo_board.html").render(
+            request=fixtures.request, todo_board=fixtures.todo_board,
+            project=fixtures.project, unattended_active=True, user=fixtures.user,
         )
+        assert creation_page_data(html)["unattendedActive"] is True
+        assert 'outline-placeholder' not in html and 'loading-brain' not in html
 
     def test_the_outline_card_has_a_real_anchor(self, env, fixtures):
-        """The old fallback matched the hero band, nesting a 600px card inside an
-        overflow:hidden banner."""
-        content = (
-            SRC / "web" / "templates" / "components" / "project" / "todo_board"
-            / "content_1.html"
-        ).read_text(encoding="utf-8")
-        assert 'id="workspace-body"' in content
-
-        js = (
-            SRC / "web" / "templates" / "components" / "project" / "todo_board"
-            / "extra_js_1.html"
-        ).read_text(encoding="utf-8")
-        assert "getElementById('workspace-body')" in js
-        assert 'querySelector(\'div[style*="text-align: center"]\')' not in js
+        source = (REPO / "frontend/src/components/todo-outline.tsx").read_text(encoding="utf-8")
+        assert 'aria-label="PPT 大纲工作区"' in source
+        assert 'todoLegacyHost' not in source and 'workspace-body' not in source
 
     def test_the_dead_stage_poller_is_off_during_a_run(self, env, fixtures):
-        js = (
-            SRC / "web" / "templates" / "components" / "project" / "todo_board"
-            / "extra_js_1.html"
-        ).read_text(encoding="utf-8")
-        tail = js[js.index("window.addEventListener('beforeunload', stopStageSync);") :][:600]
-        assert "if (unattendedActive)" in tail
-        assert "stopStageSync();" in tail
+        source = (REPO / "frontend/src/controllers/outline-controller.ts").read_text(encoding="utf-8")
+        policy = source[source.index("function shouldPoll()") :][:250]
+        assert '!options.unattended' in policy
 
     def test_creation_page_falls_back_when_no_defaults_are_passed(self, env, fixtures):
         html = env.get_template("pages/project/scenarios.html").render(
@@ -1816,7 +1772,7 @@ class TestTemplatesRender:
             unattended_active=active,
             user=fixtures.user,
         )
-        assert f"const unattendedActive = {expected};" in html
+        assert creation_page_data(html)["unattendedActive"] is active
         assert '"page": "todo"' in html
 
     def test_todo_board_defaults_the_flag_to_false_when_absent(self, env, fixtures):
@@ -1825,7 +1781,7 @@ class TestTemplatesRender:
             request=fixtures.request, todo_board=fixtures.todo_board,
             project=fixtures.project, user=fixtures.user,
         )
-        assert "const unattendedActive = false;" in html
+        assert creation_page_data(html)["unattendedActive"] is False
 
     def test_editor_workspace_wires_the_monitor_to_the_project(self, env, fixtures):
         html = env.get_template("pages/project/todo_board_with_editor.html").render(
@@ -1835,8 +1791,7 @@ class TestTemplatesRender:
         )
         assert '"projectId": "proj-1"' in html
         assert "unattended_monitor.js" in html
-        assert "const unattendedActive = false;" in html
-        assert '"unattendedActive": false' in html
+        assert creation_page_data(html)["unattendedActive"] is False
 
     def test_editor_workspace_stands_down_when_a_run_is_active(self, env, fixtures):
         html = env.get_template("pages/project/todo_board_with_editor.html").render(
@@ -1844,8 +1799,7 @@ class TestTemplatesRender:
             project=fixtures.project, unattended_active=True, auto_start=True,
             user=fixtures.user,
         )
-        assert "const unattendedActive = true;" in html
-        assert '"unattendedActive": true' in html
+        assert creation_page_data(html)["unattendedActive"] is True
 
     def test_editor_workspace_defaults_the_flag_to_false_when_absent(self, env, fixtures):
         """A route that forgets the variable must render a safe, permissive page."""
@@ -1853,8 +1807,7 @@ class TestTemplatesRender:
             request=fixtures.request, todo_board=fixtures.todo_board,
             project=fixtures.project, auto_start=False, user=fixtures.user,
         )
-        assert "const unattendedActive = false;" in html
-        assert '"unattendedActive": false' in html
+        assert creation_page_data(html)["unattendedActive"] is False
 
     def test_settings_page_round_trips_saved_values(self, env, fixtures):
         html = env.get_template("pages/settings/ai_config.html").render(
@@ -1882,18 +1835,9 @@ class TestTemplatesRender:
             ("pages/project/todo_board_with_editor.html", {"auto_start": False}),
         ],
     )
-    def test_rendered_inline_js_parses(self, env, fixtures, page, extra):
-        """The workspace JS is assembled by Jinja, so a bad interpolation produces a
-        syntax error that only shows up in a browser."""
-        import os
+    def test_workspaces_render_data_without_retired_inline_controllers(self, env, fixtures, page, extra):
+        """Both workspaces load built controllers and explicit, parseable JSON."""
         import re
-        import shutil
-        import subprocess
-        import tempfile
-
-        node = shutil.which("node")
-        if not node:
-            pytest.skip("node is required to syntax-check the rendered JS")
 
         html = env.get_template(page).render(
             request=fixtures.request, todo_board=fixtures.todo_board,
@@ -1904,19 +1848,16 @@ class TestTemplatesRender:
             html,
             re.S,
         )
-        assert blocks, f"{page} rendered no inline script"
-
-        with tempfile.NamedTemporaryFile(
-            "w", suffix=".js", delete=False, encoding="utf-8"
-        ) as handle:
-            handle.write("\n;\n".join(blocks))
-            path = handle.name
-        try:
-            result = subprocess.run([node, "--check", path], capture_output=True, text=True)
-        finally:
-            os.unlink(path)
-
-        assert result.returncode == 0, f"{page} inline JS failed to parse:\n{result.stderr}"
+        assert not blocks
+        data = creation_page_data(html)
+        if data["page"] == "todo":
+            assert data["outlineInitial"]["stageStatus"]
+            assert "outline_ui_bridge.js" not in html
+        else:
+            assert data["page"] == "generator-workspace"
+            assert isinstance(data["generationInitial"]["slides"], list)
+            assert data["unattendedActive"] is True
+            assert "LandPPTGeneratorSurface" not in html
 
     def test_anonymous_visitors_get_no_bell_and_no_polling(self, env, fixtures):
         from types import SimpleNamespace

@@ -1,0 +1,19 @@
+.generator-ant-workspace .slide-card { width: 100%; min-width: 0; max-width: 440px; justify-self: start; overflow: hidden; }
+.generator-ant-workspace .slide-header { height: 48px; min-height: 48px; }
+.generator-ant-workspace .slide-card .ant-card-head-wrapper { gap: 8px; }
+.generator-ant-workspace .slide-title { display: block; }
+.generator-ant-workspace .slide-card .ant-tag { margin-inline-end: 0; }
+.generator-ant-workspace .fullscreen-btn { width: 36px; height: 36px; }
+.generator-document-modal .ant-modal-container { display: flex; flex-direction: column; max-height: calc(100dvh - 32px); }
+.generator-document-modal .ant-modal-header, .generator-document-modal .ant-modal-footer { flex-shrink: 0; }
+.generator-document-modal .ant-modal-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding-inline-end: 24px; }
+.generator-document-modal .ant-modal-body { height: calc(100dvh - 190px); min-height: 0; }
+@media (max-width: 600px) {
+  .generator-ant-workspace .slide-card { max-width: 100%; }
+  .generator-ant-workspace .slide-header { height: 60px; min-height: 60px; }
+  .generator-ant-workspace .fullscreen-btn { width: 44px; height: 44px; }
+  .generator-document-modal .ant-modal-container { padding: 16px; }
+  .generator-document-modal .ant-btn { min-height: 44px; }
+  .generator-document-modal .ant-modal-footer > .ant-flex { justify-content: center; }
+  .generator-document-modal .ant-modal-body { height: calc(100dvh - 230px); }
+}

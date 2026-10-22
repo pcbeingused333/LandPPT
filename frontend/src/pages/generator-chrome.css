@@ -1,0 +1,13 @@
+body.landppt-generator { margin: 0; padding: 12px; height: 100dvh; background: #f5f5f5; }
+.landppt-generator #antdRoot, .landppt-generator #antdRoot > .ant-app { height: 100%; }
+.generator-ant-workspace.main-container { display: flex; flex-direction: column; height: 100%; min-height: 0; overflow: hidden; border: 1px solid #e8e8eb; }
+.generator-ant-workspace .content-area, .generator-ant-workspace .editor-section { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+.generator-ant-workspace #generatorStatusUI, .generator-ant-workspace #unattendedMonitor { flex-shrink: 0; }
+.generator-ant-workspace #slidesContainer { display: grid; flex: 1; min-height: 0; grid-auto-rows: max-content; align-items: start; overflow: auto; overscroll-behavior: contain; scrollbar-gutter: stable; }
+@media (max-width: 600px) { body.landppt-generator { padding: 6px; } }
+/* One document scroll keeps details and every preview reachable in short windows. */
+@media (max-width: 600px), (max-height: 600px) {
+  body.landppt-generator { height: auto; min-height: 100dvh; }
+  .generator-ant-workspace.main-container { height: auto; min-height: calc(100dvh - 24px); }
+  .generator-ant-workspace #slidesContainer { flex: none; overflow: visible; scrollbar-gutter: auto; }
+}

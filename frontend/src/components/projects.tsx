@@ -1,16 +1,32 @@
 import { useRef, useState, type ReactNode } from 'react';
-import { App, Button, Card, Empty, Form, Input, Modal, Progress, Space, Table, Tag, Tooltip } from 'antd';
-import { EyeOutlined, EditOutlined, FullscreenOutlined, CopyOutlined, DeleteOutlined, FormOutlined, UnorderedListOutlined } from '@ant-design/icons';
+import { App, Button, Card, Empty, Form, Image, Input, Modal, Progress, Space, Table, Tag, Tooltip } from 'antd';
+import { EyeOutlined, EditOutlined, FileTextOutlined, FullscreenOutlined, CopyOutlined, DeleteOutlined, FormOutlined, UnorderedListOutlined } from '@ant-design/icons';
 import { request } from '../api';
 import { modalFocus } from './modal-focus';
 import { navigatePage } from '../navigation';
 import { progressPercent } from '../progress';
 
 export interface Project {
-  project_id: string; title: string; topic?: string; scenario: string; updated: string; status: string; progress: number | null;
+  project_id: string; title: string; topic?: string; scenario: string; updated: string; status: string; progress: number | null; cover_url?: string | null;
 }
 export const projectStates: Record<string, [string, string]> = { completed: ['已完成', 'success'], in_progress: ['进行中', 'default'], draft: ['草稿', 'warning'], archived: ['已归档', 'default'] };
 export const projectPath = (project: Pick<Project, 'project_id'>) => `/projects/${encodeURIComponent(project.project_id)}`;
+const coverTones = 6;
+export function ProjectTitleCover({ project }: { project: Project }) {
+  const tone = [...project.project_id].reduce((sum, char) => (sum * 31 + char.charCodeAt(0)) >>> 0, 7) % coverTones;
+  return <div className={`project-title-cover project-title-cover--${tone}`} aria-hidden="true"><FileTextOutlined className="project-cover-mark" /><strong>{project.title}</strong></div>;
+}
+export function ProjectCover({ project }: { project: Project }) {
+  return project.cover_url ? <ProjectImageCover key={project.cover_url} project={project} /> : <ProjectTitleCover project={project} />;
+}
+function ProjectImageCover({ project }: { project: Project }) {
+  const [loaded, setLoaded] = useState(false);
+  const [failed, setFailed] = useState(false);
+  return <div className={`project-cover${loaded && !failed ? ' project-cover--loaded' : ''}`} aria-hidden="true">
+    <ProjectTitleCover project={project} />
+    {!failed && <Image className="project-cover-image" src={project.cover_url!} alt="" preview={false} loading="lazy" decoding="async" onLoad={() => setLoaded(true)} onError={() => setFailed(true)} />}
+  </div>;
+}
 export function ProjectStatus({ project }: { project: Project }) {
   const state = projectStates[project.status] || ['异常状态', 'error'];
   return <div className="project-status"><Tag color={state[1]}>{state[0]}</Tag>{project.status === 'in_progress' && project.progress != null && <Progress size="small" percent={progressPercent(project.progress)} />}</div>;
@@ -71,14 +87,18 @@ export function useProjectActions(onRename: (id: string, title: string) => void)
 }
 
 export function ProjectCollection({ projects, actions, empty }: { projects: Project[]; actions: (project: Project) => ReactNode; empty?: ReactNode }) {
+  const [view, setView] = useState<'cards' | 'list'>('cards');
   const placeholder = empty || <Empty description="暂无项目"><Button href="/scenarios">创建项目</Button></Empty>;
   return <>
+    <div className="project-view-switch" role="group" aria-label="项目显示方式"><Button aria-pressed={view === 'cards'} type={view === 'cards' ? 'primary' : 'default'} onClick={() => setView('cards')}>封面</Button><Button aria-pressed={view === 'list'} type={view === 'list' ? 'primary' : 'default'} onClick={() => setView('list')}>列表</Button></div>
+    <div className={`project-collection project-collection--${view}`}>
     <div className="desktop-projects"><Table<Project> size="small" rowKey="project_id" dataSource={projects} pagination={false} locale={{ emptyText: placeholder }} columns={[
       { title: '项目', render: (_, project) => <div className="project-info"><a href={projectPath(project)} className="project-title" title={project.title}>{project.title}</a>{project.topic && <span className="project-topic subtle" title={project.topic}>{project.topic}</span>}<span className="subtle">场景：{project.scenario}</span></div> },
       { title: '状态', width: 140, render: (_, project) => <ProjectStatus project={project} /> },
       { title: '更新', dataIndex: 'updated', width: 130 },
       { title: '操作', width: 210, render: (_, project) => actions(project) },
     ]} /></div>
-    <div className="mobile-projects">{projects.length ? projects.map(project => <Card size="small" key={project.project_id}><a href={projectPath(project)} className="project-title">{project.title}</a>{project.topic && <p className="project-topic subtle">{project.topic}</p>}<div className="mobile-project-meta"><ProjectStatus project={project} /><span className="subtle">{project.updated}</span></div><span className="subtle">场景：{project.scenario}</span>{actions(project)}</Card>) : placeholder}</div>
+    <div className="mobile-projects">{projects.length ? projects.map(project => <Card className="project-library-card" size="small" key={project.project_id} cover={<a className="project-cover-link" href={projectPath(project)} aria-label={`打开项目 ${project.title}`}><ProjectCover project={project} /></a>}><a href={projectPath(project)} className="project-title">{project.title}</a>{project.topic && <p className="project-topic subtle">{project.topic}</p>}<div className="mobile-project-meta"><ProjectStatus project={project} /><span className="subtle">{project.updated}</span></div><span className="subtle">场景：{project.scenario}</span>{actions(project)}</Card>) : placeholder}</div>
+    </div>
   </>;
 }

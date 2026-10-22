@@ -54,9 +54,9 @@ def test_first_preview_keeps_its_width_as_more_pages_arrive(ui_page, width, heig
         assert abs(box["width"] - preview["width"]) < 1.5
         assert abs(box["height"] - preview["height"]) < 1.5
     card.locator(".fullscreen-btn").click()
-    assert page.locator("#fullscreenIframe").get_attribute("srcdoc") == ORIGINAL
+    assert page.get_by_title("幻灯片全屏预览", exact=True).get_attribute("srcdoc") == ORIGINAL
     page.keyboard.press("Escape")
-    expect(page.locator("#fullscreenOverlay")).not_to_be_visible()
+    expect(page.locator(".generator-document-modal")).not_to_be_visible()
     assert not state["writes"] and not errors
 
 
@@ -100,7 +100,9 @@ def test_pause_reconnect_resume_and_restart_restore_only_pending_placeholders(ui
     page.evaluate("testStreams.at(-1).readyState = 0; testStreams.at(-1).onerror({})")
     expect(page.get_by_role("heading", name="正在恢复连接")).to_be_visible()
     assert page.locator(".generator-skeleton-card .ant-skeleton-active").count() == 0
-    page.evaluate("testStreams.at(-1).readyState = 1; testStreams.at(-1).onopen({})")
+    # A closed source cannot reopen. The controller owns a new source and
+    # rejects callbacks from the stale one while reconnecting.
+    page.wait_for_function("testStreams.length === 3 && testStreams.at(-1).readyState === 1")
     expect(page.get_by_role("heading", name="演示文稿正在成形")).to_be_visible()
     send(page, type="error", message="服务暂时不可用")
     expect(page.locator(".generator-skeleton-card")).to_have_count(0)

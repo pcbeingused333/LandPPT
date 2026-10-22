@@ -8,6 +8,7 @@ from playwright.sync_api import expect
 
 from test_app_ui import browser, generator_page, ui_page  # noqa: F401
 from test_antd_templates_ui import HTML, management, template_api
+from test_antd_template_wizard_ui import setup_wizard
 
 SIZES = [(1440, 900), (1024, 768), (390, 844), (320, 568), (844, 390)]
 
@@ -63,19 +64,17 @@ def test_package_workspace_has_ant_controls_and_bounded_footer(
 
 
 @pytest.mark.parametrize("width,height", SIZES)
-def test_free_template_wizard_keeps_confirmation_visible(generator_page, width, height):
-    page, open_workspace, _, _, _, _, errors = generator_page
+def test_free_template_wizard_keeps_confirmation_visible(ui_page, width, height):
+    page, load = ui_page
+    errors = []
+    page.on("pageerror", lambda error: errors.append(str(error)))
     page.set_viewport_size(dict(width=width, height=height))
-    open_workspace("idle")
-    page.evaluate(
-        "() => { freeTemplateModalInstance.show(); setFreeTemplatePreviewHtml('<html><body style=\"margin:0;width:1280px;height:720px\">Original template</body></html>'); document.getElementById('freeTemplateConfirmBtn').disabled = false; }"
-    )
-    dialog = page.get_by_role("dialog", name="自由模板 · AI 设计")
+    _, dialog = setup_wizard(page, load)
     expect(dialog).to_be_visible()
     fits(page, dialog.get_by_role("button", name="确认并开始生成PPT", exact=True))
     fits(page, dialog.get_by_role("button", name="取消", exact=True))
     assert (
-        page.locator("#freeTemplatePreviewIframe")
+        dialog.locator('iframe[title="自由模板预览"]')
         .get_attribute("srcdoc")
         .endswith("</html>")
     )
@@ -263,58 +262,30 @@ def test_pptx_analyser_ant_slots_keep_import_payload_and_fixed_footer(
     assert not errors, errors
 
 
-def test_wizard_cancel_resolves_native_promise_without_confirm_write(generator_page):
-    page, open_workspace, _, _, _, _, errors = generator_page
-    open_workspace("idle")
-    page.route(
-        "**/free-template",
-        lambda route: route.fulfill(
-            json=dict(template=dict(html_template=HTML, template_name="示例母版"))
-        ),
-    )
-    page.evaluate(
-        "() => { window.wizardResult = 'pending'; openFreeTemplateWizardAndWait(true).then(value => { window.wizardResult = value; }); }"
-    )
-    dialog = page.get_by_role("dialog", name="自由模板 · AI 设计")
+def test_wizard_cancel_returns_to_start_without_confirm_write(ui_page):
+    page, load = ui_page
+    state, dialog = setup_wizard(page, load, cached=HTML)
     expect(
         dialog.get_by_role("button", name="确认并开始生成PPT", exact=True)
     ).to_be_enabled()
     dialog.get_by_role("button", name="取消", exact=True).click()
-    page.wait_for_function("window.wizardResult === false")
     expect(dialog).not_to_be_visible()
-    assert not errors, errors
+    expect(page.get_by_role("button", name="开始生成", exact=True)).to_be_enabled()
+    assert not state["template_writes"] and page.evaluate("testStreams.length") == 0
 
 
-def test_wizard_confirmation_resolves_true_with_library_values(generator_page):
-    page, open_workspace, _, _, _, _, errors = generator_page
-    open_workspace("idle")
-    page.route(
-        "**/free-template",
-        lambda route: route.fulfill(
-            json=dict(template=dict(html_template=HTML, template_name="示例母版"))
-        ),
-    )
-    writes = []
-    page.route(
-        "**/free-template/confirm",
-        lambda route: (
-            writes.append(route.request.post_data_json),
-            route.fulfill(json=dict(success=True)),
-        ),
-    )
-    page.evaluate(
-        "() => { window.wizardResult = 'pending'; openFreeTemplateWizardAndWait(true).then(value => { window.wizardResult = value; }); }"
-    )
-    dialog = page.get_by_role("dialog", name="自由模板 · AI 设计")
+def test_wizard_confirmation_starts_once_with_library_values(ui_page):
+    page, load = ui_page
+    state, dialog = setup_wizard(page, load, cached=HTML)
     dialog.get_by_role("checkbox").check()
     dialog.get_by_role("textbox", name="模板名称", exact=True).fill("团队模板")
     dialog.get_by_role("button", name="确认并开始生成PPT", exact=True).click()
-    page.wait_for_function("window.wizardResult === true")
-    assert len(writes) == 1
-    assert writes[0] == dict(
+    page.wait_for_function("testStreams.length === 1")
+    assert len(state["template_writes"]) == 1
+    assert state["template_writes"][0][1] == dict(
         save_to_library=True, template_name="团队模板", html_template=HTML
     )
-    assert not errors, errors
+    expect(dialog).not_to_be_visible()
 
 
 @pytest.mark.parametrize("width,height", SIZES)

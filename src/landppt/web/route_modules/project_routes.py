@@ -4,11 +4,13 @@
 
 from fastapi import APIRouter
 
+from .project_cover_routes import router as project_cover_router
 from .project_library_routes import router as project_library_router
 from .project_lifecycle_routes import router as project_lifecycle_router
 from .project_workspace_routes import router as project_workspace_router
 
 router = APIRouter()
+router.include_router(project_cover_router)
 router.include_router(project_lifecycle_router)
 router.include_router(project_workspace_router)
 router.include_router(project_library_router)

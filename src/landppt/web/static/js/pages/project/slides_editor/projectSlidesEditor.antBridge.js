@@ -1,17 +1,5 @@
-// UI adapter only. Native editor modules still own slide data and API requests.
+// Compatibility for specialized native dialogs/tasks only. No business state or hidden toolbar actions.
 (() => {
-    const documentKeys = new WeakMap(), stableDocumentKeys = new Map(); let documentSequence = 0;
-    function documentPages() {
-        const counts = new Map();
-        slidesData.forEach(slide => { if (slide.slide_id) counts.set(slide.slide_id, (counts.get(slide.slide_id) || 0) + 1); });
-        const pages = slidesData.map(slide => {
-            if (!documentKeys.has(slide)) documentKeys.set(slide, counts.get(slide.slide_id) === 1 && stableDocumentKeys.get(slide.slide_id) || `editor-page-${++documentSequence}`);
-            return { key: documentKeys.get(slide), slideId: slide.slide_id || null, title: slide.title || '' };
-        });
-        stableDocumentKeys.clear();
-        pages.forEach(page => { if (counts.get(page.slideId) === 1) stableDocumentKeys.set(page.slideId, page.key); });
-        return pages;
-    }
     const types = [
         ['.modal', '.modal-title, .speech-modal-title', '.btn-close, .speech-modal-close', '.modal-footer, .speech-modal-footer', 920],
         ['.outline-modal', '.outline-modal__title', '.outline-modal__close', '.outline-modal__footer', 760],
@@ -79,7 +67,7 @@
             record.closable = !!close && !close.disabled && close.style.display !== 'none';
             if (node.id === 'exportOverlay') record.exportProgress = readExportProgress(node);
             if (node.matches('.lp-share-modal')) record.shareLinks = readShareLinks(node);
-            dialogs.push(record);
+            dialogs.push({ ...record });
         });
         records.forEach((record, node) => { if (!node.isConnected || node.id === 'exportOverlay' && !shown(node)) records.delete(node); });
         const toasts = Array.from(document.querySelectorAll('.progress-toast, #ai-optimize-loading')).map(node => {
@@ -89,51 +77,11 @@
             return { key: node.dataset.antToastKey, title: node.dataset.antProgressTitle, message, percent: node.querySelector('.progress-fill')?.style.width };
         });
         return {
-            mode: currentMode, current: currentSlideIndex, count: slidesData.length,
-            title: slidesData[currentSlideIndex]?.title || '', selected: selectedSlideIndices.size,
-            documentPages: documentPages(),
-            documentPanel: document.getElementById('slidesSidebar').dataset.editorPanel || 'slides',
-            documentDirty: document.getElementById('slidesSidebar').dataset.documentDirty === 'true',
-            documentSaving: document.getElementById('slidesSidebar').dataset.documentSaving === 'true',
-            svg: currentSlideIsSvg(), sidebar: !document.querySelector('.editor-container').classList.contains('sidebar-collapsed'),
-            aiOpen: document.getElementById('aiEditSidebar').classList.contains('open'),
-            aiWidth: Number.parseFloat(document.getElementById('aiEditSidebar').style.width) || 480,
-            packageContent: !document.getElementById('packageContentEditorBtn').hidden,
-            nativeExport: document.getElementById('exportSvgNativeModeItem').style.display !== 'none',
-            vectorExport: document.getElementById('exportSvgVectorModeItem').style.display !== 'none',
-            clientExport: document.getElementById('exportClientModeItem').style.display !== 'none',
             dialogs, toasts, contextMenu: readContextMenu(),
         };
     }
-    window.LandPPTEditorUI = {
+    window.LandPPTEditorSurfaces = {
         read,
-        applyDocument(key, snapshot) {
-            const index = documentPages().findIndex(page => page.key === key);
-            if (index < 0 || index !== snapshot.slide_index) return;
-            const slide = slidesData[index];
-            if (slide.slide_id && snapshot.slide_id !== slide.slide_id) return;
-            if (snapshot.slide_id) slide.slide_id = snapshot.slide_id;
-            if (!projectOutline) projectOutline = { slides: [] };
-            if (!Array.isArray(projectOutline.slides)) projectOutline.slides = [];
-            projectOutline.slides[index] = snapshot.outline;
-            window.projectOutline = projectOutline;
-            if (snapshot.outline.title) slide.title = snapshot.outline.title;
-            ['slide_type', 'content_points', 'description'].forEach(field => {
-                if (field in snapshot.outline) slide[field] = snapshot.outline[field];
-            });
-            const title = document.querySelector(`.slide-thumbnail[data-slide-index="${index}"] .slide-title`);
-            if (title) {
-                const badge = title.querySelector('.slide-mode-badge');
-                title.textContent = `${index + 1}. ${slide.title}`;
-                if (badge) title.appendChild(badge);
-            }
-        },
-        openSpeechDocument(language, preview) {
-            currentSpeechLanguage = language;
-            const selector = document.getElementById('speechLanguage');
-            if (selector) selector.value = language;
-            if (preview) showCurrentSpeechScripts(); else showSpeechScriptDialog();
-        },
         subscribe(listener) {
             let previous = '', queued = false, disposed = false;
             const update = () => {
@@ -141,27 +89,33 @@
                 document.querySelectorAll('.slide-thumbnail').forEach(node => {
                     const label = node.querySelector('.slide-title')?.textContent || '幻灯片';
                     if (node.getAttribute('aria-label') !== label) node.setAttribute('aria-label', label);
-                    if (node.dataset.antAccessible) return;
-                    node.dataset.antAccessible = 'true'; node.tabIndex = 0; node.setAttribute('role', 'button');
-                    node.addEventListener('keydown', event => {
-                        if (event.key === 'ContextMenu' || event.key === 'F10' && event.shiftKey) {
-                            event.preventDefault(); event.stopPropagation();
-                            const rect = node.getBoundingClientRect();
-                            showContextMenu({ preventDefault() {}, clientX: rect.left + Math.min(rect.width, 32), clientY: rect.top + Math.min(rect.height, 32) }, Number(node.dataset.slideIndex));
-                            return;
-                        }
-                        if (!['Enter', ' '].includes(event.key)) return;
-                        event.preventDefault(); node.dispatchEvent(new MouseEvent('click', { bubbles: true, ctrlKey: event.ctrlKey, metaKey: event.metaKey }));
-                    });
+                    node.tabIndex = 0; node.setAttribute('role', 'button');
                 });
                 const state = read();
                 const signature = JSON.stringify({ ...state, dialogs: state.dialogs.map(item => [item.key, item.title, item.closable, !!item.footer, item.exportProgress, item.shareLinks]) });
                 if (signature !== previous) { previous = signature; listener(state); }
             };
-            const observer = new MutationObserver(() => { if (!queued) { queued = true; queueMicrotask(update); } });
-            observer.observe(document.body, { subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: ['class', 'style', 'hidden', 'disabled', 'open', 'data-editor-panel', 'data-document-dirty', 'data-document-saving'] });
+            const owned = selector + ', .progress-toast, #ai-optimize-loading, #contextMenu, .slide-thumbnail';
+            const observer = new MutationObserver(mutations => {
+                if (!mutations.some(record => (record.target.nodeType === 1 ? record.target : record.target.parentElement)?.closest(owned) ||
+                    [...record.addedNodes, ...record.removedNodes].some(node => node.nodeType === 1 && (node.matches(owned) || node.querySelector(owned))))) return;
+                if (!queued) { queued = true; queueMicrotask(update); }
+            });
+            const keyboard = event => {
+                const node = event.target.closest?.('.slide-thumbnail');
+                if (!node) return;
+                if (event.key === 'ContextMenu' || event.key === 'F10' && event.shiftKey) {
+                    event.preventDefault(); event.stopPropagation();
+                    const rect = node.getBoundingClientRect();
+                    showContextMenu({ preventDefault() {}, clientX: rect.left + Math.min(rect.width, 32), clientY: rect.top + Math.min(rect.height, 32) }, Number(node.dataset.slideIndex));
+                } else if (['Enter', ' '].includes(event.key)) {
+                    event.preventDefault(); node.dispatchEvent(new MouseEvent('click', { bubbles: true, ctrlKey: event.ctrlKey, metaKey: event.metaKey }));
+                }
+            };
+            document.addEventListener('keydown', keyboard);
+            observer.observe(document.body, { subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: ['class', 'style', 'hidden', 'disabled', 'open'] });
             update();
-            return () => { disposed = true; observer.disconnect(); };
+            return () => { disposed = true; observer.disconnect(); document.removeEventListener('keydown', keyboard); };
         },
         openDialog(dialog) { dialog.show(); },
         close(record) {
@@ -173,8 +127,6 @@
                 else record.node.click();
             }
         },
-        call(name, ...args) { if (typeof window[name] === 'function') return window[name](...args); },
-        click(id) { document.getElementById(id)?.click(); },
         runShareAction(record, action) {
             if (!record.node.isConnected || !record.node.matches('.lp-share-modal')) return;
             const label = { copy: '复制链接', open: '打开演示', copyNarration: '复制讲解链接', openNarration: '打开讲解', disable: '禁用分享' }[action];

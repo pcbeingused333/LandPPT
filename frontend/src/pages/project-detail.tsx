@@ -3,6 +3,7 @@ import { Alert, App, Button, Card, Collapse, Descriptions, Dropdown, Form, Input
 import { ArrowLeftOutlined, ArrowUpOutlined, ArrowDownOutlined, CopyOutlined, DeleteOutlined, DownloadOutlined, EditOutlined, EyeOutlined, RobotOutlined, UnorderedListOutlined, AppstoreOutlined, PlusOutlined, MoreOutlined, InboxOutlined, FileTextOutlined, CheckCircleOutlined, ClockCircleOutlined, DashboardOutlined } from '@ant-design/icons';
 import { request, type ApiData } from '../api';
 import { modalFocus } from '../components/modal-focus';
+import { activeStage as workspaceActiveStage, ProjectStages } from '../components/project-stages';
 import { projectPath, projectStates } from '../components/projects';
 import { navigatePage } from '../navigation';
 import { progressPercent } from '../progress';
@@ -170,6 +171,7 @@ export default function ProjectDetail({ data }: { data: ApiData }) {
         else { confirmationTrigger.current = projectMenuTrigger.current; setConfirmation({ kind: key === 'archive' ? 'archive' : 'delete' }); }
       } }} disabled={pending}><Button ref={projectMenuTrigger} disabled={pending} aria-label="项目更多操作" icon={<MoreOutlined aria-hidden />} /></Dropdown>
     </Space></div>
+    <ProjectStages projectId={project.project_id} state={data.workspace} current={workspaceActiveStage(data.workspace)} hub />
     <div className={`detail-overview${data.board ? ' detail-overview--with-progress' : ''}`}>
       <Card size="small" title={<span className="detail-card-title"><FileTextOutlined aria-hidden />项目信息</span>} className="detail-info-card" extra={<span className="detail-version-badge">v{project.version}</span>}>
         {project.status === 'in_progress' && <p className="subtle">{activeStage ? `${activeStage.name} · ${activeStage.status === 'running' ? '正在执行' : '等待开始'}` : '正在处理中'}</p>}

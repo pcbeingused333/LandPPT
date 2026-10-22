@@ -31,6 +31,7 @@ from ..api.models import (
     PPTGenerationRequest
 )
 from ..auth.request_context import current_user_id, USER_SCOPE_ALL
+from ..services.project_cover_source import project_cover_url
 
 
 class DatabaseService:
@@ -316,6 +317,7 @@ class DatabaseService:
             outline=db_project.outline,
             slides_html=db_project.slides_html,
             slides_data=slides_data,
+            cover_url=project_cover_url(db_project.project_id, slides_data),
             confirmed_requirements=db_project.confirmed_requirements,
             project_metadata=db_project.project_metadata,
             todo_board=todo_board,

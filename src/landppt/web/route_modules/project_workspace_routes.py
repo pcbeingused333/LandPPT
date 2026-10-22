@@ -95,6 +95,7 @@ async def web_project_todo_board(
     request: Request,
     project_id: str,
     auto_start: bool = False,
+    view: str = "",
     user: User = Depends(get_current_user_required),
 ):
     """项目 TODO 看板页。"""
@@ -136,7 +137,8 @@ async def web_project_todo_board(
             or project_metadata.get("template_mode") in {"global", "free"}
         )
         use_integrated_editor = bool(
-            project
+            view != "planning"
+            and project
             and project.confirmed_requirements
             and has_outline
             and (ppt_creation_running or has_slides or has_selected_template or auto_start)

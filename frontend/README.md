@@ -19,7 +19,8 @@ Dependencies and generated assets are ignored by Git.
 
 ```sh
 npm run check --prefix frontend
-python -m pytest tests/test_app_ui.py tests/test_antd_ui.py tests/test_antd_settings_performance_ui.py tests/test_antd_settings_models_ui.py tests/test_antd_settings_compact_ui.py tests/test_antd_asset_updates_ui.py tests/test_antd_navigation_ui.py tests/test_antd_projects_ui.py tests/test_antd_project_search_ui.py tests/test_antd_pagination_ui.py tests/test_antd_progress_ui.py tests/test_antd_account_ui.py tests/test_antd_email_login_ui.py tests/test_antd_admin_ui.py tests/test_antd_admin_management_ui.py tests/test_antd_community_ui.py tests/test_antd_images_ui.py tests/test_antd_templates_ui.py tests/test_antd_creation_research_ui.py tests/test_antd_home_generator_ui.py tests/test_antd_home_ui.py tests/test_antd_generator_skeleton_ui.py tests/test_antd_presentation_ui.py tests/test_antd_todo_ui.py tests/test_antd_editor_ui.py tests/test_antd_editor_media_ui.py tests/test_antd_editor_context_ui.py tests/test_antd_editor_export_ui.py tests/test_antd_editor_share_ui.py tests/test_antd_quick_edit_ui.py tests/test_antd_editor_documents_ui.py tests/test_antd_speech_dialog_mount_ui.py tests/test_antd_remaining_ui.py tests/test_template_package_workspace_ui.py -q
+npm run test:controllers --prefix frontend
+python -m pytest tests/test_app_ui.py tests/test_antd_ui.py tests/test_antd_settings_performance_ui.py tests/test_antd_settings_models_ui.py tests/test_antd_settings_compact_ui.py tests/test_antd_asset_updates_ui.py tests/test_antd_navigation_ui.py tests/test_antd_projects_ui.py tests/test_antd_project_covers_ui.py tests/test_antd_project_search_ui.py tests/test_antd_pagination_ui.py tests/test_antd_progress_ui.py tests/test_antd_account_ui.py tests/test_antd_email_login_ui.py tests/test_antd_admin_ui.py tests/test_antd_admin_management_ui.py tests/test_antd_community_ui.py tests/test_antd_images_ui.py tests/test_antd_templates_ui.py tests/test_antd_creation_research_ui.py tests/test_antd_creation_workspace_ui.py tests/test_antd_home_generator_ui.py tests/test_antd_home_ui.py tests/test_antd_generator_skeleton_ui.py tests/test_antd_generator_lifecycle_ui.py tests/test_antd_template_wizard_ui.py tests/test_antd_generator_documents_ui.py tests/test_antd_presentation_ui.py tests/test_antd_todo_ui.py tests/test_antd_outline_lifecycle_ui.py tests/test_antd_workspace_stages_ui.py tests/test_antd_editor_ui.py tests/test_antd_editor_lifecycle_ui.py tests/test_antd_editor_media_ui.py tests/test_antd_editor_context_ui.py tests/test_antd_editor_export_ui.py tests/test_antd_editor_share_ui.py tests/test_antd_quick_edit_ui.py tests/test_antd_editor_documents_ui.py tests/test_antd_speech_dialog_mount_ui.py tests/test_antd_remaining_ui.py tests/test_template_package_workspace_ui.py -q
 ```
 
 Build before installing from source or publishing Python packages. Hatch includes
@@ -100,7 +101,70 @@ Project percentages round and clamp at the UI boundary across dashboard,
 project lists/details and unattended tasks; API calculation precision is unchanged.
 The generator's free-template preparation wizard now uses an Ant modal and
 ordinary controls, with fixed confirmation actions and preview/code views.
-Existing generation and document controllers remain explicit adapter boundaries.
+Generation and template preparation have independent controllers and Ant views.
+The PPT editor has a standalone application controller and explicit engine ports.
+
+The shell has four primary destinations: workspace, projects, templates and
+assets. The shared header has no creation button; creation remains available
+through the dashboard composer, page actions and the mobile navigation drawer.
+Settings and the product homepage are
+reachable through secondary controls, including the mobile navigation drawer.
+The dashboard and `/create` both render `components/create-composer.tsx`;
+`/create` starts with advanced parameters expanded inline. The dashboard retains
+its compact Ant Card and toolbar; its advanced-parameter Button opens an Ant
+Drawer and summarizes the current language, page count and style. The drawer
+keeps fields mounted, preserves their values and returns focus when closed;
+validation opens it before focusing a hidden required field. The composer owns the single
+set of defaults, validation, file limits and submission behavior. The dashboard
+reads the existing authenticated `/create` HTML for its account-specific settings
+and catalogue; it parses only the page JSON, verifies the account/role and never
+executes fetched scripts. Failure offers retry instead of submitting incomplete
+defaults. Creation reuses the existing backend endpoints.
+
+Quick-mode creation can browse published template packages in a read-only
+picker. It reuses the package catalogue, hiding management actions and draft
+versions. Selecting a version only updates the creation draft and SVG mode;
+it never creates a project. Regular templates remain a design choice after
+the outline. Shared template details show the original preview, previous/next
+layout controls and a window of up to six thumbnails. Regular project template
+selection can return from the preview with a selection without starting work;
+the existing explicit generation actions keep their request contracts.
+
+An account/role-keyed, memory-only creation provider retains fields, File objects,
+error recovery and the submission lock during client navigation. Full page
+reloads discard this draft, as do logout and account/role changes. IME composition
+does not submit; errors in collapsed parameters reopen them before focus moves.
+Project cards share an Ant Image first-page cover with a stable 16:9 title
+fallback during loading, for drafts and after errors. Images load lazily and
+the original list remains available through the view toggle. Cards never load
+slide documents or iframes. The server summary adds a `cover_url` derived from
+the first saved page, without starting any render during listing.
+
+`GET /api/projects/{id}/cover?v={content-hash}` requires the current owner on
+every request, including cached images and conditional responses. It renders
+the saved 1280x720 page into a 640x360 WebP in an isolated Chromium context,
+reusing the existing browser lifecycle. No session credentials are forwarded.
+Only bundled static files, the owner's image artifacts and bounded public
+resources are available; private network addresses, file URLs, arbitrary API
+calls and navigation are blocked. HTML and SVG are supported without AI calls.
+
+Private cache files live in `data/project-covers`, outside static/temp mounts,
+scoped by owner, project and first-page content hash. First-page changes invalidate
+the URL; outdated URLs return 409, and content/ownership is checked again after
+rendering. Renaming or changing later pages reuses the cover. Cache writes are
+atomic, older versions retire on successful replacement, and opportunistic
+cleanup expires files after 24 hours with a 256 MiB target. Rendering coalesces
+identical requests, allows two simultaneous jobs and up to sixteen pending jobs
+per web process, and has a 20-second render / 30-second response limit. Failures
+cool down for 60 seconds and silently retain the title cover until a later visit.
+Browser caches must revalidate; ETags include image bytes so refreshing external
+assets can update an otherwise unchanged page. External resources are best effort;
+historical decks without individual saved pages continue using title covers.
+
+Regression coverage is in `tests/test_antd_creation_workspace_ui.py` and
+`tests/test_antd_creation_templates_ui.py`, with cover regressions in
+`tests/test_antd_project_covers_ui.py` and `tests/test_project_covers.py`, alongside
+the existing navigation, creation, project, search and pagination suites.
 
 Home is a dedicated product showcase, separate from `/dashboard`. Its editorial
 layout uses black actions, a warm paper background, three keyboard-accessible
@@ -114,26 +178,126 @@ configuration. Existing authentication and login-to-workspace behavior remain
 intact. Creation and workspace actions use their existing routes and permissions.
 Responsive layout, example switching, keyboard controls, navigation and routing
 coverage live in `tests/test_antd_home_ui.py` and `tests/test_home_routes.py`.
-The generation workspace reads the controller's hidden control/status adapter
-through a MutationObserver and forwards actions to the same bound buttons. React
-Skeleton components show pending outline pages beside generated previews. The
+The generation workspace subscribes directly to its independent TypeScript
+controller (`src/controllers/generator-controller.ts`). Ant buttons call explicit
+actions; no hidden control/status DOM or MutationObserver carries business state.
+React Skeleton components show pending outline pages beside generated previews. The
 grid retains empty columns and caps desktop previews at 440px, so a single page
 does not expand across the workspace. Skeletons follow page numbers, stop their
 animation when paused or disconnected, and disappear on completion or failure.
 Only six pending placeholders are mounted; unknown totals never invent a page
-count or estimated progress. The controller's UI adapter exposes real stream
-totals/completed counts and active page numbers, while generated iframe contents
-remain unchanged. Its grid reset/resume lifecycle restores the UI-only portal host.
-React never writes controller state or renders presentation content. Start/pause/resume,
-stop confirmation, completion and partial retry retain their existing contracts;
-terminal errors hide stale pause controls, and active unattended runs expose only
-the monitor's cancellation control. The adapter is a temporary migration boundary,
-to be removed only with equivalent stream, recovery and document checks.
+count or estimated progress. Snapshots expose real stream totals/completed counts,
+active page numbers and saved documents. React renders saved and pending pages
+with native Ant Card/Tag/Skeleton components. The old Jinja document surface,
+fullscreen overlay, global renderer and generator-specific legacy CSS are removed.
+Presentation HTML is passed unchanged to iframe srcDoc; it never enters the
+application DOM. Stable previews are retained; a replacement updates its own page and an edited
+document rejects stale replay. Task records report actual page numbers when
+pages finish out of order, using aggregate counts when only counts are known.
 
-The PPT editor remains a standalone workspace. Ant controls replace its header,
-view modes, save/export/regenerate menus and AI drawer; thumbnail, source,
-quick-edit and SVG controllers retain their data ownership. A ResizeObserver
+Start/pause/resume, stop confirmation, completion and partial retry retain their
+API routes. The controller locks concurrent actions, serializes cancellation
+before clear-cancel, and checks HTTP/application errors. Failed cancellation
+explains that the server may still run; failed clear-cancel remains paused and
+never creates an SSE. Terminal events close the source/timers and ignore late
+callbacks. Reconnect uses bounded exponential delay and rejects stale sources.
+Failed placeholders and duplicate page numbers do not count as a complete deck.
+Active unattended runs reject all manual generation actions; only the monitor
+may cancel that pipeline. A known running task reads results without starting work.
+
+Pagehide/unmount closes connections, aborts controller reads and clears timers without
+sending a cancellation POST. A cached pageshow restores via readonly project GETs,
+never automatically replaying stream GET, template preparation or clear-cancel:
+the existing stream endpoint can initiate generation. Recovery reads every ten
+seconds for up to thirty minutes, with a fifteen-second request timeout; access
+loss stops polling and disables restart. Hidden tabs pause recovery polling while
+continuing a live stream. Full-document initial loads preserve existing explicit
+auto_start and partial-deck continuation, except during known background runs.
+Template preparation now has its own controller and native Ant view, described
+below. The editor now has its own application controller and established engine ports.
+`frontend/tests/generator-controller.test.mjs` exercises state/transport races;
+`tests/test_antd_generator_lifecycle_ui.py` covers the built Ant behavior.
+
+The generator's fullscreen view uses Ant Modal with previous/next buttons and
+the received-document count. Navigation follows actual saved page numbers,
+including gaps; pending pages are not represented as completed documents.
+Arrow keys and Escape also work inside same-origin slide frames. Arrow keys
+retain their normal behavior in editable fields; if a slide navigates away from
+this origin, use the surrounding modal's controls. Closing restores the preview
+button's focus, unmounts the document and removes its listeners. Pagehide closes
+the preview without a generation or cancellation request.
+The shared `SlideDocument` also renders template previews: a ref-owned
+ResizeObserver scales the original 1280×720 canvas, with cleanup on unmount.
+Fullscreen frames stay interactive. Existing trusted-document execution is
+preserved; this migration does not add HTML sanitization or change sandbox policy.
+Desktop scrolls the preview grid; phones and short windows scroll the document.
+`tests/test_antd_generator_documents_ui.py` covers frame identity, text safety,
+partial-deck paging, interactive-frame keys, focus, updates and pagehide cleanup.
+
+The free-template wizard uses Ant Modal, Tabs, Form, Checkbox, Input, Alert and
+buttons directly. `src/controllers/template-wizard-controller.ts` owns its
+preparation gate, requests, preview/source drafts and confirmation promise. No
+Bootstrap modal events, native form relocation, global wizard variables or DOM
+observers carry its state. Package and confirmed free modes retain their existing
+preparation rules; other projects require an explicitly selected global template.
+Failed mode/permission reads never silently authorize generation.
+
+Saved unconfirmed templates are reused. Missing templates generate once after
+the user's Start action, using the existing streaming POST (`force`, `stream`,
+Accept SSE). Automatic mutation retries are removed: closing/losing a stream
+stops reception, keeps drafts and offers a readonly result check. A reported
+background generation disables confirmation and avoids duplicate POSTs. Explicit
+regeneration warns when the previous result is uncertain or source edits would
+be replaced. Fetch/JSON reading each have fifteen-second limits, extended to
+five minutes for AI adjustment; the template stream has a two-minute idle limit. Abort signals,
+readers, confirmation dialogs and late responses belong to the current operation.
+
+Preview application is local; confirmation submits current source even when it
+has not been applied to the preview, along with library/name fields. AI adjustment
+retains `adjustment_request` and warns before replacing local source because it
+uses the server's saved template. Explicit rejection preserves fields and enables
+retry; ambiguous confirmation requires checking saved HTML/confirmation/library
+facts. Verified success can continue without another library write. These routes
+do not provide operation IDs or guaranteed server cancellation.
+
+Drafts and library fields survive cancel/reopen within this project document;
+full navigation/reload discards that memory. Modal contents are destroyed after
+close, releasing ResizeObservers and CodeMirror instances; reopening reconstructs
+the editor from the draft. Existing pinned CodeMirror is an optional enhancement
+with its original options. Ant TextArea remains editable if the CDN is unavailable.
+Preview/fullscreen keep the original HTML and 1280x720 canvas. Mobile confirmation
+stays outside the scrolling body, with 44px controls. Runtime regressions are in
+`frontend/tests/template-wizard-controller.test.mjs` and built-browser checks in
+`tests/test_antd_template_wizard_ui.py`. The former native-string tests now exercise
+actual page actions and requests.
+
+The PPT editor remains a standalone workspace. `controllers/editor-controller.ts`
+owns application subscriptions, saving, document-panel feedback and command errors.
+`projectSlidesEditor.engine.js` exposes an explicit command allowlist and snapshots
+from the established editing engines. The hidden native header and toolbar have
+been removed: Ant view/save/AI/playback/package actions no longer click them or
+infer capabilities from their visibility. Core mutation hooks are installed once
+and restored when the last subscriber leaves. Document-pane state is sent directly
+to the controller, while local DOM attributes remain available for pane layout.
+Pagehide releases engine/surface/layout subscriptions; cached pageshow reacquires
+them without replaying a request. In-flight writes already started by an engine
+are allowed to finish; this lifecycle does not claim to cancel server work.
+Repeated Save shares one operation, including native shortcut entry. Saving HTML
+now writes only the current page, rather than marking/writing every neighbor.
+Failure retains the source and allows deliberate retry.
+Ant controls own the header, view modes, save/export/regenerate menus and AI drawer;
+thumbnail, CodeMirror, quick-edit, SVG and export engines retain data ownership.
+The native surface adapter is limited to specialized dialogs, task messages,
+context menus and thumbnail accessibility. It no longer reads business state or
+document-panel flags from the DOM. Its delegated keyboard listener is removed
+with its observer; the Quick AI icon layout callback uses the explicit engine port.
+`frontend/tests/editor-controller.test.mjs` verifies state, save races and lifecycle;
+`tests/test_antd_editor_lifecycle_ui.py` covers the built workspace and current-page writes.
+A ResizeObserver
 invokes the original frame-sizing functions when the new toolbar changes size.
+The editor deliberately omits the creation-stage Steps. Project detail, planning
+and generation pages retain that navigation; the editor keeps its page counter,
+return link and task-specific save/export feedback.
 The left sidebar now switches between slides, outline and speech. Text is loaded
 on demand, with a page picker, reading/editing modes, fixed save footer and
 Chinese/English speech drafts. Drafts remain in this editor session across page,
@@ -207,8 +371,9 @@ Video export always removes its progress card on success, request failure or
 task failure. SSE, polling fallback, payloads and download handling remain native.
 Share, template, image, speech/narration, hash/revision and permission-dependent
 actions keep their original contracts. Iframe documents and generated SVG are
-not restyled. Controllers and original form nodes remain a temporary adapter boundary;
-CodeMirror, SVG, file selectors and document-editing engines retain their ownership.
+not restyled. Specialized native surfaces and original form nodes are explicit
+compatibility boundaries; CodeMirror, SVG, file selectors and document-editing
+engines retain ownership. They are not another application state owner.
 
 Presentation playback uses Ant Design controls, a thumbnail drawer and bounded
 shortcut/cache dialogs without the account shell, including public share links.
@@ -233,15 +398,45 @@ The outline list, detailed view, JSON preview/export, JSON and single-slide
 editors, regeneration dialog and AI optimization now use Ant components. AI
 results remain editable drafts until explicitly saved; failed requests retain
 inputs. Single-slide editing preserves unknown fields and optional-field deletion.
-The original SSE, cancellation, reconnect and persistence recovery controller
-continues using an inert hidden DOM adapter. `outline_ui_bridge.js` publishes
-snapshots and forwards actions; only regeneration accepts an optional requirements
-argument to bypass its old dialog. Pretext renders into the visible Ant stream
-slot and retains scroll position / jump-to-latest behavior. Subscriptions detach
-on unmount. The dormant native mindmap helpers are retained, without adding a new
-graph feature. Native notifications use Ant messages and confirmations. This
-temporary adapter should be extracted with the controller once its recovery
-contract can be tested independently. Generated presentations are unchanged.
+Planning now creates a page-scoped `createOutlineController`. It owns snapshots,
+SSE parsing, regeneration, cancellation of reception and persisted-result recovery;
+it has no React, DOM or global-page dependencies. The Jinja payload provides only
+the saved outline, language and stage/confirmation facts, without serializing all
+presentation pages into inline JavaScript. The hidden legacy host, generated old
+forms/views/dialogs/animations, obsolete CSS and `outline_ui_bridge.js` are removed.
+Ant components subscribe directly, and keep existing request, editing and explicit
+save contracts. Generation and its template wizard have independent controllers
+and native Ant views. Document/fullscreen rendering is React-owned; the deep
+PPT editor uses its independent workspace controller and established editing engines.
+
+The planning stage links to `/projects/{id}/todo?view=planning`, so saved outlines
+remain accessible after pages exist. The default `/todo` keeps its existing
+automatic workspace selection. A known background generation makes planning
+read-only; a visible Ant notice explains the lock. Completed projects explain
+that outline edits do not automatically change existing pages, with editor access
+through the delivery stage. These notices remain visible on phones.
+
+Mount/unmount owns listeners, timers, readers and abort signals. Leaving the page
+stops reception/polling; returning through the browser page cache reads
+saved results without starting a second generation and retains partial stream text.
+Background tab visibility pauses stage polling, which uses the original 15-second
+interval and error backoff. Completed projects do not issue that unnecessary poll.
+Disconnects show an Ant warning while checking for new persisted output every ten
+seconds within a thirty-minute window. Read requests have a fifteen-second limit;
+loss of access ends recovery. Full canonical outline signatures reject the old
+result while accepting changes to points under unchanged titles. Late replies from
+disposed or superseded views cannot update state. Stopping reception does not claim
+that a server task has been cancelled; no automatic regeneration POST is added.
+
+The separate stream view owns only supplied DOM refs, preserving reading position
+and jump-to-latest across runs. It lazily uses the existing Pretext renderer and
+falls back to safe plain text. Listeners, animation frames and renderers detach on
+unmount, including an import that resolves after disposal. Generated presentations
+are unchanged. `npm run test:controllers --prefix frontend` runs the actual
+TypeScript with Node's built-in test runner/type stripping (Node 22.12+), also run
+by frontend CI. Browser recovery checks are in
+`tests/test_antd_outline_lifecycle_ui.py`; `test_todo_board_frontend.py` invokes
+the runtime suite instead of inspecting removed template function strings.
 
 Unattended monitoring retains the original five-second polling/backoff,
 visibility handling and terminal callbacks. Both workspace views use Ant progress,
@@ -396,3 +591,5 @@ Remove a page's retired CSS and DOM scripts only when its replacement preserves
 its actions, permission visibility and browser regressions. Test built assets,
 error/empty states and desktop/mobile geometry. Store screenshots in ignored
 `artifacts/` folders.
+
+Editor integration and real five-page creation → generation → editing → export/share acceptance are recorded in `artifacts/editor-finish-20261022/README.md`; specialized engines are intentional compatibility boundaries. No commit or release was made.

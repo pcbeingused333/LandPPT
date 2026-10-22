@@ -1,26 +1,26 @@
 {% extends "antd_base.html" %}
 {% block title %}任务看板 - {{ todo_board.title }} - LandPPT{% endblock %}
-{% block blueprint %}
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-<style>
-/* Native outline dialogs are attached to body; retain their theme variables. */
-:root { --surface: #fff; --surface-subtle: #f5f5f5; --surface-contrast: #111; --text-primary: #252936; --text-secondary: #6b7280; --text-muted: #8a8a92; --border-color: #dedede; --glass-border: #dedede; --border-radius-lg: 8px; --shadow-soft: none; --accent: #111; --ink: #252936; --ink-strong: #111; --spacing-2xl: 24px; --primary-gradient: linear-gradient(135deg, #111, #3f3f3f); }
-{% include "components/project/todo_board/extra_css_1.html" %}
-</style>
-{% include "components/project/todo_board/content_1.html" %}
-{% endblock %}
 {% block page_data %}
+{% import "components/project/workspace_state.html" as ws with context %}
 {% set requirements_stage = todo_board.stages | selectattr('id', 'equalto', 'requirements_confirmation') | first %}
+{% set outline_stage = todo_board.stages | selectattr('id', 'equalto', 'outline_generation') | first %}
+{% set ppt_stage = todo_board.stages | selectattr('id', 'equalto', 'ppt_creation') | first %}
 "page": "todo", "projectId": {{ todo_board.task_id|tojson }}, "title": {{ todo_board.title|tojson }},
 "unattendedActive": {{ (unattended_active|default(false))|tojson }},
 "hasOutline": {{ (project and project.outline and project.outline.get('slides')|length > 0)|default(false, true)|tojson }},
 "hasOutput": {{ (true if project and (project.slides_data or project.slides_html) else false)|tojson }},
 "showRequirements": {{ (true if (not requirements_stage or requirements_stage.status == 'pending') and not (project and project.confirmed_requirements) and not unattended_active|default(false) else false)|tojson }},
 "renderMode": {{ ((project.project_metadata or {}).get('render_mode', 'html') if project else 'html')|tojson }},
-"generationMode": {{ ((project.project_metadata or {}).get('generation_mode', 'freeform') if project else 'freeform')|tojson }}
+"generationMode": {{ ((project.project_metadata or {}).get('generation_mode', 'freeform') if project else 'freeform')|tojson }},
+"outlineInitial": {
+    "outline": {{ (project.outline if project and project.outline else none)|tojson }},
+    "language": {{ ((project.project_metadata or {}).get('language') if project else none)|tojson }},
+    "confirmed": {{ (true if project and project.confirmed_requirements else false)|tojson }},
+    "stageStatus": {{ (outline_stage.status if outline_stage else '')|tojson }},
+    "pptStageStatus": {{ (ppt_stage.status if ppt_stage else '')|tojson }}
+},
+"workspace": {{ ws.state|tojson }}
 {% endblock %}
 {% block extra_js %}
 <script src="/static/js/shared/unattended_monitor.js?v=20261012"></script>
-<script>{% include "components/project/todo_board/extra_js_1.html" %}</script>
-<script src="/static/js/pages/project/todo_board/outline_ui_bridge.js?v=20261012"></script>
 {% endblock %}

@@ -37,27 +37,6 @@ function setMode(mode) {
     currentMode = mode;
     updateEditorContentModeClass(mode);
 
-    // Update button states
-    document.querySelectorAll('#previewMode,#editMode,#splitMode,#quickEditMode').forEach(btn => btn.classList.remove('active'));
-
-    // 处理按钮ID映射
-    let buttonId;
-    switch (mode) {
-        case 'quickedit':
-            buttonId = 'quickEditMode';
-            break;
-        default:
-            buttonId = mode + 'Mode';
-            break;
-    }
-
-    const modeButton = document.getElementById(buttonId);
-    if (modeButton) {
-        modeButton.classList.add('active');
-    } else {
-        // Mode button not found
-    }
-
     const previewPane = document.getElementById('previewPane');
     const editPane = document.getElementById('editPane');
 
@@ -128,10 +107,11 @@ async function saveSlide() {
         try {
             await saveSvgSlideContent(currentSlideIndex, newContent);
             showNotification('SVG 页面已保存', 'success');
+            return true;
         } catch (error) {
             showNotification('保存失败：' + error.message, 'error');
+            return false;
         }
-        return;
     }
 
     // Update slides data
@@ -159,20 +139,23 @@ async function saveSlide() {
 
         // Save to server
         try {
-            // 如果当前项目存在缺页并已做归一化，为避免“批量保存把占位页写入数据库”，这里改为只保存当前页
-            const saved = slidesDataWasNormalized
-                ? await saveSingleSlideToServer(currentSlideIndex, newContent)
-                : await saveToServer();
+            // Only this page belongs to the Save action; do not rewrite neighboring pages or placeholders.
+            const saved = await saveSingleSlideToServer(currentSlideIndex, newContent, {
+                slideData: slidesData[currentSlideIndex], isUserEdited: true,
+            });
 
             if (saved) {
                 showNotification('幻灯片已保存！', 'success');
             } else {
                 showNotification('保存失败，请重试', 'error');
             }
+            return saved;
         } catch (e) {
             showNotification('保存失败：' + (e?.message || e), 'error');
+            return false;
         }
     }
+    return false;
 }
 
 function regenerateSlide() {

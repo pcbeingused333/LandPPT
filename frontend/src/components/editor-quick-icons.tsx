@@ -20,7 +20,7 @@ export function EditorQuickIcons() {
   const previous = useRef<Target[]>([]);
   useLayoutEffect(() => {
     // Local icons can wrap a new result row. Fit it before the browser paints.
-    (window as typeof window & { LandPPTEditorUI?: { call(name: string): void } }).LandPPTEditorUI?.call('refreshQuickAiPopoverLayout');
+    (window as typeof window & { LandPPTEditorEngine?: { call(name: string): void } }).LandPPTEditorEngine?.call('refreshQuickAiPopoverLayout');
   }, [targets]);
   useLayoutEffect(() => {
     let queued = false, disposed = false;

@@ -1,0 +1,5 @@
+.slide-document { position: relative; width: 100%; aspect-ratio: 16 / 9; overflow: hidden; background: #fafafa; }
+.slide-document iframe { position: absolute; top: 0; left: 0; width: 1280px; height: 720px; max-width: none; border: 0; transform: scale(0); transform-origin: top left; pointer-events: none; }
+.slide-document.is-contained { height: 100%; aspect-ratio: auto; }
+.slide-document.is-contained iframe { top: 50%; left: 50%; transform-origin: center; translate: -50% -50%; }
+.slide-document.is-interactive iframe { pointer-events: auto; }

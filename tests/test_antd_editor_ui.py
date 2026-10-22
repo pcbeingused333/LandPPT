@@ -217,6 +217,7 @@ def test_editor_workspace_geometry_and_preserved_frame(ui_page, width, height, s
     page, load = ui_page
     page.set_viewport_size(dict(width=width, height=height))
     state = setup(page, load, svg=svg)
+    expect(page.get_by_role("navigation", name="创作阶段", exact=True)).to_have_count(0)
     expect(page.get_by_role("button", name="保存", exact=True)).to_be_visible()
     assert page.evaluate("document.documentElement.scrollWidth<=innerWidth")
     assert page.locator(".editor-container").bounding_box()["height"] <= height
@@ -451,8 +452,7 @@ def test_editor_saving_locks_duplicate_clicks(ui_page):
     assert len(held) == 1
     held[0].fulfill(json=dict(success=True))
     page.wait_for_timeout(100)
-    assert len(held) == 2
-    held[1].fulfill(json=dict(success=True))
+    assert len(held) == 1
     expect(action).not_to_have_class(re.compile("ant-btn-loading"))
     assert not state["errors"]
 

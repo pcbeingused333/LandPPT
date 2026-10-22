@@ -184,14 +184,17 @@ async def test_confirm_route_persists_current_frontend_html_before_generation(mo
 def test_free_template_streaming_route_and_frontend_use_sse_preview_pipeline():
     route_text = _read("src/landppt/web/route_modules/template_routes.py")
     service_text = _read("src/landppt/services/template/template_selection_service.py")
-    script_text = _read("src/landppt/web/templates/components/project/todo_board_with_editor/script_1.html")
+    script_text = _read("frontend/src/controllers/template-wizard-controller.ts")
+    wizard_text = _read("frontend/src/components/generator-wizard.tsx")
 
     assert 'want_stream = True if stream_flag is None else bool(stream_flag)' in route_text
     assert 'media_type="text/event-stream"' in route_text
     assert 'stream_free_template_generation(' in route_text
     assert '"type": "preview"' in service_text
-    assert "'Accept': 'text/event-stream'" in script_text
-    assert "consumeSseJsonStream(resp" in script_text
-    assert 'iframe.srcdoc = freeTemplateCurrentHtml;' in script_text
-    assert "html_template: getFreeTemplateHtmlForConfirm()" in script_text
+    assert "Accept: 'text/event-stream'" in script_text
+    assert "await consume(response, value)" in script_text
+    assert "<SlideDocument html={html}" in wizard_text
+    document_text = _read("frontend/src/components/slide-document.tsx")
+    assert "srcDoc={html}" in document_text
+    assert "html_template: state.draft" in script_text
     assert 'submitted_html = data.get("html_template")' in route_text

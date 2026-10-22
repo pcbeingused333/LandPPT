@@ -229,39 +229,12 @@ async def test_database_service_filters_projects_by_effective_status_after_conve
     assert [project.project_id for project in response.projects] == ["derived-in-progress"]
 
 
-def test_todo_board_preserves_saved_outline_before_auto_starting_generation():
-    script = _read("src/landppt/web/templates/components/project/todo_board/extra_js_1.html")
-
-    assert "function hasAnyOutlineSlides()" in script
-    assert "hydrateOutlineSectionFromProjectState();" in script
-    assert "if (hasAnyOutlineSlides())" in script
 
 
-def test_todo_board_resumes_interrupted_outline_generation_on_reload():
-    script = _read("src/landppt/web/templates/components/project/todo_board/extra_js_1.html")
-
-    assert "initialOutlineStageStatus" in script
-    assert "shouldResumeOutlineGenerationOnLoad" in script
-    assert "scheduleOutlineResumeAutoStart" in script
-    assert "['pending', 'running', ''].includes(initialOutlineStageStatus)" in script
-    assert "startOutlineGenerationNew();" in script
 
 
-def test_todo_board_outline_generation_does_not_emit_debug_console_logs():
-    script = _read("src/landppt/web/templates/components/project/todo_board/extra_js_1.html")
-
-    assert "console.log(" not in script
-    assert "console.warn(" not in script
 
 
-def test_todo_board_recovers_from_outline_stream_disconnect():
-    script = _read("src/landppt/web/templates/components/project/todo_board/extra_js_1.html")
-
-    assert "function isOutlineStreamNetworkDisconnect(" in script
-    assert "waitForPersistedProjectOutlineAfterDisconnect" in script
-    assert "`/api/projects/${currentProjectId}`" in script
-    assert "outline stream ended before completion" in script
-    assert "applyCompletedOutlineToTodoBoard(recoveredOutline" in script
 
 
 def test_outline_stream_headers_are_http2_safe():
@@ -275,26 +248,21 @@ def test_todo_board_template_injects_outline_stage_status():
     from jinja2 import Environment, FileSystemLoader
 
     env = Environment(loader=FileSystemLoader(ROOT / "src/landppt/web/templates"))
-    rendered = env.get_template("components/project/todo_board/extra_js_1.html").render(
-        todo_board={
-            "task_id": "project-1",
-            "stages": [
-                {"id": "requirements_confirmation", "status": "completed"},
-                {"id": "outline_generation", "status": "running"},
-                {"id": "ppt_creation", "status": "pending"},
-            ],
-        },
-        project={
-            "project_metadata": {},
-            "outline": None,
-            "slides_data": [],
-            "slides_html": "",
-            "confirmed_requirements": {"topic": "Demo"},
-        },
+    rendered = env.get_template("pages/project/todo_board.html").render(
+        request=SimpleNamespace(state=SimpleNamespace(user=None)), user=None,
+        todo_board={"task_id": "project-1", "title": "Fixture project", "stages": [
+            {"id": "requirements_confirmation", "status": "completed"},
+            {"id": "outline_generation", "status": "running"},
+            {"id": "ppt_creation", "status": "pending"},
+        ]},
+        project={"project_id": "project-1", "project_metadata": {}, "outline": None,
+                 "slides_data": [], "slides_html": "", "confirmed_requirements": {"topic": "Demo"}},
     )
-
-    assert 'const initialOutlineStageStatus = "running";' in rendered
-    assert "const hasConfirmedRequirements = true;" in rendered
+    payload = json.loads(rendered.split('<script id="antdData" type="application/json">')[1].split('</script>')[0])
+    assert payload["outlineInitial"]["stageStatus"] == "running"
+    assert payload["outlineInitial"]["confirmed"] is True
+    assert set(payload["outlineInitial"]) == {"outline", "language", "confirmed", "stageStatus", "pptStageStatus"}
+    assert 'initialProjectSlides' not in rendered and 'outline_ui_bridge.js' not in rendered
 
 
 def test_slide_record_from_payload_preserves_outline_metadata():
@@ -357,7 +325,6 @@ def test_editor_sidebar_thumbnail_refresh_recalculates_scale_without_overriding_
 
 def test_ai_optimize_modals_settle_safely_and_use_scoped_dom():
     sources = [
-        _read("src/landppt/web/templates/components/project/todo_board/extra_js_1.html"),
         _read(
             "src/landppt/web/static/js/pages/project/slides_editor/"
             "projectSlidesEditor.aiOptimize.js"
@@ -379,4 +346,4 @@ def test_ai_optimize_modals_settle_safely_and_use_scoped_dom():
         assert "${config.currentInfo}" not in source
         assert "onclick=\"this.closest('.ai-optimize-modal').remove()\"" not in source
 
-    assert "document.head.appendChild(style)" not in sources[0]
+    assert "document.head.appendChild(style)" not in _read("frontend/src/components/todo-outline.tsx")

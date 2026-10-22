@@ -1,6 +1,5 @@
 """Security regression tests for the outline/PPT generation pipelines."""
 
-import re
 import tempfile
 from pathlib import Path
 
@@ -14,11 +13,6 @@ from landppt.core.file_access import (
 )
 
 REPO = Path(__file__).resolve().parents[1]
-TODO_BOARD_JS = (
-    REPO
-    / "src" / "landppt" / "web" / "templates" / "components" / "project"
-    / "todo_board" / "extra_js_1.html"
-)
 
 
 class TestClientFilePathContainment:
@@ -133,28 +127,19 @@ class TestCancelEndpointOwnership:
 
 
 class TestOutlineRenderingEscapesModelContent:
-    def test_escape_helper_exists(self):
-        source = TODO_BOARD_JS.read_text(encoding="utf-8")
-        assert "function escapeHtml(value)" in source
+    def test_stream_fallback_uses_text_instead_of_model_html(self):
+        # React escapes outline fields; stream rendering uses text, never markup.
+        view = (REPO / "frontend/src/controllers/outline-stream-view.ts").read_text(encoding="utf-8")
+        assert "node.textContent = text" in view
+        assert "innerHTML" not in view
 
     def test_no_unescaped_model_fields_reach_innerhtml(self):
-        source = TODO_BOARD_JS.read_text(encoding="utf-8")
-        risky = re.compile(
-            r"\$\{\s*(slide\.(title|subtitle|content|slide_type|description)"
-            r"|outline\.title|lastOutlineErrorMessage)\s*[}|]"
-        )
-        offenders = []
-        for index, line in enumerate(source.splitlines(), start=1):
-            if not risky.search(line) or "escapeHtml" in line:
-                continue
-            # Only markup-building lines can inject; plain-text template
-            # literals (prompt strings, object properties) cannot.
-            if "<" in line:
-                offenders.append((index, line.strip()))
-        assert not offenders, f"unescaped model content: {offenders}"
+        for name in ["frontend/src/components/todo-outline.tsx", "frontend/src/controllers/outline-controller.ts"]:
+            source = (REPO / name).read_text(encoding="utf-8")
+            assert "innerHTML" not in source and "dangerouslySetInnerHTML" not in source
 
-    def test_textarea_bodies_are_escaped(self):
-        source = TODO_BOARD_JS.read_text(encoding="utf-8")
-        # A raw `</textarea>` inside model content would break out of the editor.
-        assert ">${escapeHtml(outlineContent)}</textarea>" in source
-        assert ">${escapeHtml(slide.description || '')}</textarea>" in source
+    def test_json_editor_keeps_outline_in_a_controlled_value(self):
+        source = (REPO / "frontend/src/components/todo-outline.tsx").read_text(encoding="utf-8")
+        assert "value={json}" in source
+        assert '<Input.TextArea aria-label="页面描述"' in source
+        assert "</textarea>" not in source

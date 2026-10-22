@@ -25,7 +25,6 @@ def slide(number=1):
 def setup_workspace(
     page, load, mode="package", active=False, completed=False, auto=False, outline_titles=None, unattended_run=None
 ):
-    page.add_init_script("window.bootstrap = {Modal: class {show() {} hide() {}}};")
     page.add_init_script(
         """window.testStreams = []; window.testOpened = [];
         window.open = (url) => { testOpened.push(url); };
@@ -122,7 +121,7 @@ def test_home_workspace_geometry_and_primary_actions(ui_page, width, height, sce
                 name="打开编辑器" if scene == "completed" else "开始生成",
                 exact=True,
             )
-        assert not page.locator("#generatorControlState").is_visible()
+        assert page.locator("#generatorControlState").count() == 0
         if scene == "completed":
             assert page.locator("#generatorStatusUI .ant-progress").count() == 0
             for frame in page.locator(".slide-preview iframe").all():
@@ -258,8 +257,8 @@ def test_unattended_workspace_never_exposes_manual_controls_or_auto_starts(ui_pa
     page.wait_for_timeout(650)
     assert page.evaluate("testStreams.length") == 0
     assert page.locator(".generator-ant-actions button").count() == 0
-    expect(page.locator(".welcome-message-title")).to_have_text("任务正在运行")
-    expect(page.locator(".welcome-message-subtitle")).not_to_contain_text("开始生成")
+    expect(page.get_by_role("heading", name="正在恢复连接")).to_be_visible()
+    expect(page.locator(".generator-preview-copy p")).not_to_contain_text("开始生成")
     assert not state["writes"]
 
 
@@ -320,5 +319,11 @@ def test_workspace_adapter_has_only_explicit_public_data(ui_page):
         generationMode="package",
         unattendedActive=False,
         slideTitles=["封面", "内容"],
+        generationInitial=dict(slides=[], total=2, status="draft"),
+        templateInitial=dict(topic="研发", templateMode="package"),
+        workspace=dict(
+            hasOutline=True, hasTemplate=True, hasOutput=False,
+            outlineRunning=False, generating=False,
+        ),
     )
-    assert page.locator("#generatorControlState").get_attribute("aria-hidden") == "true"
+    assert page.locator("#generatorControlState").count() == 0

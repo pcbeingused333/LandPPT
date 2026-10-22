@@ -10,6 +10,7 @@ export type DocumentBridge = {
   applyDocument(key: string, document: ApiData): void;
   openSpeechDocument(language: string, preview: boolean): void;
   saveDocument?: (() => Promise<void>) | null;
+  setDocumentState?(state: { documentPanel: string; documentDirty: boolean; documentSaving: boolean }): void;
 };
 type Panel = 'slides' | 'outline' | 'speech';
 type Draft = { value: ApiData; base: ApiData; revision: string; slideId: string | null; loading: boolean; saving: boolean; dirty: boolean; error: string; editing: boolean; source: ApiData };
@@ -42,6 +43,7 @@ export function EditorDocumentSidebar({ projectId, pages, current, selected, dia
     const sidebar = document.getElementById('slidesSidebar')!;
     sidebar.dataset.documentDirty = String(!!draft?.dirty && !draft.loading && !!draft.revision);
     sidebar.dataset.documentSaving = String(!!draft?.saving);
+    bridge.setDocumentState?.({ documentPanel: panel, documentDirty: !!draft?.dirty && !draft.loading && !!draft.revision, documentSaving: !!draft?.saving });
     return () => { bridge.saveDocument = null; };
   });
   useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);

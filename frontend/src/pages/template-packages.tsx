@@ -7,7 +7,7 @@ import { modalFocus } from '../components/modal-focus';
 import { PackageDialogs } from '../components/package-dialogs';
 import { downloadTemplate, families, packageAPI, packageStatuses, packageWorkspace, postStream, TemplateFrame, TemplateMore, TemplatePreview, templateAPI, useTemplateModalFocus } from '../components/templates';
 
-export default function TemplatePackages({ preferred = 0, selecting = false, busy = false, onSelect }: { preferred?: number; selecting?: boolean; busy?: boolean; onSelect?: (pkg: ApiData, options: ApiData) => Promise<void> }) {
+export default function TemplatePackages({ preferred = 0, selecting = false, pickOnly = false, busy = false, onSelect }: { preferred?: number; selecting?: boolean; pickOnly?: boolean; busy?: boolean; onSelect?: (pkg: ApiData, options: ApiData) => Promise<void> }) {
   const [packages, setPackages] = useState<ApiData[]>([]); const [loading, setLoading] = useState(true); const [error, setError] = useState('');
   const [filter, setFilter] = useState('all'); const [page, setPage] = useState(1); const [size, setSize] = useState(6);
   const [allowImages, setAllowImages] = useState(true); const [budget, setBudget] = useState(6);
@@ -21,7 +21,7 @@ export default function TemplatePackages({ preferred = 0, selecting = false, bus
     finally { if (!controller.signal.aborted) setLoading(false); }
   }
   useEffect(() => { load(); return () => read.current?.abort(); }, []);
-  const visible = packages.filter(pkg => filter === 'all' || pkg.status === filter).sort((a, b) => Number(b.id === preferred) - Number(a.id === preferred));
+  const visible = packages.filter(pkg => pickOnly ? pkg.status === 'published' : filter === 'all' || pkg.status === filter).sort((a, b) => Number(b.id === preferred) - Number(a.id === preferred));
   const current = Math.min(page, Math.max(1, Math.ceil(visible.length / size))); const disabled = busy || working || actions.pending;
   async function perform(task: () => Promise<void>) {
     if (lock.current) return; lock.current = true; setWorking(true); setError('');
@@ -53,23 +53,24 @@ export default function TemplatePackages({ preferred = 0, selecting = false, bus
     });
   }
   return <section className="template-package-catalogue" aria-label="模板包列表">
-    <PackageDialogs />
+    {!pickOnly && <PackageDialogs />}
     <div className="template-toolbar">
-      <Select aria-label="模板包状态" value={filter} onChange={value => { setFilter(value); setPage(1); }} options={[{ value: 'all', label: '全部版本' }, ...Object.entries(packageStatuses).map(([value, label]) => ({ value, label }))]} />
+      {!pickOnly && <Select aria-label="模板包状态" value={filter} onChange={value => { setFilter(value); setPage(1); }} options={[{ value: 'all', label: '全部版本' }, ...Object.entries(packageStatuses).map(([value, label]) => ({ value, label }))]} />}
       <Button aria-label="刷新模板包" icon={<ReloadOutlined aria-hidden />} disabled={loading || disabled} onClick={load}>刷新</Button>
-      <Space wrap className="template-toolbar-actions">
+      {!pickOnly && <Space wrap className="template-toolbar-actions">
         <Button disabled={disabled} onClick={() => perform(async () => { const bridge = await packageWorkspace(); bridge.PackagePptxImport.open({ onComplete: async (pkg: ApiData) => { await load(); await workspace(pkg); } }); })}>从 PPTX 创建</Button>
         <Upload accept=".json,.zip" showUploadList={false} beforeUpload={file => { importFile(file); return false; }} disabled={disabled}><Button disabled={disabled} icon={<UploadOutlined aria-hidden />}>导入模板包</Button></Upload>
         <Button disabled={disabled} onClick={() => perform(async () => { await mutate(packageAPI + '/builtin', 'POST'); message.success('内置模板包已添加'); })}>添加内置模板包</Button>
         <Button type="primary" disabled={disabled} icon={<PlusOutlined aria-hidden />} onClick={() => setCreating(true)}>AI 创建模板包</Button>
-      </Space>
+      </Space>}
     </div>
-    {selecting && <div className="template-package-options"><Checkbox checked={allowImages} onChange={event => setAllowImages(event.target.checked)} disabled={disabled}>自动配图</Checkbox><label htmlFor="package-image-budget">图片预算</label><InputNumber id="package-image-budget" aria-label="图片预算" min={0} max={40} precision={0} value={budget} onChange={value => setBudget(value ?? 0)} disabled={disabled} /><span className="subtle">仅已发布版本可用于生成</span></div>}
+    {selecting && !pickOnly && <div className="template-package-options"><Checkbox checked={allowImages} onChange={event => setAllowImages(event.target.checked)} disabled={disabled}>自动配图</Checkbox><label htmlFor="package-image-budget">图片预算</label><InputNumber id="package-image-budget" aria-label="图片预算" min={0} max={40} precision={0} value={budget} onChange={value => setBudget(value ?? 0)} disabled={disabled} /><span className="subtle">仅已发布版本可用于生成</span></div>}
+    {pickOnly && <p className="subtle">仅显示已发布版本。选择后返回原草稿，开始生成时使用该模板包。</p>}
     {error && <Alert className="page-error" type="error" title={error} action={<Button onClick={load} disabled={disabled}>重新加载</Button>} />}
     {actions.error && <Alert className="page-error" type="error" title={actions.error} />}
     {loading && <p role="status"><Spin size="small" /> 正在加载模板包…</p>}
     {working && !loading && <p role="status"><Spin size="small" /> 正在处理模板包操作…</p>}
-    {!loading && !visible.length && <Empty description={packages.length ? '没有符合条件的模板包版本' : '还没有模板包，可添加内置包或创建自己的设计'} />}
+    {!loading && !error && !visible.length && <Empty description={pickOnly ? '暂无已发布的模板包，可返回创建选择自由设计，或到模板管理发布版本。' : packages.length ? '没有符合条件的模板包版本' : '还没有模板包，可添加内置包或创建自己的设计'} />}
     <div className="template-grid">{visible.slice((current - 1) * size, current * size).map(pkg => {
       const components: ApiData[] = pkg.manifest.components || [];
       const menu = [
@@ -86,15 +87,15 @@ export default function TemplatePackages({ preferred = 0, selecting = false, bus
         <p className="template-description">{pkg.description ?? pkg.manifest.description ?? '暂无描述'}</p>
         <Space wrap className="template-card-tags">{Array.from(new Set(components.map(item => item.family))).map(family => <Tag key={family}>{families[family] || family}</Tag>)}</Space>
         <div className="template-card-actions">
-          {selecting && <Button type="primary" disabled={pkg.status !== 'published' || disabled} onClick={() => onSelect?.(pkg, { allow_images: allowImages, image_budget: budget })}>使用此包生成</Button>}
-          {pkg.editable && <Button disabled={disabled} onClick={() => actions.confirm('校验并发布', '发布后此版本保持固定，后续编辑会创建草稿。', () => mutate(`${packageAPI}/${pkg.id}/publish`, 'POST'))}>校验并发布</Button>}
-          <div className="template-card-action-row"><Button disabled={disabled} onClick={() => perform(() => workspace(pkg))}>{pkg.editable ? '编辑草稿' : '编辑'}</Button><Button onClick={() => setPreview(pkg)} disabled={disabled}>预览</Button><TemplateMore name={pkg.template_name} items={menu} disabled={disabled} /></div>
+          {selecting && <Button type="primary" disabled={pkg.status !== 'published' || disabled} onClick={() => onSelect?.(pkg, { allow_images: allowImages, image_budget: budget })}>{pickOnly ? '使用此模板包' : '使用此包生成'}</Button>}
+          {!pickOnly && pkg.editable && <Button disabled={disabled} onClick={() => actions.confirm('校验并发布', '发布后此版本保持固定，后续编辑会创建草稿。', () => mutate(`${packageAPI}/${pkg.id}/publish`, 'POST'))}>校验并发布</Button>}
+          <div className="template-card-action-row">{!pickOnly && <Button disabled={disabled} onClick={() => perform(() => workspace(pkg))}>{pkg.editable ? '编辑草稿' : '编辑'}</Button>}<Button onClick={() => setPreview(pkg)} disabled={disabled}>预览</Button>{!pickOnly && <TemplateMore name={pkg.template_name} items={menu} disabled={disabled} />}</div>
         </div>
       </Card>;
     })}</div>
     <div className="projects-pagination"><span className="subtle">共 {visible.length} 个版本</span><Pagination current={current} total={visible.length} pageSize={size} pageSizeOptions={[6, 12, 24]} showSizeChanger showLessItems onChange={(next, pageSize) => { setPage(pageSize === size ? next : 1); setSize(pageSize); }} /></div>
     <p className="template-settings-link subtle">快速模式自动匹配每页版式。<a href="/ai-config#jev-config">配置匹配模型</a></p>
-    {preview && <TemplatePreview key={preview.id} template={preview} onClose={() => setPreview(undefined)} />}
+    {preview && <TemplatePreview key={preview.id} template={preview} onClose={() => setPreview(undefined)} onSelect={selecting ? () => { onSelect?.(preview, { allow_images: allowImages, image_budget: budget }); setPreview(undefined); } : undefined} selectDisabled={disabled || preview.status !== 'published'} selectLabel={pickOnly ? '使用此模板包' : '使用此包生成'} />}
     <Modal open={!!editing} centered title={editing?.field === 'name' ? '重命名模板包' : '编辑模板包描述'} okText="保存" cancelText="取消" confirmLoading={actions.pending} cancelButtonProps={{ disabled: actions.pending }} closable={!actions.pending} keyboard={!actions.pending} mask={{ closable: !actions.pending }} onCancel={() => setEditing(undefined)} onOk={() => form.submit()} modalRender={modalFocus}>
       <Form form={form} layout="vertical" disabled={actions.pending} onFinish={async values => { if (!editing) return; try { await actions.run(`${templateAPI}/package-templates/${editing.pkg.template_id}`, 'PATCH', { [editing.field]: values.value?.trim() || '' }); setEditing(undefined); await load(); message.success('已保存'); } catch { /* Keep the entered value for retry. */ } }}>
         {actions.error && <Alert type="error" title={actions.error} />}

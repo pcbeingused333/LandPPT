@@ -266,9 +266,9 @@ def test_native_disabled_and_hidden_actions_cannot_be_invoked_by_adapter(ui_page
     original = slides_and_outline(page)
     page.evaluate(
         """() => {
-      LandPPTEditorUI.runContextAction('duplicateSlide');
-      LandPPTEditorUI.runContextAction('exportSingleSlidePptxClient');
-      LandPPTEditorUI.runContextAction('saveToServer');
+      LandPPTEditorSurfaces.runContextAction('duplicateSlide');
+      LandPPTEditorSurfaces.runContextAction('exportSingleSlidePptxClient');
+      LandPPTEditorSurfaces.runContextAction('saveToServer');
     }"""
     )
     assert slides_and_outline(page) == original

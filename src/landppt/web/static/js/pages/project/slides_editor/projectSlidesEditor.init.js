@@ -192,20 +192,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
-    // 绑定按钮事件监听器
-    const slideshowBtn = document.getElementById('slideshowBtn');
-    const saveSlideBtn = document.getElementById('saveSlideBtn');
-    const aiEditBtn = document.getElementById('aiEditBtn');
-
-    if (slideshowBtn) {
-        slideshowBtn.addEventListener('click', startSlideshow);
-    }
-    if (saveSlideBtn) {
-        saveSlideBtn.addEventListener('click', saveSlide);
-    }
-    if (aiEditBtn) {
-        aiEditBtn.addEventListener('click', openAIEditSidebar);
-    }
+    // Application actions invoke the explicit editor engine port.
 
     // 绑定AI输入框回车键事件
     const aiInputBox = document.getElementById('aiInputBox');

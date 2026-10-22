@@ -43,7 +43,7 @@ function openNativeChatDialog() {
     renderNativeChatMessages();
     renderNativeUploadedImages();
     updateNativeUploadButtonState();
-    if (window.LandPPTEditorUI) window.LandPPTEditorUI.openDialog(dialog);
+    if (window.LandPPTEditorSurfaces) window.LandPPTEditorSurfaces.openDialog(dialog);
     else dialog.showModal();
 
     setTimeout(() => {

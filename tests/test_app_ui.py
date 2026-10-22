@@ -107,6 +107,8 @@ def ui_page(browser):
                 route.fulfill(body=source.read_bytes(), content_type=mime)
             else:
                 route.fulfill(status=404, body="")
+        elif path == "/create" and route.request.method == "GET":
+            route.fulfill(body=state["creation_html"], content_type="text/html")
         elif route.request.resource_type == "document":
             route.fulfill(body=state["html"], content_type="text/html")
         else:
@@ -166,6 +168,7 @@ def ui_page(browser):
         values.update(overrides)
         values["request"] = SimpleNamespace(state=SimpleNamespace(user=values["user"]))
         state["html"] = env.get_template(template).render(**values)
+        state["creation_html"] = env.get_template("pages/project/scenarios.html").render(**values)
         page.goto("http://ui.test" + path, wait_until="networkidle")
         return page
 
@@ -227,7 +230,7 @@ def test_profile_tabs_and_long_email_stay_inside_mobile_panel(ui_page, width):
     "width,height",
     [(1440, 900), (1024, 768), (720, 450), (601, 768), (390, 844), (320, 568)],
 )
-def test_dashboard_summary_keeps_projects_near_top_without_overflow(
+def test_dashboard_creation_precedes_recent_projects_without_overflow(
     ui_page, width, height
 ):
     page, load = ui_page
@@ -249,11 +252,14 @@ def test_dashboard_summary_keeps_projects_near_top_without_overflow(
             )
         ],
     )
-    header = page.locator(".dashboard-header").bounding_box()
+    page.get_by_role("textbox", name="PPT 主题", exact=True).wait_for()
+    composer = page.locator(".dashboard-create").bounding_box()
     recent = page.locator(".recent-projects-header").bounding_box()
-    assert recent["y"] - header["y"] <= (260 if width <= 600 else 140)
+    assert recent["y"] >= composer["y"] + composer["height"]
+    if width >= 1024:
+        assert recent["y"] < height
     assert page.evaluate("document.documentElement.scrollWidth") <= width
-    for card in page.locator(".stat-card").all():
+    for card in page.locator(".dashboard-stat").all():
         assert card.evaluate(
             "e => {const card=e.getBoundingClientRect();"
             "return [...e.querySelectorAll('.stat-icon,.stat-number,.stat-title')]"
@@ -261,11 +267,12 @@ def test_dashboard_summary_keeps_projects_near_top_without_overflow(
             "return r.left>=card.left && r.right<=card.right && "
             "child.scrollWidth<=child.clientWidth+1})}"
         )
-    create = page.get_by_role("link", name="创建项目", exact=True).first
+    create = page.get_by_role("button", name="开始生成", exact=True)
     all_projects = page.get_by_role("link", name="所有项目", exact=True)
-    assert create.get_attribute("href") == "/scenarios"
+    assert page.locator('.dashboard-header a[href="/scenarios"]').count() == 0
     assert all_projects.get_attribute("href") == "/projects"
     for action in (create, all_projects):
+        action.scroll_into_view_if_needed()
         assert action.bounding_box()["height"] >= (44 if width <= 600 else 32)
         assert action.evaluate(
             "e => {const r=e.getBoundingClientRect();"
@@ -1271,19 +1278,8 @@ def test_gallery_delete_still_requires_confirmation_and_cancel_does_not_write(
 @pytest.fixture
 def generator_page(ui_page):
     page, load = ui_page
-    # The isolated UI fixture blocks CDN JavaScript. This suite exercises native
-    # details and fullscreen controls, so only stub the unused wizard's Modal.
-    # The screenshot audit separately loads the real Bootstrap bundle and CSS.
-    page.add_init_script("window.bootstrap = {Modal: class {show() {} hide() {}}};")
-    page.route(
-        "**/bootstrap@5.1.3/dist/css/bootstrap.min.css",
-        lambda route: route.fulfill(
-            body="*,::before,::after{box-sizing:border-box}"
-            ".d-flex{display:flex!important}.align-items-center{align-items:center!important}"
-            ".modal{display:none;position:fixed;inset:0}",
-            content_type="text/css",
-        ),
-    )
+    # The generation workspace and template wizard no longer need Bootstrap.
+    # This fixture deliberately supplies no native modal/polyfill.
     requests = []
     errors = []
     page.on("pageerror", lambda error: errors.append(str(error)))
@@ -1426,9 +1422,9 @@ def test_generator_completed_workspace_fits_and_preserves_preview_content(
         assert box["height"] >= (44 if width <= 600 else 36)
         assert button.evaluate("e => e.getBoundingClientRect().right <= innerWidth")
     page.locator(".fullscreen-btn").first.click()
-    assert page.locator("#fullscreenIframe").get_attribute("srcdoc") == original
+    assert page.get_by_title("幻灯片全屏预览", exact=True).get_attribute("srcdoc") == original
     page.keyboard.press("Escape")
-    assert not page.locator("#fullscreenOverlay").is_visible()
+    assert not page.locator(".generator-document-modal").is_visible()
     assert requests and all(method == "GET" for method in requests)
 
 

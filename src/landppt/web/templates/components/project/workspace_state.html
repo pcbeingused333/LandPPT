@@ -1,0 +1,12 @@
+{#- Workspace stage facts shared by the project pages; import "with context" and read `state`. -#}
+{%- set _meta = project.project_metadata if project and project.project_metadata is mapping else {} -%}
+{%- set _outline = project.outline if project and project.outline is mapping else {} -%}
+{%- set _stages = todo_board.stages if todo_board is defined and todo_board else [] -%}
+{%- set _running = _stages | selectattr('status', 'equalto', 'running') | map(attribute='id') | list -%}
+{%- set state = {
+    'hasOutline': true if (_outline.get('slides') or []) | length > 0 else false,
+    'hasTemplate': true if (_meta.get('selected_global_template_id') or _meta.get('template_mode') in ['global', 'free'] or _meta.get('generation_mode') == 'package') else false,
+    'hasOutput': true if project and (project.slides_data or project.slides_html) else false,
+    'outlineRunning': 'outline_generation' in _running,
+    'generating': 'ppt_creation' in _running,
+} -%}

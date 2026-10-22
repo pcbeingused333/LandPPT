@@ -1,6 +1,7 @@
 {% extends "antd_base.html" %}
 {% block title %}{{ project.title }} - 项目详情 - LandPPT{% endblock %}
 {% block page_data %}
+{% import "components/project/workspace_state.html" as ws with context %}
 "page": "project-detail",
 "project": {
     "project_id": {{ project.project_id | tojson }}, "title": {{ project.title | tojson }}, "topic": {{ project.topic | tojson }},
@@ -18,5 +19,6 @@
 }{% else %}null{% endif %},
 "versions": [{% for version in versions | default([]) %}{
     "version": {{ version.version }}, "description": {{ version.description | tojson }}, "timestamp": {{ (version.timestamp | strftime('%Y-%m-%d %H:%M:%S')) | tojson }}
-}{% if not loop.last %},{% endif %}{% endfor %}]
+}{% if not loop.last %},{% endif %}{% endfor %}],
+"workspace": {{ ws.state|tojson }}
 {% endblock %}

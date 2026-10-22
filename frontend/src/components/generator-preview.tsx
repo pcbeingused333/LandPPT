@@ -1,46 +1,16 @@
-import { useEffect, useState } from 'react';
-import { createPortal } from 'react-dom';
-import { Skeleton } from 'antd';
+import { Card, Skeleton, Tag, Typography } from 'antd';
 import { CheckOutlined, FileImageOutlined, PauseOutlined, SyncOutlined } from '@ant-design/icons';
 import type { ApiData } from '../api';
+import type { GeneratorSlide } from '../controllers/generator-controller';
+import { GeneratorDocuments } from './generator-documents';
 
 export type PreviewState = {
   visible: boolean; state: string; connectionClass: string;
-  total?: number; completed?: number; activePages: number[];
+  total?: number; completed?: number; activePages: number[]; slides: GeneratorSlide[];
 };
-type Preview = { number: number; failed: boolean };
 
 export function GeneratorPreview({ data, state, unattendedStatus }: { data: ApiData; state: PreviewState; unattendedStatus?: string }) {
-  const [host] = useState(() => {
-    const element = document.createElement('div');
-    element.id = 'generatorSkeletons';
-    element.className = 'generator-skeleton-host';
-    return element;
-  });
-  const [previews, setPreviews] = useState<Preview[]>([]);
-  useEffect(() => {
-    const grid = document.getElementById('slidesContainer');
-    if (!grid) return;
-    // The controller clears/rebuilds its preview grid on start and resume. Keep
-    // this UI-only host separate from its slide IDs, data and iframe contents.
-    function refresh() {
-      if (!grid!.contains(host)) grid!.appendChild(host);
-      const next = Array.from(grid!.children).filter(element => element.classList.contains('slide-card')).map(element => {
-        const card = element as HTMLElement;
-        const number = Number(card.dataset.slideIndex) + 1;
-        card.style.order = String(number);
-        return { number, failed: !!card.querySelector('[title="设计生成未完成，请重新生成此页"]') };
-      });
-      setPreviews(previous => JSON.stringify(previous) === JSON.stringify(next) ? previous : next);
-    }
-    const observer = new MutationObserver(refresh);
-    observer.observe(grid, { childList: true });
-    grid.dataset.previewMounted = 'true';
-    refresh();
-    return () => { observer.disconnect(); host.remove(); delete grid.dataset.previewMounted; };
-  }, [host]);
-
-  const target = document.getElementById('generatorPreviewUI');
+  const previews = state.slides.map(slide => ({ number: slide.page_number, failed: !!slide.generation_failed && !slide.is_user_edited }));
   const titles: string[] = Array.isArray(data.slideTitles) ? data.slideTitles : [];
   const total = state.total || (state.state === 'complete' ? previews.length : titles.length);
   const ready = previews.filter(preview => !preview.failed).length;
@@ -72,17 +42,22 @@ export function GeneratorPreview({ data, state, unattendedStatus }: { data: ApiD
     : phase === 'reconnecting' ? '已生成的页面会保留，连接恢复后将继续更新。'
     : phase === 'stopped' ? '已生成的页面会保留，你可以重试未完成的页面。'
     : phase === 'idle' ? '点击上方“开始生成”，页面将按大纲依次呈现。'
-    : '生成的页面会实时显示，可先预览已完成的页面。';
+    : data.unattendedActive ? '生成的页面会显示在这里，可在上方查看进度与阶段详情。' : '生成的页面会实时显示，可先预览已完成的页面。';
 
   return <>
-    {target && createPortal(<section className={`generator-preview-summary is-${phase}`} aria-label="幻灯片预览概览">
+    <div id="generatorPreviewUI"><section className={`generator-preview-summary is-${phase}`} aria-label="幻灯片预览概览">
       <div className="generator-preview-emblem" aria-hidden>{phase === 'complete' ? <CheckOutlined /> : phase === 'paused' ? <PauseOutlined /> : <FileImageOutlined />}</div>
       <div className="generator-preview-copy"><span className="generator-preview-eyebrow">实时预览 {animate && <SyncOutlined spin aria-hidden />}</span><h2>{heading}</h2><p>{hint}</p></div>
       <div className="generator-preview-count" aria-label={total ? `已生成 ${completed} / ${total} 页` : `已生成 ${completed} 页`}><strong>{completed}<span>{total ? ` / ${total}` : ' 页'}</span></strong><span>{phase === 'complete' ? '全部就绪' : total ? '页已生成' : '逐页更新'}</span></div>
-    </section>, target)}
-    {createPortal(pending.map(number => <article key={number} className={`generator-skeleton-card${state.activePages.includes(number) ? ' is-current' : ''}`} style={{ order: number }} aria-label={`第 ${number} 页：${titles[number - 1] || '待生成页面'}，${phase === 'paused' ? '已暂停' : '等待生成'}`}>
-      <div className="generator-skeleton-header"><span className="generator-skeleton-number">{String(number).padStart(2, '0')}</span><span className="generator-skeleton-title" title={titles[number - 1] || '页面版式将在生成后显示'}>{titles[number - 1] || '待生成页面'}</span><span className="generator-skeleton-label">{phase === 'paused' ? '已暂停' : phase === 'reconnecting' ? '等待连接' : state.activePages.includes(number) ? '生成中' : '待生成'}</span></div>
+    </section></div>
+    <div id="slidesContainer" className="slides-container">
+    <GeneratorDocuments slides={state.slides} />
+    <div id="generatorSkeletons" className="generator-skeleton-host">{pending.map(number => <Card key={number} size="small" className={`generator-skeleton-card${state.activePages.includes(number) ? ' is-current' : ''}`} style={{ order: number }} role="group" aria-label={`第 ${number} 页：${titles[number - 1] || '待生成页面'}，${phase === 'paused' ? '已暂停' : '等待生成'}`}
+      classNames={{ header: 'generator-skeleton-header' }} styles={{ body: { padding: 0 } }}
+      title={<div className="generator-skeleton-title-row"><span className="generator-skeleton-number">{String(number).padStart(2, '0')}</span><Typography.Text className="generator-skeleton-title" type="secondary" ellipsis title={titles[number - 1] || '页面版式将在生成后显示'}>{titles[number - 1] || '待生成页面'}</Typography.Text></div>}
+      extra={<Tag className="generator-skeleton-label">{phase === 'paused' ? '已暂停' : phase === 'reconnecting' ? '等待连接' : state.activePages.includes(number) ? '生成中' : '待生成'}</Tag>}>
       <div className="generator-skeleton-canvas" aria-hidden="true"><Skeleton active={animate} round title={{ width: '64%' }} paragraph={false} /><div className="generator-skeleton-content"><Skeleton active={animate} round title={false} paragraph={{ rows: 3, width: ['92%', '80%', '60%'] }} /><Skeleton.Node active={animate}><span /></Skeleton.Node></div><Skeleton active={animate} round title={{ width: '28%' }} paragraph={false} /></div>
-    </article>), host)}
+    </Card>)}</div>
+    </div>
   </>;
 }

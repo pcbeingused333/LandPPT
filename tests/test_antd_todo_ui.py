@@ -104,7 +104,6 @@ def test_outline_json_invalid_save_failure_retry_and_cancel(ui_page):
 
 def test_outline_single_slide_preserves_hidden_fields_and_optional_deletion(ui_page):
     page, load = ui_page
-    state = setup(page, load, scene="outline")
     original = json.loads(json.dumps(OUTLINE))
     original["metadata"] = dict(language="en", other="retained")
     original["slides"][0].update(
@@ -115,7 +114,7 @@ def test_outline_single_slide_preserves_hidden_fields_and_optional_deletion(ui_p
         slide_type="custom-kind",
         backend_key=9,
     )
-    page.evaluate("value=>LandPPTTodoUI.saved(value)", original)
+    state = setup(page, load, scene="outline", initial_outline=original)
     page.get_by_role("button", name="编辑第 1 页", exact=True).click()
     dialog = page.get_by_role("dialog", name="编辑第 1 页", exact=True)
     expect(dialog.locator(".ant-select")).to_contain_text("custom-kind")
@@ -145,7 +144,6 @@ def test_outline_single_slide_preserves_hidden_fields_and_optional_deletion(ui_p
 @pytest.mark.parametrize("single", [False, True])
 def test_outline_ai_draft_payload_errors_and_explicit_save(ui_page, single):
     page, load = ui_page
-    state = setup(page, load, scene="outline")
     original = {
         **OUTLINE,
         "metadata": dict(
@@ -155,7 +153,7 @@ def test_outline_ai_draft_payload_errors_and_explicit_save(ui_page, single):
             scenario="keynote",
         ),
     }
-    page.evaluate("value=>LandPPTTodoUI.saved(value)", original)
+    state = setup(page, load, scene="outline", initial_outline=original)
     if single:
         page.get_by_role("button", name="编辑第 1 页", exact=True).click()
         editor = page.get_by_role("dialog", name="编辑第 1 页", exact=True)
@@ -213,13 +211,12 @@ def test_outline_ai_draft_payload_errors_and_explicit_save(ui_page, single):
 
 def test_outline_export_view_detail_and_untrusted_text(ui_page):
     page, load = ui_page
-    state = setup(page, load, scene="outline")
     original = json.loads(json.dumps(OUTLINE))
     original["slides"][0][
         "title"
     ] = '<img src=x onerror="window.outlineInjection=true">'
     original["slides"][0]["content_points"].append("多行\n说明")
-    page.evaluate("value=>LandPPTTodoUI.saved(value)", original)
+    state = setup(page, load, scene="outline", initial_outline=original)
     expect(page.locator(".todo-outline-grid")).to_contain_text(
         original["slides"][0]["title"]
     )
@@ -318,10 +315,9 @@ def test_outline_ai_modal_geometry_and_focus_return(ui_page, width, height):
 
 def test_outline_slide_editor_does_not_reuse_optional_fields(ui_page):
     page, load = ui_page
-    state = setup(page, load, scene="outline")
     original = json.loads(json.dumps(OUTLINE))
     original["slides"][0].update(subtitle="只属于第一页", description="第一页描述")
-    page.evaluate("value=>LandPPTTodoUI.saved(value)", original)
+    state = setup(page, load, scene="outline", initial_outline=original)
     page.get_by_role("button", name="编辑第 1 页", exact=True).click()
     dialog = page.get_by_role("dialog", name="编辑第 1 页", exact=True)
     dialog.get_by_role("button", name="取消", exact=True).click()
@@ -446,10 +442,19 @@ def multipart(request):
 
 
 def setup(
-    page, load, scene="pending", active=False, count_title=False, start_stage=False
+    page,
+    load,
+    scene="pending",
+    active=False,
+    count_title=False,
+    start_stage=False,
+    initial_outline=None,
+    stage_status=None,
+    has_output=False,
+    ppt_stage_status="pending",
 ):
     page.add_init_script(
-        """window.outlineStreams=[];const originalFetch=window.fetch;window.fetch=(url,...args)=>String(url).includes('/outline-stream')?Promise.resolve(new Response(new ReadableStream({start(controller){outlineStreams.push(controller);}}),{headers:{'Content-Type':'text/event-stream'}})):originalFetch(url,...args);window.sendOutline=data=>outlineStreams.at(-1).enqueue(new TextEncoder().encode('data: '+JSON.stringify(data)+'\\n\\n'));"""
+        """window.outlineStreams=[];window.outlineRequests=[];window.outlineCancels=0;const originalFetch=window.fetch;window.fetch=(url,...args)=>{if(!String(url).includes('/outline-stream'))return originalFetch(url,...args);outlineRequests.push({url:String(url),signal:args[0]?.signal});return Promise.resolve(new Response(new ReadableStream({start(controller){outlineStreams.push(controller);},cancel(){outlineCancels++;}}),{headers:{'Content-Type':'text/event-stream'}}));};window.sendOutline=data=>outlineStreams.at(-1).enqueue(new TextEncoder().encode('data: '+JSON.stringify(data)+'\\n\\n'));"""
     )
     state = dict(
         reads=[],
@@ -543,8 +548,12 @@ def setup(
         project_id="ui-todo",
         title="研发协作计划",
         topic="研发",
-        outline=OUTLINE if scene == "outline" else None,
-        slides_data=[],
+        outline=(
+            (initial_outline if initial_outline is not None else OUTLINE)
+            if scene == "outline"
+            else None
+        ),
+        slides_data=[{"html_content": "Saved page"}] if has_output else [],
         slides_html=None,
         confirmed_requirements={} if scene == "pending" else dict(topic="研发"),
         project_metadata=dict(render_mode="html", generation_mode="freeform"),
@@ -556,11 +565,11 @@ def setup(
         ),
         dict(
             id="outline_generation",
-            status="completed" if scene == "outline" else "pending",
+            status=stage_status or ("completed" if scene == "outline" else "pending"),
         ),
     ]
     if start_stage:
-        stages.append(dict(id="ppt_creation", status="pending"))
+        stages.append(dict(id="ppt_creation", status=ppt_stage_status))
     title = "研发与设计团队的跨部门协作" * 20 if count_title else project["title"]
     load(
         "pages/project/todo_board.html",
@@ -614,7 +623,12 @@ def test_task_board_geometry_first_screen_action_and_native_outline(
         expect(page.get_by_role("region", name="PPT 大纲工作区")).to_be_visible()
         expect(page.locator(".todo-outline-grid")).to_contain_text("研发协作")
         assert page.evaluate("outlineStreams.length") == 0
-        assert page.locator(".todo-ant-native-slot #workspace-body").count() == 1
+        assert (
+            page.locator(
+                "#todoLegacyHost, #workspace-body, .todo-ant-native-slot"
+            ).count()
+            == 0
+        )
     expect(action).to_be_visible()
     box = action.bounding_box()
     assert box["y"] + box["height"] <= height

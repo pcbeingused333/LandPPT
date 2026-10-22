@@ -43,7 +43,7 @@
         modal.append(head); document.body.append(modal);
         modal.addEventListener('close', () => modal.remove());
         if (window.LandPPTPackageUI) window.LandPPTPackageUI.openDialog(modal);
-        else if (window.LandPPTEditorUI) window.LandPPTEditorUI.openDialog(modal);
+        else if (window.LandPPTEditorSurfaces) window.LandPPTEditorSurfaces.openDialog(modal);
         else modal.showModal();
         return modal;
     }
@@ -288,10 +288,12 @@
     }
     // The editor uses the same structured content endpoint; no HTML string interpolation.
     const editorTrigger = document.getElementById('packageContentEditorBtn');
-    if(!panel && window.projectId && editorTrigger){
+    if(!panel && window.projectId){
+        window.LandPPTPackageEditor = { available: false, open: () => openEditor().catch(error => message(error.message, true)) };
         request(`/api/projects/${project}/template-package`).then(()=>{
-            bindAction(editorTrigger, openEditor);
-            editorTrigger.hidden = false;
+            window.LandPPTPackageEditor.available = true;
+            if (editorTrigger) { bindAction(editorTrigger, openEditor); editorTrigger.hidden = false; }
+            window.LandPPTEditorEngine?.changed();
         }).catch(()=>{});
     }
     async function openEditor(){

@@ -1,41 +1,41 @@
-/* Layout controls only; slide data and editing actions remain with the editor. */
+/* Layout has explicit state; application controls do not inspect hidden buttons. */
 (() => {
     const container = document.querySelector('.editor-container');
     const sidebar = document.getElementById('slidesSidebar');
-    const toggle = document.getElementById('slidesSidebarToggle');
     const backdrop = document.querySelector('.workspace-sidebar-backdrop');
-    const more = document.querySelector('.workspace-more');
     const mobile = window.matchMedia('(max-width: 700px)');
-    if (!container || !sidebar || !toggle) return;
-    const toolbar = document.querySelector('.editor-toolbar');
-    toolbar.addEventListener('show.bs.dropdown', () => {
-        toolbar.style.setProperty('--workspace-menu-top', `${toolbar.getBoundingClientRect().bottom + 6}px`);
-    });
-
-    function setSidebar(open) {
-        container.classList.toggle('sidebar-collapsed', !open);
-        toggle.setAttribute('aria-expanded', String(open));
+    const listeners = new Set();
+    let open = !mobile.matches;
+    function setSidebar(value) {
+        open = value; container.classList.toggle('sidebar-collapsed', !open);
         backdrop.hidden = !open || !mobile.matches;
         if (typeof debounceResize === 'function') debounceResize();
+        listeners.forEach(listener => listener(open));
     }
-    setSidebar(!mobile.matches);
-    toggle.addEventListener('click', () => setSidebar(container.classList.contains('sidebar-collapsed')));
-    backdrop.addEventListener('click', () => setSidebar(false));
-    mobile.addEventListener('change', () => setSidebar(!mobile.matches));
-    sidebar.addEventListener('click', event => {
-        if (mobile.matches && event.target.closest('.slide-thumbnail') && !event.ctrlKey && !event.metaKey) {
-            setSidebar(false);
+    const hide = () => setSidebar(false);
+    const resize = () => setSidebar(!mobile.matches);
+    const select = event => { if (mobile.matches && event.target.closest('.slide-thumbnail') && !event.ctrlKey && !event.metaKey) hide(); };
+    const escape = event => {
+        if (event.key === 'Escape' && mobile.matches && open) {
+            hide(); document.querySelector('.editor-ant-header [aria-controls="slidesSidebar"]')?.focus();
         }
-    }, true);
-    document.addEventListener('click', event => {
-        if (!more.contains(event.target) || event.target.closest('.workspace-more-menu button')) more.open = false;
-    });
-    document.addEventListener('keydown', event => {
-        if (event.key !== 'Escape') return;
-        if (more.open) { more.open = false; more.querySelector('summary').focus(); }
-        if (mobile.matches && !container.classList.contains('sidebar-collapsed')) {
-            setSidebar(false);
-            toggle.focus();
-        }
-    });
+    };
+    setSidebar(open);
+    window.LandPPTEditorLayout = {
+        read: () => open, toggle: () => setSidebar(!open),
+        subscribe(listener) {
+            if (!listeners.size) {
+                backdrop.addEventListener('click', hide); mobile.addEventListener('change', resize);
+                sidebar.addEventListener('click', select, true); document.addEventListener('keydown', escape);
+            }
+            listeners.add(listener);
+            return () => {
+                listeners.delete(listener);
+                if (!listeners.size) {
+                    backdrop.removeEventListener('click', hide); mobile.removeEventListener('change', resize);
+                    sidebar.removeEventListener('click', select, true); document.removeEventListener('keydown', escape);
+                }
+            };
+        },
+    };
 })();

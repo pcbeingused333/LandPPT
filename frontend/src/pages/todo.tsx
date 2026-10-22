@@ -1,11 +1,12 @@
-import { useEffect, useRef, useState } from 'react';
-import { flushSync } from 'react-dom';
-import { Alert, Button, Card, Checkbox, Collapse, Form, Input, InputNumber, Select, Space, Tabs, Upload } from 'antd';
-import { InboxOutlined, ReloadOutlined } from '@ant-design/icons';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Alert, Button, Card, Checkbox, Collapse, Form, Input, InputNumber, Select, Space, Tabs, Tag, Upload } from 'antd';
+import { EyeOutlined, InboxOutlined, ReloadOutlined } from '@ant-design/icons';
 import { errorText, request, type ApiData } from '../api';
 import { useNativeFeedback } from '../components/native-feedback';
 import { UnattendedPanel } from '../components/unattended';
 import { TodoOutline } from '../components/todo-outline';
+import { ProjectStages, ProjectWorkspaceHeader } from '../components/project-stages';
+import { createOutlineController } from '../controllers/outline-controller';
 
 const audience = ['企业管理层', '技术团队', '销售团队', '学生群体', '学术研究者', '投资人', '客户群体', '培训学员', '项目团队', '行业专家', '普通大众', '自定义'].map(value => ({ value, label: value === '自定义' ? '自定义受众' : value }));
 const extensions = ['pdf', 'docx', 'txt', 'md', 'jpg', 'jpeg', 'png', 'xlsx', 'csv'];
@@ -31,16 +32,25 @@ export default function Todo({ data }: { data: ApiData }) {
   const [packages, setPackages] = useState<ApiData[]>([]);
   const [packageError, setPackageError] = useState(''); const [packageLoading, setPackageLoading] = useState(false); const [revision, setRevision] = useState(0);
   const locked = useRef(false);
-  const nativeSlot = useRef<HTMLDivElement>(null);
+  const readOnly = !!data.workspace?.generating || !!data.workspace?.outlineRunning && !!data.hasOutline;
+  const outlineController = useMemo(() => createOutlineController({ projectId: data.projectId, ...data.outlineInitial, hasOutput: !!data.hasOutput, unattended: !!data.unattendedActive, readOnly }), [data, readOnly]);
   const reloading = useRef(false);
   const reloadTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const fast = fields.generation_mode === 'package';
   const base = `/projects/${encodeURIComponent(data.projectId)}`;
   useEffect(() => {
-    const host = document.getElementById('todoLegacyHost');
-    if (host && nativeSlot.current) nativeSlot.current.appendChild(host);
-    return () => { if (host) document.body.appendChild(host); clearTimeout(reloadTimer.current); };
-  }, []);
+    const visibility = () => outlineController.setVisible(!document.hidden);
+    const hide = () => outlineController.suspend();
+    const show = (event: PageTransitionEvent) => { if (event.persisted) outlineController.resume(); };
+    outlineController.setVisible(!document.hidden); outlineController.mount();
+    document.addEventListener('visibilitychange', visibility);
+    window.addEventListener('pagehide', hide); window.addEventListener('pageshow', show);
+    return () => {
+      outlineController.dispose(); clearTimeout(reloadTimer.current);
+      document.removeEventListener('visibilitychange', visibility);
+      window.removeEventListener('pagehide', hide); window.removeEventListener('pageshow', show);
+    };
+  }, [outlineController]);
   useEffect(() => {
     if (!fast) return;
     const controller = new AbortController(); setPackageLoading(true); setPackageError('');
@@ -63,10 +73,8 @@ export default function Todo({ data }: { data: ApiData }) {
     return false;
   }
   async function submit(input: ApiData) {
-    if (locked.current || data.unattendedActive) return;
-    const bridge = (window as typeof window & { LandPPTTodoUI?: { beginOutline(): void } }).LandPPTTodoUI;
+    if (locked.current || data.unattendedActive || readOnly) return;
     setError('');
-    if (!bridge) { setError('大纲工作区尚未加载，请刷新页面后重试。'); return; }
     const values = { ...initial, ...form.getFieldsValue(true), ...input };
     if (source === 'file' && !files.length) { setError('请至少选择一个文件。'); return; }
     const urls = parseUrls(values.content_urls);
@@ -83,17 +91,19 @@ export default function Todo({ data }: { data: ApiData }) {
       const response = await fetch(`${base}/confirm-requirements`, { method: 'POST', credentials: 'same-origin', headers: { Accept: 'application/json' }, body });
       const result = await response.json().catch(() => ({}));
       if (!response.ok || result.status !== 'success') throw new Error(errorText(result.detail || result.message || `需求确认失败（HTTP ${response.status}）`));
-      // Remove the React form before the native renderer inserts its outline card.
-      flushSync(() => setConfirmed(true)); bridge.beginOutline();
+      setConfirmed(true); void outlineController.beginOutline();
     } catch (reason) { setError((reason as Error).message); }
     finally { locked.current = false; setPending(false); }
   }
   const select = (name: string, label: string, choices: { value: string; label: string }[], required = false) => <Form.Item name={name} label={label} rules={required ? [{ required: true, message: `请选择${label}` }] : []}><Select aria-label={label} options={choices} virtual={false} /></Form.Item>;
   return <div className="todo-ant-page">
-    <div className="page-heading"><div><h1 title={data.title}>{data.title}</h1><p>任务看板 · 确认需求、生成大纲，再选择演示设计。</p></div><Space wrap><Button href={base}>项目详情</Button><Button href={`${base}/preview`} target="_blank" rel="noopener" disabled={!data.hasOutput}>预览 PPT</Button><Button href={`${base}/edit`} target="_blank" rel="noopener" disabled={!data.hasOutput}>编辑 PPT</Button></Space></div>
+    <ProjectWorkspaceHeader back={{ href: base, label: '返回项目详情' }} title={data.title}
+      meta={<><Tag>{data.generationMode === 'package' ? '快速模式 · 模板包' : '自由设计'}</Tag>{!readOnly && !data.hasOutput && <span className="subtle project-workspace-hint">{data.hasOutline ? '确认大纲后进入视觉设计。' : '先确认需求，再生成并修改大纲。'}</span>}<a href="/ai-config#jev-config">决策模型配置</a></>}
+      actions={(data.hasOutline || data.hasOutput) && <Space wrap>{data.hasOutline && <Button href={`${base}/template-selection?mode=package`}>快速模式设置</Button>}{data.hasOutput && <Button href={`${base}/preview`} target="_blank" rel="noopener" icon={<EyeOutlined aria-hidden />}>预览 PPT</Button>}</Space>}
+      stages={<ProjectStages projectId={data.projectId} state={data.workspace} current="planning" />} />
+    {(readOnly || data.hasOutput) && <Alert showIcon type="info" className="page-error" title={readOnly ? '生成任务进行中，可查看大纲，完成后再编辑。' : '大纲修改不会自动更新已生成页面，请在编辑器中调整页面。'} />}
     <div id="unattendedMonitor"><UnattendedPanel projectId={data.projectId} initiallyActive={!!data.unattendedActive} onUpdate={run => { if (!data.hasOutline && run.stages?.some((stage: ApiData) => stage.id === 'outline' && stage.status === 'completed')) reloadSoon(600); }} onComplete={run => reloadSoon(run.task_status === 'completed' ? 1500 : 6000)} /></div>
-    <div className="todo-ant-mode"><span><strong>{data.generationMode === 'package' ? '快速模式 · 模板包' : '自由设计'}</strong><span className="subtle">{data.hasOutline ? '确认大纲后选择模板或设计方式。' : '先确认需求，完成大纲后再选择模板。'}</span></span><Space wrap>{data.hasOutline && <Button href={`${base}/template-selection?mode=package`}>快速模式设置</Button>}<Button href="/ai-config#jev-config">决策模型配置</Button></Space></div>
-    {!confirmed && !data.unattendedActive && <Form form={form} name="todo-requirements" layout="vertical" initialValues={initial} disabled={pending} onFinish={submit} scrollToFirstError={{ focus: true }}>
+    {!confirmed && !data.unattendedActive && <Form form={form} name="todo-requirements" layout="vertical" initialValues={initial} disabled={pending || readOnly} onFinish={submit} scrollToFirstError={{ focus: true }}>
       <div className="todo-ant-form-grid"><Card size="small" title="内容与受众">
         <Tabs activeKey={source} onChange={value => { if (!pending) setSource(value); }} items={[
           { key: 'manual', label: '输入主题', children: <p className="subtle">根据主题和已保存的具体需求生成大纲。</p> },
@@ -115,9 +125,8 @@ export default function Todo({ data }: { data: ApiData }) {
         <Space wrap><Form.Item name="include_transition_pages" valuePropName="checked" className="create-checkbox"><Checkbox>章节过渡页</Checkbox></Form.Item><Form.Item name="include_page_numbers" valuePropName="checked" className="create-checkbox"><Checkbox>页码 / Footer</Checkbox></Form.Item></Space>
       </Card></div>
       {error && <Alert type="error" title="需求确认失败" description={error} className="page-error" />}
-      <div className="todo-ant-submit"><span className="subtle">确认后开始生成，可实时查看并编辑大纲。</span><Button type="primary" htmlType="submit" aria-label="开始生成大纲" loading={pending} disabled={pending || fast && (packageLoading || !!packageError)} aria-busy={pending}>开始生成大纲</Button></div>
+      <div className="todo-ant-submit"><span className="subtle">确认后开始生成，可实时查看并编辑大纲。</span><Button type="primary" htmlType="submit" aria-label="开始生成大纲" loading={pending} disabled={pending || readOnly || fast && (packageLoading || !!packageError)} aria-busy={pending}>开始生成大纲</Button></div>
     </Form>}
-    <TodoOutline projectId={data.projectId} unattendedActive={!!data.unattendedActive} />
-    <div ref={nativeSlot} className="todo-ant-native-slot" hidden />
+    <TodoOutline projectId={data.projectId} unattendedActive={!!data.unattendedActive} readOnly={readOnly} controller={outlineController} />
   </div>;
 }

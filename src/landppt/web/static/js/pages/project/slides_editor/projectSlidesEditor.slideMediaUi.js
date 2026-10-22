@@ -833,6 +833,7 @@ function handleSidebarResize(e) {
     const newWidth = Math.max(500, Math.min(1000, sidebarStartWidth + deltaX));
 
     sidebar.style.width = newWidth + 'px';
+    window.LandPPTEditorEngine?.setAssistantWidth(newWidth);
     sidebar.style.right = sidebar.classList.contains('open') ? '0' : `-${newWidth}px`;
 }
 

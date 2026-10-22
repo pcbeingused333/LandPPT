@@ -22,26 +22,26 @@ jobs:
         include:
           - shard: ui-1
             tests: >-
-              tests/test_app_ui.py tests/test_antd_todo_ui.py tests/test_antd_editor_context_ui.py
-              tests/test_antd_projects_ui.py tests/test_antd_settings_compact_ui.py
+              tests/test_app_ui.py tests/test_antd_todo_ui.py tests/test_antd_outline_lifecycle_ui.py tests/test_antd_editor_context_ui.py
+              tests/test_antd_projects_ui.py tests/test_antd_project_covers_ui.py tests/test_antd_settings_compact_ui.py
               tests/test_antd_editor_documents_ui.py tests/test_template_package_workspace_ui.py
               tests/test_antd_email_login_ui.py
           - shard: ui-2
             tests: >-
-              tests/test_antd_editor_ui.py tests/test_antd_images_ui.py tests/test_antd_editor_export_ui.py
-              tests/test_antd_navigation_ui.py tests/test_antd_home_generator_ui.py tests/test_antd_quick_edit_ui.py
+              tests/test_antd_editor_ui.py tests/test_antd_editor_lifecycle_ui.py tests/test_antd_images_ui.py tests/test_antd_editor_export_ui.py
+              tests/test_antd_navigation_ui.py tests/test_antd_home_generator_ui.py tests/test_antd_generator_lifecycle_ui.py tests/test_antd_template_wizard_ui.py tests/test_antd_workspace_stages_ui.py tests/test_antd_quick_edit_ui.py
               tests/test_antd_ui.py tests/test_antd_settings_performance_ui.py tests/test_antd_speech_dialog_mount_ui.py
           - shard: ui-3
             tests: >-
               tests/test_antd_templates_ui.py tests/test_antd_community_ui.py tests/test_antd_editor_media_ui.py
-              tests/test_antd_progress_ui.py tests/test_antd_admin_ui.py tests/test_antd_generator_skeleton_ui.py
+              tests/test_antd_progress_ui.py tests/test_antd_admin_ui.py tests/test_antd_generator_skeleton_ui.py tests/test_antd_generator_documents_ui.py
               tests/test_antd_editor_share_ui.py tests/test_antd_home_ui.py
           - shard: ui-4
             tests: >-
               tests/test_antd_creation_research_ui.py tests/test_antd_account_ui.py tests/test_antd_presentation_ui.py
               tests/test_antd_pagination_ui.py tests/test_antd_remaining_ui.py tests/test_antd_admin_management_ui.py
               tests/test_antd_settings_models_ui.py tests/test_antd_project_search_ui.py tests/test_antd_asset_updates_ui.py
-              tests/test_antd_managed_providers_ui.py
+              tests/test_antd_managed_providers_ui.py tests/test_antd_creation_workspace_ui.py tests/test_antd_creation_templates_ui.py
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -51,6 +51,7 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
       - run: npm ci --prefix frontend --no-audit --no-fund
       - run: npm run build --prefix frontend
+      - run: npm run test:controllers --prefix frontend
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'

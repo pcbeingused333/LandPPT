@@ -25,7 +25,7 @@ def test_project_progress_labels_and_accessibility_are_integers(
         containers = [page.locator(".dashboard-recent"), page.locator(".dashboard-tasks")]
     elif scene == "list":
         load("pages/project/projects_list.html", projects=[project])
-        containers = [page.locator(".desktop-projects" if width > 600 else ".mobile-projects")]
+        containers = [page.locator(".project-collection .mobile-projects")]
     else:
         load("pages/project/project_detail.html", path="/projects/ui-detail", project=project, todo_board=board, versions=[])
         containers = [page.locator(".detail-progress-card")]

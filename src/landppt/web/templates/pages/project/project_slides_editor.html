@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PPT编辑器 - {{ project.title }}</title>
-    <link rel="stylesheet" href="/static/antd/app.css?v=0.4.0-home-sponsors-v1">
+    <link rel="stylesheet" href="/static/antd/app.css?v=0.4.0-editor-integration-h">
     <link rel="icon" type="image/svg+xml" href="/static/images/favicon.svg">
     <link rel="alternate icon" href="/favicon.ico">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -36,18 +36,6 @@
 <body class="landppt-editor">
     <div class="editor-container">
         <div id="editorAntHeader"></div>
-        <header class="editor-header workspace-header" hidden inert aria-hidden="true">
-            <button type="button" class="workspace-sidebar-toggle" id="slidesSidebarToggle"
-                aria-controls="slidesSidebar" aria-expanded="true" title="展开或收起幻灯片列表">
-                <i class="fas fa-columns" aria-hidden="true"></i><span>幻灯片</span>
-            </button>
-            <div class="workspace-project">
-                <h1 title="{{ project.title }}">{{ project.title }}</h1>
-                <span>PPT 编辑器 · 共 {{ project.slides_data|length if project.slides_data else 0 }} 页</span>
-            </div>
-            <a href="/dashboard" class="workspace-back" title="返回主页"><i class="fas fa-arrow-left" aria-hidden="true"></i><span>返回主页</span></a>
-        </header>
-
         <div class="d-flex workspace-body">
             <button type="button" class="workspace-sidebar-backdrop" aria-label="关闭幻灯片列表" hidden></button>
             <!-- Slides Sidebar -->
@@ -97,187 +85,6 @@
             <div class="main-editor" style="flex: 1;">
                 <!-- Toolbar -->
                 <div id="editorAntToolbar"></div>
-                <div class="editor-toolbar" hidden inert aria-hidden="true">
-                    <div class="workspace-view-tools" role="group" aria-label="视图与内容">
-                    <button class="toolbar-btn toolbar-btn--labeled active" id="previewMode" onclick="setMode('preview')" title="预览模式">
-                        <i class="fas fa-eye"></i><span>预览</span>
-                    </button>
-                    <button class="toolbar-btn toolbar-btn--labeled" id="editMode" onclick="setMode('edit')" title="编辑模式">
-                        <i class="fas fa-code"></i><span>代码</span>
-                    </button>
-                    <button class="toolbar-btn toolbar-btn--labeled" id="splitMode" onclick="setMode('split')" title="分屏模式">
-                        <i class="fas fa-columns"></i><span>分屏</span>
-                    </button>
-                    <button class="toolbar-btn toolbar-btn--labeled" id="quickEditMode" onclick="toggleQuickEditMode()" title="快速修改">
-                        <i class="fas fa-edit"></i><span>快编</span>
-                    </button>
-                    <button type="button" class="toolbar-btn toolbar-btn--labeled" id="packageContentEditorBtn"
-                        title="内容与版式" aria-label="内容与版式" aria-haspopup="dialog" hidden>
-                        <i class="fas fa-layer-group" aria-hidden="true"></i><span>内容与版式</span>
-                    </button>
-
-
-                    </div>
-                    <div class="workspace-action-tools" role="group" aria-label="生成与输出">
-                    <button class="toolbar-btn toolbar-btn--labeled" id="slideshowBtn" title="开始放映">
-                        <i class="fas fa-play"></i><span>放映</span>
-                    </button>
-                    <button class="toolbar-btn toolbar-btn--labeled" id="saveSlideBtn" title="保存幻灯片">
-                        <i class="fas fa-save"></i><span>保存</span>
-                    </button>
-
-
-                    <div class="dropdown">
-                        <button class="toolbar-btn toolbar-btn--labeled toolbar-btn--dropdown" type="button"
-                            id="exportDropdownBtn" data-bs-toggle="dropdown" data-bs-display="static"
-                            aria-expanded="false" title="导出PPTX">
-                            <i class="fas fa-file-powerpoint"></i>
-                            <span>PPT</span>
-                            <i class="fas fa-chevron-down toolbar-dropdown-caret"></i>
-                        </button>
-                        <ul class="dropdown-menu dropdown-menu-end toolbar-dropdown-menu"
-                            aria-labelledby="exportDropdownBtn">
-                            <li id="exportClientModeItem">
-                                <a class="dropdown-item toolbar-dropdown-item" href="#"
-                                    onclick="exportSlidesToPptxClient(); return false;">
-                                    <span class="toolbar-dropdown-item__icon">
-                                        <i class="fas fa-desktop"></i>
-                                    </span>
-                                    <span class="toolbar-dropdown-item__content">
-                                        <span class="toolbar-dropdown-item__label">客户端导出<span class="toolbar-dropdown-item__badge">Beta</span></span>
-                                        <span class="toolbar-dropdown-item__hint">浏览器内转换，适合 HTML 页面</span>
-                                    </span>
-                                </a>
-                            </li>
-                            <li id="exportSvgNativeModeItem">
-                                <a class="dropdown-item toolbar-dropdown-item" href="#"
-                                    onclick="exportSvgPagesToPptx('native'); return false;">
-                                    <span class="toolbar-dropdown-item__icon">
-                                        <i class="fas fa-shapes"></i>
-                                    </span>
-                                    <span class="toolbar-dropdown-item__content">
-                                        <span class="toolbar-dropdown-item__label">SVG 原生对象 PPTX</span>
-                                        <span class="toolbar-dropdown-item__hint">文字与基础形状可编辑，复杂图形转矢量</span>
-                                    </span>
-                                </a>
-                            </li>
-                            <li id="exportSvgVectorModeItem">
-                                <a class="dropdown-item toolbar-dropdown-item" href="#"
-                                    onclick="exportSvgPagesToPptx('vector'); return false;">
-                                    <span class="toolbar-dropdown-item__icon">
-                                        <i class="fas fa-vector-square"></i>
-                                    </span>
-                                    <span class="toolbar-dropdown-item__content">
-                                        <span class="toolbar-dropdown-item__label">SVG 矢量保真 PPTX</span>
-                                        <span class="toolbar-dropdown-item__hint">整页转为矢量图，还原度最高</span>
-                                    </span>
-                                </a>
-                            </li>
-                            <li>
-                                <hr class="dropdown-divider toolbar-dropdown-divider">
-                            </li>
-                            {% if standard_pptx_export_enabled %}
-                            <li>
-                                <a class="dropdown-item toolbar-dropdown-item" href="#"
-                                    onclick="exportToPPTX(); return false;">
-                                    <span class="toolbar-dropdown-item__icon">
-                                        <i class="fas fa-file-export"></i>
-                                    </span>
-                                    <span class="toolbar-dropdown-item__content">
-                                        <span class="toolbar-dropdown-item__label">标准导出</span>
-                                        <span class="toolbar-dropdown-item__hint">服务端转换，完成后自动下载</span>
-                                    </span>
-                                </a>
-                            </li>
-                            {% endif %}
-                            <li>
-                                <a class="dropdown-item toolbar-dropdown-item" href="#"
-                                    onclick="exportToPPTXAsImages(); return false;">
-                                    <span class="toolbar-dropdown-item__icon">
-                                        <i class="fas fa-images"></i>
-                                    </span>
-                                    <span class="toolbar-dropdown-item__content">
-                                        <span class="toolbar-dropdown-item__label">以图片形式导出</span>
-                                        <span class="toolbar-dropdown-item__hint">每页转为图片，效果与预览一致</span>
-                                    </span>
-                                </a>
-                            </li>
-                        </ul>
-                    </div>
-
-
-                    <button class="toolbar-btn toolbar-btn--labeled" id="aiEditBtn" title="AI智能编辑">
-                        <i class="fas fa-robot"></i><span>AI</span>
-                    </button>
-                    <div class="dropdown">
-                        <button class="toolbar-btn toolbar-btn--labeled toolbar-btn--dropdown" type="button" id="regenerateDropdownBtn"
-                            data-bs-toggle="dropdown" data-bs-display="static" aria-expanded="false" title="重新生成">
-                            <i class="fas fa-sync"></i>
-                            <span>重新生成</span>
-                            <i class="fas fa-chevron-down toolbar-dropdown-caret"></i>
-                        </button>
-                        <ul class="dropdown-menu dropdown-menu-end toolbar-dropdown-menu" aria-labelledby="regenerateDropdownBtn">
-                            <li>
-                                <a class="dropdown-item toolbar-dropdown-item" href="#" onclick="quickRegenerateSlide(); return false;">
-                                    <span class="toolbar-dropdown-item__icon">
-                                        <i class="fas fa-sync"></i>
-                                    </span>
-                                    <span class="toolbar-dropdown-item__content">
-                                        <span class="toolbar-dropdown-item__label">重新生成当前页</span>
-                                    </span>
-                                </a>
-                            </li>
-                            <li>
-                                <a class="dropdown-item toolbar-dropdown-item" href="#"
-                                    onclick="regenerateSelectedSlides(); return false;">
-                                    <span class="toolbar-dropdown-item__icon">
-                                        <i class="fas fa-layer-group"></i>
-                                    </span>
-                                    <span class="toolbar-dropdown-item__content">
-                                        <span class="toolbar-dropdown-item__label">重新生成所选页</span>
-                                    </span>
-                                </a>
-                            </li>
-                            <li>
-                                <hr class="dropdown-divider toolbar-dropdown-divider">
-                            </li>
-                            <li>
-                                <a class="dropdown-item toolbar-dropdown-item toolbar-dropdown-item--danger" href="#"
-                                    onclick="regenerateAllSlides(); return false;">
-                                    <span class="toolbar-dropdown-item__icon">
-                                        <i class="fas fa-bolt"></i>
-                                    </span>
-                                    <span class="toolbar-dropdown-item__content">
-                                        <span class="toolbar-dropdown-item__label">一键重新生成全部</span>
-                                    </span>
-                                </a>
-                            </li>
-                        </ul>
-                    </div>
-                    <details class="workspace-more">
-                        <summary class="toolbar-btn toolbar-btn--labeled" title="更多工具"><i class="fas fa-ellipsis-h" aria-hidden="true"></i><span>更多</span></summary>
-                        <div class="workspace-more-menu">
-                    <button class="toolbar-btn toolbar-btn--labeled" onclick="showChangeTemplateDialog()" title="更换模板">
-                        <i class="fas fa-palette"></i><span>模板</span>
-                    </button>
-                    <button class="toolbar-btn toolbar-btn--labeled" onclick="exportToPDF()" title="导出PDF">
-                        <i class="fas fa-file-pdf"></i><span>PDF</span>
-                    </button>
-                    <button class="toolbar-btn toolbar-btn--labeled" onclick="downloadHTML()" title="下载HTML">
-                        <i class="fas fa-download"></i><span>HTML</span>
-                    </button>
-                    <button class="toolbar-btn toolbar-btn--labeled" onclick="showShareDialog()" title="分享">
-                        <i class="fas fa-share-alt"></i><span>分享</span>
-                    </button>
-                    <button class="toolbar-btn toolbar-btn--labeled" id="speechScriptBtn" onclick="showSpeechScriptDialog()" title="生成演讲稿">
-                        <i class="fas fa-commenting"></i><span>演讲稿</span>
-                    </button>
-                        </div>
-                    </details>
-                    </div>
-                </div>
-
-                <!-- Editor Content -->
                 <div class="editor-content is-preview-mode">
                     <!-- Preview Pane -->
                     <div class="preview-pane" id="previewPane">
@@ -766,17 +573,17 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="/static/js/dom-to-pptx.bundle.js?v=20260911-svg-native-v1"></script>
     <script src="/static/js/pages/project/slides_editor/projectEditorShareExport.js?v=20261013-editor-share"></script>
-    <script src="/static/js/pages/project/slides_editor/projectSlidesEditor.core.js?v=20260911-svg-edit-v1"></script>
+    <script src="/static/js/pages/project/slides_editor/projectSlidesEditor.core.js?v=20261022-editor-state"></script>
     <script src="/static/js/pages/project/slides_editor/projectSlidesEditor.agentClient.js?v=20260726-agent-loop-v2"></script>
     <script src="/static/js/pages/project/slides_editor/projectSlidesEditor.quickEdit.js?v=20260408-quick-reset-v2"></script>
     <script src="/static/js/pages/project/slides_editor/projectSlidesEditor.quickAi.js?v=20261013-quick-ui-v4"></script>
     <script src="/static/js/pages/project/slides_editor/projectSlidesEditor.quickEditActions.js?v=20260408-quick-reset-v2"></script>
     <script src="/static/js/pages/project/slides_editor/projectSlidesEditor.quickEditStyling.js?v=20261013-quick-ui-v2"></script>
-    <script src="/static/js/pages/project/slides_editor/projectSlidesEditor.svgEdit.js?v=20260913-svg-editor-v4"></script>
-    <script src="/static/js/pages/project/slides_editor/projectSlidesEditor.slideImageOps.js?v=20260911-svg-edit-v1"></script>
-    <script src="/static/js/pages/project/slides_editor/projectSlidesEditor.slideMediaUi.js?v=20260402-split"></script>
+    <script src="/static/js/pages/project/slides_editor/projectSlidesEditor.svgEdit.js?v=20261022-editor-final"></script>
+    <script src="/static/js/pages/project/slides_editor/projectSlidesEditor.slideImageOps.js?v=20261022-editor-final"></script>
+    <script src="/static/js/pages/project/slides_editor/projectSlidesEditor.slideMediaUi.js?v=20261022-editor-final"></script>
     <script src="/static/js/pages/project/slides_editor/projectSlidesEditor.pretextBridge.js?v=20260406-pretext"></script>
-    <script src="/static/js/pages/project/slides_editor/projectSlidesEditor.nativeChat.js?v=20260402-split"></script>
+    <script src="/static/js/pages/project/slides_editor/projectSlidesEditor.nativeChat.js?v=20261022-editor-final"></script>
     <script src="/static/js/pages/project/slides_editor/projectSlidesEditor.aiChat.js?v=20260911-svg-edit-v1"></script>
     <script src="/static/js/pages/project/slides_editor/projectSlidesEditor.aiApply.js?v=20260911-svg-edit-v1"></script>
     <script src="/static/js/pages/project/slides_editor/projectSlidesEditor.slideGeneration.js?v=20260408-quick-reset-v2"></script>
@@ -812,9 +619,9 @@
     <script src="/static/js/pages/project/slides_editor/projectSlidesEditor.exportIcons.js?v=20260402-split"></script>
     <script src="/static/js/pages/project/slides_editor/projectSlidesEditor.exportRender.js?v=20260911-svg-native-v1"></script>
     <script src="/static/js/pages/project/slides_editor/projectSlidesEditor.exportPptx.js?v=20260707-hybrid-raster-v1"></script>
-    <script src="/static/js/pages/project/slides_editor/projectSlidesEditor.svgPptx.js?v=20260912-mode-dropdown-v1"></script>
+    <script src="/static/js/pages/project/slides_editor/projectSlidesEditor.svgPptx.js?v=20261022-editor-final"></script>
     <script src="/static/js/pages/project/slides_editor/projectEditorNarration.js?v=20261012-editor-media"></script>
-    <script src="/static/js/pages/project/slides_editor/projectSlidesEditor.init.js?v=20260929-nav-outside"></script>
+    <script src="/static/js/pages/project/slides_editor/projectSlidesEditor.init.js?v=20261022-editor-final"></script>
 
     <!-- Export PPTX Progress Overlay -->
     <div class="export-overlay" id="exportOverlay">
@@ -838,16 +645,19 @@
         </div>
     </div>
     <link rel="stylesheet" href="/static/css/template-packages.css?v=20261013-workspace-grid">
-    <script src="/static/js/template-packages.js?v=20260925-workspace"></script>
-    <script src="/static/js/pages/project/slides_editor/projectSlidesEditor.workspace.js?v=20260929-1"></script>
-    <script src="/static/js/pages/project/slides_editor/projectSlidesEditor.antBridge.js?v=20261013-editor-documents-v2"></script>
+    <script src="/static/js/template-packages.js?v=20261022-editor-port"></script>
+    <script src="/static/js/pages/project/slides_editor/projectSlidesEditor.workspace.js?v=20261022-editor-final"></script>
+    <script src="/static/js/pages/project/slides_editor/projectSlidesEditor.engine.js?v=20261022-editor-final2"></script>
+    <script src="/static/js/pages/project/slides_editor/projectSlidesEditor.antBridge.js?v=20261022-editor-final"></script>
     <div id="antdRoot"></div>
+    {% import "components/project/workspace_state.html" as ws with context %}
     <script id="antdData" type="application/json">{{ {
         'page': 'slides-editor', 'projectId': project.project_id, 'title': project.title,
         'standardExport': standard_pptx_export_enabled | default(false),
-        'autoRepair': enable_auto_layout_repair | default(false)
+        'autoRepair': enable_auto_layout_repair | default(false),
+        'workspace': ws.state
     } | tojson }}</script>
-    <script type="module" src="/static/antd/app.js?v=0.4.0-home-sponsors-v1"></script>
+    <script type="module" src="/static/antd/app.js?v=0.4.0-editor-integration-h"></script>
 </body>
 
 </html>

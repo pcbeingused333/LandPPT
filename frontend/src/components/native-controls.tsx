@@ -41,7 +41,7 @@ export function NativeControls({ root, extraRoots = noExtraRoots }: { root: HTML
         else if (!node.classList.contains('native-ant-source')) node.classList.add('native-ant-source');
       }
       sources.forEach(source => source.querySelectorAll<Source>('button,input:not([type=radio]):not([type=color]):not([type=range]),textarea,select').forEach(node => {
-        if (records.current.has(node) || node.closest('[data-native-ant-host],.CodeMirror,.ant-segmented') || node.matches('.ant-btn,.ant-modal-close,.pw-page-pick,[data-bs-dismiss],.btn-close,#freeTemplateCodeArea') || node.querySelector('iframe,img')) return;
+        if (records.current.has(node) || node.closest('[data-native-ant-host],.CodeMirror,.ant-segmented') || node.matches('.ant-btn,.ant-modal-close,.pw-page-pick,[data-bs-dismiss],.btn-close') || node.querySelector('iframe,img')) return;
         if (node instanceof HTMLInputElement && !['text', 'search', 'number', 'url', 'email', 'password', 'checkbox', 'file'].includes(node.type)) return;
         const host = document.createElement('span'); host.dataset.nativeAntHost = ''; host.className = `native-ant-control native-ant-${node.tagName.toLowerCase()}`;
         if (node instanceof HTMLInputElement && node.type === 'checkbox') host.classList.add('native-ant-checkbox');

@@ -12,7 +12,7 @@ def delay_dialog_adapter(page):
     page.add_init_script(
         """(() => {
       let bridge;
-      Object.defineProperty(window, 'LandPPTEditorUI', {
+      Object.defineProperty(window, 'LandPPTEditorSurfaces', {
         configurable: true,
         get: () => bridge,
         set(value) {

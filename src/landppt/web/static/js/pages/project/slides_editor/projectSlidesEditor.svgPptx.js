@@ -249,18 +249,3 @@ function editorExportTargetsAllSvg() {
     }
     return String(window.landpptEditorConfig?.renderMode || 'html') === 'svg';
 }
-
-function updateExportDropdownModeVisibility() {
-    const allSvg = editorExportTargetsAllSvg();
-    [['exportClientModeItem', !allSvg], ['exportSvgNativeModeItem', allSvg], ['exportSvgVectorModeItem', allSvg]]
-        .forEach(([id, visible]) => {
-            const item = document.getElementById(id);
-            if (item) item.style.display = visible ? '' : 'none';
-        });
-}
-
-(function initExportDropdownModeVisibility() {
-    const btn = document.getElementById('exportDropdownBtn');
-    if (btn) btn.addEventListener('show.bs.dropdown', updateExportDropdownModeVisibility);
-    updateExportDropdownModeVisibility();
-})();

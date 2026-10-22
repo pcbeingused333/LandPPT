@@ -121,7 +121,11 @@ def open_navigation(page, path):
             != "true"
         ):
             page.get_by_role("button", name="菜单", exact=True).click()
-    link = page.locator(f'.app-nav a[href="{path}"]').filter(visible=True).first
+    scope = '.ant-drawer' if page.get_by_role('button', name='菜单', exact=True).is_visible() else '.app-shell'
+    link = page.locator(f'{scope} a[href="{path}"]').filter(visible=True).first
+    if path == "/create" and not link.count():
+        # Desktop project creation uses the existing /scenarios alias.
+        link = page.locator(f'{scope} a[href="/scenarios"]').filter(visible=True).first
     link.click()
     expect(
         page.get_by_role("heading", name=ROUTES[path][1], exact=True)
@@ -204,8 +208,8 @@ def test_navigation_refreshes_sponsor_entry_after_settings_change(ui_page):
     open_navigation(page, "/create")
     expect(page.locator("#footerSponsorLink")).to_have_count(0)
     public["sponsor_page_enabled"] = True
-    page.evaluate("document.dispatchEvent(new CustomEvent('landppt:navigate', {detail: '/scenarios', cancelable: true}))")
-    expect(page).to_have_url("http://ui.test/scenarios")
+    page.evaluate("document.dispatchEvent(new CustomEvent('landppt:navigate', {detail: '/create', cancelable: true}))")
+    expect(page).to_have_url("http://ui.test/create")
     expect(page.locator("#footerSponsorLink")).to_have_text("赞助感谢")
     assert page.evaluate("window.sponsorHeader === document.querySelector('.app-header')")
     assert not state["errors"]
@@ -242,7 +246,7 @@ def test_navigation_reuses_shell_across_all_main_pages(ui_page, width, height):
         assert page.evaluate(
             "window.navMarker === 'same-document' && window.navHeader === document.querySelector('.app-header')"
         )
-        assert urlsplit(page.url).path == path
+        assert urlsplit(page.url).path in ({"/create", "/scenarios"} if path == "/create" else {path})
         assert (
             page.evaluate(
                 "JSON.parse(document.getElementById('antdData').textContent).page"
@@ -251,7 +255,9 @@ def test_navigation_reuses_shell_across_all_main_pages(ui_page, width, height):
         )
         assert page.evaluate("document.documentElement.scrollWidth <= innerWidth+1")
     assert sum(item["kind"] == "document" for item in state["reads"]) == 1
-    assert len(state["reads"]) == len(PATHS) + 1
+    # The dashboard reads the existing creation HTML to use the same account
+    # defaults/catalogue; no private page payload is prefetched on hover.
+    assert len(state["reads"]) == len(PATHS) + 3
     assert not state["errors"]
 
 
@@ -279,7 +285,7 @@ def test_navigation_reads_fresh_data_and_supports_back_forward(ui_page):
 def test_navigation_last_click_wins_and_current_link_cancels_pending(ui_page):
     page, _ = ui_page
     state = navigation_app(page)
-    page.goto("http://ui.test/dashboard", wait_until="networkidle")
+    page.goto("http://ui.test/home", wait_until="networkidle")
     page.evaluate(
         """() => {
       const original=fetch;window.pendingPages=[];
@@ -289,21 +295,21 @@ def test_navigation_last_click_wins_and_current_link_cancels_pending(ui_page):
     )
     page.locator('.desktop-navigation a[href="/projects"]').click()
     expect(page.locator("#appMain")).to_have_attribute("aria-busy", "true")
-    open_navigation(page, "/create")
+    open_navigation(page, "/global-master-templates")
     page.evaluate(
         "html => window.pendingPages[0](new Response(html))",
         state["render"]("/projects"),
     )
-    expect(page.get_by_role("heading", name="创建 PPT", exact=True)).to_be_visible()
-    assert urlsplit(page.url).path == "/create"
+    expect(page.get_by_role("heading", name="模板管理", exact=True)).to_be_visible()
+    assert urlsplit(page.url).path == "/global-master-templates"
     page.locator('.desktop-navigation a[href="/projects"]').click()
-    page.locator('.desktop-navigation a[href="/create"]').click()
+    page.locator('.desktop-navigation a[href="/global-master-templates"]').click()
     page.evaluate(
         "html => window.pendingPages[1](new Response(html))",
         state["render"]("/projects"),
     )
     expect(page.locator("#appMain")).to_have_attribute("aria-busy", "false")
-    assert urlsplit(page.url).path == "/create"
+    assert urlsplit(page.url).path == "/global-master-templates"
     assert not state["errors"]
 
 
@@ -372,9 +378,11 @@ def test_navigation_does_not_execute_page_scripts_or_prefetch_data(ui_page):
         content_type="text/html; charset=utf-8",
     )
     page.goto("http://ui.test/dashboard", wait_until="networkidle")
+    reads_before_hover = list(state["reads"])
     page.locator('.desktop-navigation a[href="/projects"]').hover()
     page.wait_for_timeout(1200)
-    assert len(state["reads"]) == 1
+    assert state["reads"] == reads_before_hover
+    assert [read["path"] for read in state["reads"]] == ["/dashboard", "/create"]
     open_navigation(page, "/projects")
     assert page.evaluate("window.extraScriptRan") is None
     assert not state["errors"]
@@ -392,8 +400,9 @@ def test_navigation_keeps_notification_poller_and_same_page_link_stable(ui_page)
     page.route("**/notifications/unread-count", count)
     page.goto("http://ui.test/dashboard", wait_until="networkidle")
     page.evaluate("window.navMarker='same-document'")
+    initial_reads = list(state["reads"])
     page.locator('.desktop-navigation a[href="/dashboard"]').click()
-    assert len(state["reads"]) == 1
+    assert state["reads"] == initial_reads
     for path in ["/projects", "/create", "/ai-config", "/dashboard"]:
         open_navigation(page, path)
     assert len(unread) == 1
