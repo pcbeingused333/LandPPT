@@ -2,7 +2,8 @@
 
 React 19, TypeScript and Ant Design 6. The FastAPI routes still render Jinja
 pages and provide their existing APIs. Navigation uses normal browser links,
-with client navigation between ordinary application pages and project details.
+with client navigation between ordinary application pages. Project URLs share
+one workspace with the established editor, outline and generation controllers.
 
 ## Development
 
@@ -64,14 +65,24 @@ Shared list pagination wraps within narrow containers while preserving 44px touc
 targets and the existing page, search and status callbacks. Large catalogues are
 covered in `tests/test_antd_pagination_ui.py`, including 5 and 100 pages across
 project, template, package, image and user lists.
-Only the `/projects/:id` root participates; editor, task board, playback,
-template-selection workspaces and authentication retain full navigation.
+Project URLs (`/projects/:id`, `/todo`, `/edit`) render the same workspace shell.
+They initially select overview, planning/generation and editing respectively.
+Inside the workspace those views and the project's source/export libraries switch
+in place; visited planning/generation views retain their controllers and drafts.
+The `workspace` query parameter restores the selected view after reload.
+Ordinary-page navigation into a project falls back to a full document load so
+the native engine scripts initialize once. Playback, template selection and
+authentication also retain full navigation. Opening the editor after generation
+reloads the authoritative saved slides in the same browser tab.
 Pagination, filtering and project duplication use the same authenticated
 navigation. Outline saves and version restoration still reload authoritative
 server state. Navigation warms module code on hover/focus and while idle;
 it never prefetches private page data or mounts hidden pages to run their APIs.
 
-The footer reads its version from `frontend/package.json`. GitHub and business
+The collapsible desktop rail stores only its collapsed preference in localStorage;
+project titles are read with owner-scoped, uncached requests. At tablet/mobile
+widths navigation becomes a drawer. The footer appears on the product homepage
+and reads its version from `frontend/package.json`. GitHub and business
 contact links use icons, accessible names and hover/focus tooltips; original
 destinations and the conditional sponsor link are retained. UI releases bump the
 template resource stamp so existing pages switch to the new build on navigation.
@@ -80,7 +91,7 @@ Project details group archive/copy/delete in a click-triggered menu; preview and
 editing remain direct actions. Outline cards expose view/edit and a menu for
 move/delete, alongside drag sorting. Confirmation cancellation restores focus
 to the menu trigger; deletion keeps both confirmations. Shared Ant tokens use
-black actions, subtle card depth and distinct hover/focus states. Styling affects
+white actions on dark surfaces and distinct hover/focus states. Styling affects
 application controls only, not generated HTML/SVG inside presentation frames.
 
 Application page shells/catalogues use Ant Design, including dashboard,
@@ -89,8 +100,8 @@ community, images, templates, creation/research, home, playback, task board,
 generation workspace and PPT editor. The shared error page is also migrated.
 Announcements use Ant Alert and the notification center uses an Ant Drawer;
 its existing poller, read endpoints and desktop-permission flow remain intact.
-Login and registration retain their original black/white split layouts and native
-forms, restored from the pre-migration templates. Their dedicated CSS/JavaScript
+Login and registration retain their split layouts and native forms, with the
+shared dark palette applied to the account panel. Their dedicated CSS/JavaScript
 is shipped with the app; login/register switching, invitation requirements,
 OAuth provider flags, email-code cooldown and lazy Turnstile remain supported.
 The login account field accepts either username or registered email, using the
@@ -106,7 +117,25 @@ The PPT editor has a standalone application controller and explicit engine ports
 
 The shell has four primary destinations: workspace, projects, templates and
 assets. The shared header has no creation button; creation remains available
-through the dashboard composer, page actions and the mobile navigation drawer.
+through the desktop rail, dashboard composer, page actions and mobile drawer.
+
+## Shared appearance and workspace layout
+
+`static/css/shared/design-tokens.css` is the palette contract for React, Jinja,
+native controls and account forms. Ant uses `darkAlgorithm` and CSS variables;
+the shared tokens reserve a light palette via `data-theme="light"`. Surface
+levels, borders and readable secondary text replace the old light overrides.
+Primary controls use a light fill, dark text and pill corners; panels use 16px
+corners. Slide iframe documents and the login brand illustration own their art.
+
+The workspace mounts the existing editor DOM nodes into three Ant Splitter panels:
+AI, files/documents and preview. Reparenting preserves native listeners and drafts.
+The continuous preview reuses `SlideDocument` without rewriting presentation HTML.
+At narrow widths the AI opens in a drawer and the document rail overlays the
+preview. Planning/generation monitors mount only for the active view; the existing
+task ownership, cancellation and billing gates remain in their controllers.
+`tests/test_workspace_redesign_ui.py` covers view switching, original documents,
+mobile overlays, sidebar persistence, contrast and visual screenshots.
 Settings and the product homepage are
 reachable through secondary controls, including the mobile navigation drawer.
 The dashboard and `/create` both render `components/create-composer.tsx`;

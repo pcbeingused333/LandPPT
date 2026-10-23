@@ -255,7 +255,7 @@ def test_save_in_progress_blocks_start_without_discarding_canvas_edits(ui_page):
     state = setup(page, load)
     held = []
     page.route("**/slides/*/save", lambda route: held.append(route))
-    page.get_by_role("toolbar").get_by_text("代码", exact=True).click()
+    page.get_by_role("toolbar").get_by_title("代码", exact=True).click()
     source = HTML.replace("原始演示内容", "保存后再导出的内容")
     page.locator("#codeEditor").fill(source)
     page.get_by_role("button", name="保存", exact=True).click()

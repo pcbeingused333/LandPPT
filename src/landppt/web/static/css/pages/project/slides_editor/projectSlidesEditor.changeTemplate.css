@@ -2,7 +2,7 @@
 .tpl-dialog-overlay {
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.5);
+    background: var(--lp-mask);
     z-index: 20000;
     display: flex;
     align-items: center;
@@ -16,7 +16,7 @@
     background: var(--surface-elevated);
     border: 1px solid var(--border-color);
     border-radius: var(--border-radius-lg);
-    box-shadow: 0 30px 90px rgba(0, 0, 0, 0.28);
+    box-shadow: none;
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -28,8 +28,8 @@
     align-items: center;
     justify-content: space-between;
     padding: 14px 24px;
-    background: #000;
-    color: #fff;
+    background: var(--lp-primary);
+    color: var(--lp-on-primary);
     flex-shrink: 0;
 }
 
@@ -50,9 +50,9 @@
     width: 28px;
     height: 28px;
     border-radius: 6px;
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    border: 1px solid var(--lp-divider);
     background: transparent;
-    color: #fff;
+    color: var(--lp-on-primary);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -61,7 +61,7 @@
 }
 
 .tpl-dialog-close:hover {
-    background: rgba(255, 255, 255, 0.15);
+    background: var(--lp-divider);
 }
 
 /* Body — two-panel layout */
@@ -134,18 +134,18 @@
     cursor: pointer;
     transition: border-color 0.15s, box-shadow 0.15s;
     overflow: hidden;
-    background: #fff;
+    background: var(--lp-surface);
     position: relative;
 }
 
 .tpl-card:hover {
     border-color: var(--text-muted);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    box-shadow: none;
 }
 
 .tpl-card.active {
     border-color: var(--accent-strong);
-    box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.15);
+    box-shadow: none;
 }
 
 .tpl-card.current::after {
@@ -190,8 +190,8 @@
 
 .tpl-card-preview-shell {
     background:
-        linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(244, 247, 251, 0.92)),
-        linear-gradient(135deg, rgba(0, 0, 0, 0.04), transparent);
+        linear-gradient(135deg, var(--lp-surface), var(--lp-elevated)),
+        linear-gradient(135deg, var(--lp-overlay), transparent);
 }
 
 .tpl-card-preview-shell--loading::before {
@@ -202,8 +202,8 @@
     width: 18px;
     height: 18px;
     margin: -9px 0 0 -9px;
-    border: 2px solid rgba(15, 23, 42, 0.12);
-    border-top-color: rgba(15, 23, 42, 0.6);
+    border: 2px solid var(--lp-overlay);
+    border-top-color: var(--lp-mask);
     border-radius: 50%;
     animation: tplCardPreviewSpin 0.8s linear infinite;
     z-index: 2;
@@ -221,7 +221,7 @@
     position: absolute;
     left: 50%;
     top: 50%;
-    background: #fff;
+    background: var(--lp-surface);
     transform: translate(-50%, -50%) scale(var(--tpl-scale, 0.1));
     transform-origin: center center;
 }
@@ -251,7 +251,7 @@
 
 .tpl-preview-frame {
     border-radius: 12px;
-    box-shadow: 0 12px 36px rgba(15, 23, 42, 0.14);
+    box-shadow: none;
 }
 
 .tpl-card-name {
@@ -327,7 +327,7 @@
     max-height: 100%;
     object-fit: contain;
     border-radius: 8px;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+    box-shadow: none;
 }
 
 .tpl-preview-placeholder {
@@ -433,7 +433,7 @@
 }
 
 .tpl-apply-btn:hover {
-    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.18);
+    box-shadow: none;
 }
 
 .tpl-apply-btn:disabled {

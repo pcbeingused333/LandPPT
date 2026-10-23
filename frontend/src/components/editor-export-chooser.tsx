@@ -51,12 +51,15 @@ export function EditorExportChooser({ projectTitle, count, client, native, vecto
   async function start() {
     if (locked.current || saving || !count || !method) return;
     locked.current = true; setPending(true); setOpen(false);
+    // The drawer closes instantly, so the second click of a double-click would land on the AI rail beneath it.
+    const shield = (event: MouseEvent) => { if (event.detail > 1) { event.preventDefault(); event.stopPropagation(); } };
+    document.addEventListener('click', shield, true); window.setTimeout(() => document.removeEventListener('click', shield, true), 500);
     try { await run(method.command, ...method.args || []); }
     catch (error) { void message.error((error as Error).message || '无法启动导出，请重试'); }
     finally { locked.current = false; completed.current = true; setPending(false); }
   }
   return <>
-    <Button ref={trigger} data-editor-export-trigger disabled={!count || pending} icon={<DownloadOutlined aria-hidden />} onClick={() => setOpen(true)}>导出</Button>
+    <Button ref={trigger} data-editor-export-trigger title="导出" disabled={!count || pending} icon={<DownloadOutlined aria-hidden />} onClick={() => setOpen(true)}>导出</Button>
     <Drawer title="导出演示文稿" open={open} onClose={() => setOpen(false)} size={560} zIndex={1700} className="editor-export-chooser" styles={{ wrapper: { maxWidth: '100vw' } }}
       afterOpenChange={value => { if (!value && !document.querySelector('.editor-ant-dialog') && trigger.current?.isConnected) trigger.current.focus({ preventScroll: true }); }}
       drawerRender={node => <div style={{ height: '100%' }} onKeyDown={event => { event.stopPropagation(); if (event.key === 'Escape') { event.preventDefault(); setOpen(false); } else if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's') event.preventDefault(); }}>{modalFocus(node, { height: '100%' })}</div>}

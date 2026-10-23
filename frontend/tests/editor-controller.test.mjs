@@ -92,6 +92,13 @@ test('native port rejects unknown global commands', () => {
   const engine = nativeEngine().LandPPTEditorEngine;
   assert.throws(() => engine.call('fetch', '/unsafe'), /编辑操作不可用/);
 });
+
+test('workspace insertion uses the current slide rather than an old context menu target', () => {
+  const context = nativeEngine(), engine = context.LandPPTEditorEngine;
+  vm.runInContext('let contextMenuSlideIndex = 0; function insertNewSlide(){return contextMenuSlideIndex}', context);
+  engine.call('selectSlide', 1);
+  assert.equal(engine.call('insertNewSlide'), 1);
+});
 test('stable slide identifiers preserve document keys after snapshot replacement', () => {
   const context = nativeEngine(), engine = context.LandPPTEditorEngine, first = engine.read().documentPages[0].key;
   vm.runInContext("slidesData = [{title:'Changed',slide_id:'one'}]", context);

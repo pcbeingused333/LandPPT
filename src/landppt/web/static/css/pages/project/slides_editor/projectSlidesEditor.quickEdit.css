@@ -5,17 +5,17 @@
 
 /* 可编辑元素高亮样式 */
 .quick-edit-highlight {
-    outline: 2px solid rgba(67, 233, 123, 0.6) !important;
+    outline: 2px solid var(--lp-divider) !important;
     outline-offset: 2px !important;
     cursor: text !important;
     transition: outline-color 0.2s ease, outline-offset 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease !important;
     position: relative !important;
-    box-shadow: 0 0 0 1px rgba(67, 233, 123, 0.16) !important;
+    box-shadow: none;
 }
 
 .quick-edit-highlight:hover {
-    outline-color: rgba(67, 233, 123, 0.8) !important;
-    box-shadow: 0 0 0 2px rgba(67, 233, 123, 0.18) !important;
+    outline-color: var(--lp-divider) !important;
+    box-shadow: none;
     transform: scale(1.02) !important;
 }
 
@@ -24,8 +24,8 @@
     position: absolute !important;
     top: -8px !important;
     right: -8px !important;
-    background: rgba(67, 233, 123, 0.9) !important;
-    color: white !important;
+    background: var(--lp-success-bg) !important;
+    color: var(--lp-on-primary) !important;
     border-radius: 50% !important;
     width: 20px !important;
     height: 20px !important;
@@ -34,16 +34,16 @@
     justify-content: center !important;
     font-size: 10px !important;
     z-index: 1000 !important;
-    box-shadow: 0 2px 4px rgba(67, 233, 123, 0.3) !important;
+    box-shadow: none;
 }
 
 /* 直接编辑状态样式 */
 .direct-editing {
-    outline: 2px solid #4facfe !important;
+    outline: 2px solid var(--lp-border) !important;
     outline-offset: 2px !important;
     transition: outline-color 0.2s ease, outline-offset 0.2s ease, box-shadow 0.2s ease !important;
     position: relative !important;
-    box-shadow: 0 0 0 2px rgba(79, 172, 254, 0.16) !important;
+    box-shadow: none;
 }
 
 /* 魔术棒按钮样式 */
@@ -64,7 +64,7 @@
     opacity: 0.7 !important;
     position: relative !important;
     overflow: hidden !important;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25) !important;
+    box-shadow: none;
 }
 
 .magic-wand-btn::before {
@@ -74,8 +74,8 @@
 .magic-wand-btn:hover {
     opacity: 1 !important;
     transform: translateY(-1px) !important;
-    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.3) !important;
-    background: #1f1f1f !important;
+    box-shadow: none;
+    background: var(--lp-primary) !important;
 }
 
 .magic-wand-btn:active {
@@ -86,18 +86,18 @@
     opacity: 0.5 !important;
     cursor: not-allowed !important;
     transform: none !important;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2) !important;
+    box-shadow: none;
 }
 
 .magic-wand-btn:disabled:hover {
     transform: none !important;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2) !important;
+    box-shadow: none;
 }
 
 /* 删除要点按钮样式 */
 .delete-bullet-btn {
-    background: #dc3545 !important;
-    color: white !important;
+    background: var(--lp-danger-bg) !important;
+    color: var(--lp-on-primary) !important;
     border: none !important;
     border-radius: 50% !important;
     width: 28px !important;
@@ -110,14 +110,14 @@
     font-size: 12px !important;
     transition: all 0.3s ease !important;
     opacity: 0.7 !important;
-    box-shadow: 0 2px 8px rgba(220, 53, 69, 0.3) !important;
+    box-shadow: none;
 }
 
 .delete-bullet-btn:hover {
     opacity: 1 !important;
     transform: translateY(-2px) scale(1.1) !important;
-    box-shadow: 0 4px 15px rgba(220, 53, 69, 0.5) !important;
-    background: #c82333 !important;
+    box-shadow: none;
+    background: var(--lp-danger-bg) !important;
 }
 
 .delete-bullet-btn:active {
@@ -141,7 +141,7 @@
 }
 
 .bullet-point-item:hover {
-    background: rgba(0, 0, 0, 0.02) !important;
+    background: var(--lp-overlay) !important;
     border-radius: 6px !important;
     transform: translateX(2px) !important;
 }
@@ -167,7 +167,7 @@
     background: var(--accent-strong);
     color: var(--accent-contrast);
     transform: translateY(-1px);
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+    box-shadow: none;
 }
 
 .outline-modal-btn:active {
@@ -181,7 +181,7 @@
 }
 
 .outline-modal-btn--solid:hover {
-    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.25);
+    box-shadow: none;
 }
 
 .outline-modal-btn i {
@@ -216,17 +216,17 @@
 /* 直接编辑样式 - 简化版，无悬浮提示 */
 
 .direct-editing:focus {
-    outline-color: #2980b9 !important;
-    box-shadow: 0 0 0 2px rgba(79, 172, 254, 0.22) !important;
+    outline-color: var(--lp-border) !important;
+    box-shadow: none;
 }
 
 /* 内联编辑器样式 */
 .inline-editor {
     position: absolute;
-    background: white;
-    border: 2px solid rgba(79, 172, 254, 0.6);
+    background: var(--lp-surface);
+    border: 2px solid var(--lp-divider);
     border-radius: var(--border-radius-md);
-    box-shadow: 0 8px 25px rgba(31, 38, 135, 0.3);
+    box-shadow: none;
     z-index: 2000;
     min-width: 200px;
     max-width: 500px;
@@ -254,13 +254,13 @@
     justify-content: flex-end;
     margin-top: var(--spacing-xs);
     padding-top: var(--spacing-xs);
-    border-top: 1px solid rgba(79, 172, 254, 0.2);
+    border-top: 1px solid var(--lp-divider);
 }
 
 .inline-editor-btn {
-    background: rgba(79, 172, 254, 0.1);
-    border: 1px solid rgba(79, 172, 254, 0.3);
-    color: rgba(79, 172, 254, 0.8);
+    background: var(--lp-divider);
+    border: 1px solid var(--lp-divider);
+    color: var(--lp-divider);
     padding: var(--spacing-xs) var(--spacing-sm);
     border-radius: var(--border-radius-sm);
     cursor: pointer;
@@ -269,21 +269,21 @@
 }
 
 .inline-editor-btn:hover {
-    background: rgba(79, 172, 254, 0.2);
-    border-color: rgba(79, 172, 254, 0.5);
-    color: rgba(79, 172, 254, 1);
+    background: var(--lp-divider);
+    border-color: var(--lp-divider);
+    color: var(--lp-info);
 }
 
 .inline-editor-btn.primary {
-    background: rgba(67, 233, 123, 0.1);
-    border-color: rgba(67, 233, 123, 0.3);
-    color: rgba(67, 233, 123, 0.8);
+    background: var(--lp-divider);
+    border-color: var(--lp-divider);
+    color: var(--lp-divider);
 }
 
 .inline-editor-btn.primary:hover {
-    background: rgba(67, 233, 123, 0.2);
-    border-color: rgba(67, 233, 123, 0.5);
-    color: rgba(67, 233, 123, 1);
+    background: var(--lp-divider);
+    border-color: var(--lp-divider);
+    color: var(--lp-success);
 }
 
 /* ========== 快速编辑工具栏样式 ========== */
@@ -293,16 +293,16 @@
     /* 计算居中位置：左侧边栏260px，留出一些边距 */
     left: calc(260px + (100vw - 260px) / 2);
     transform: translateX(-50%);
-    background: rgba(30, 30, 30, 0.9);
+    background: var(--lp-primary);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
-    border: 1px solid rgba(255, 255, 255, 0.15);
+    border: 1px solid var(--lp-divider);
     border-radius: 10px;
     padding: 6px 12px;
     display: flex;
     align-items: center;
     gap: 3px;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    box-shadow: none;
     z-index: 1500;
     opacity: 0;
     visibility: hidden;
@@ -325,13 +325,13 @@
     max-height: calc(100vh - 24px);
     min-width: 280px;
     min-height: 56px;
-    background: rgba(20, 20, 20, 0.92);
+    background: var(--lp-primary);
     backdrop-filter: blur(14px);
     -webkit-backdrop-filter: blur(14px);
-    border: 1px solid rgba(255, 255, 255, 0.12);
+    border: 1px solid var(--lp-divider);
     border-radius: 12px;
-    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
-    color: rgba(255, 255, 255, 0.9);
+    box-shadow: none;
+    color: var(--lp-on-primary);
     opacity: 0;
     visibility: hidden;
     transform: translateY(6px);
@@ -354,7 +354,7 @@
     position: absolute;
     inset: 0;
     border-radius: 12px;
-    background: rgba(255, 255, 255, 0.02);
+    background: var(--lp-divider);
     pointer-events: none;
 }
 
@@ -367,10 +367,10 @@
     height: 38px;
     border-radius: 10px;
     background: linear-gradient(180deg,
-            rgba(79, 172, 254, 0) 0%,
-            rgba(79, 172, 254, 0.35) 45%,
-            rgba(79, 172, 254, 0) 100%);
-    box-shadow: 0 0 22px rgba(79, 172, 254, 0.18);
+            var(--lp-divider) 0%,
+            var(--lp-divider) 45%,
+            var(--lp-divider) 100%);
+    box-shadow: none;
     animation: quickAiScan 1.15s ease-in-out infinite;
     pointer-events: none;
 }
@@ -409,7 +409,7 @@
     align-items: center;
     justify-content: space-between;
     padding: 10px 12px 8px 12px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    border-bottom: 1px solid var(--lp-divider);
     cursor: move;
     user-select: none;
 }
@@ -421,7 +421,7 @@
     font-size: 12px;
     font-weight: 800;
     letter-spacing: 0.2px;
-    color: rgba(255, 255, 255, 0.92);
+    color: var(--lp-on-primary);
 }
 
 .quick-ai-edit-popover.loading.minimized .quick-ai-edit-popover-title i {
@@ -451,8 +451,8 @@
     width: 26px;
     height: 26px;
     border: none;
-    background: rgba(255, 255, 255, 0.08);
-    color: rgba(255, 255, 255, 0.8);
+    background: var(--lp-divider);
+    color: var(--lp-divider);
     border-radius: 8px;
     cursor: pointer;
     display: flex;
@@ -464,14 +464,14 @@
 .quick-ai-edit-popover-close:hover,
 .quick-ai-edit-popover-minimize:hover,
 .quick-ai-edit-popover-vision:hover {
-    background: rgba(255, 255, 255, 0.14);
-    color: #fff;
+    background: var(--lp-divider);
+    color: var(--lp-on-primary);
 }
 
 .quick-ai-edit-popover-vision.active {
-    background: rgba(79, 172, 254, 0.22);
-    color: rgba(255, 255, 255, 0.95);
-    border: 1px solid rgba(79, 172, 254, 0.35);
+    background: var(--lp-divider);
+    color: var(--lp-on-primary);
+    border: 1px solid var(--lp-divider);
 }
 
 .quick-ai-edit-popover-body {
@@ -485,17 +485,17 @@
     resize: vertical;
     border-radius: 10px;
     padding: 10px 10px;
-    border: 1px solid rgba(255, 255, 255, 0.14);
-    background: rgba(255, 255, 255, 0.06);
-    color: rgba(255, 255, 255, 0.92);
+    border: 1px solid var(--lp-divider);
+    background: var(--lp-divider);
+    color: var(--lp-on-primary);
     outline: none;
     font-size: 12px;
     line-height: 1.45;
 }
 
 .quick-ai-edit-input:focus {
-    border-color: rgba(79, 172, 254, 0.65);
-    box-shadow: 0 0 0 3px rgba(79, 172, 254, 0.18);
+    border-color: var(--lp-divider);
+    box-shadow: none;
 }
 
 .quick-ai-edit-actions {
@@ -507,9 +507,9 @@
 }
 
 .quick-ai-edit-btn {
-    border: 1px solid rgba(255, 255, 255, 0.16);
-    background: rgba(255, 255, 255, 0.08);
-    color: rgba(255, 255, 255, 0.9);
+    border: 1px solid var(--lp-divider);
+    background: var(--lp-divider);
+    color: var(--lp-on-primary);
     padding: 6px 10px;
     border-radius: 10px;
     cursor: pointer;
@@ -519,19 +519,19 @@
 }
 
 .quick-ai-edit-btn:hover {
-    background: rgba(255, 255, 255, 0.12);
-    color: #fff;
+    background: var(--lp-divider);
+    color: var(--lp-on-primary);
 }
 
 .quick-ai-edit-btn.primary {
-    background: rgba(79, 172, 254, 0.18);
-    border-color: rgba(79, 172, 254, 0.35);
-    color: rgba(255, 255, 255, 0.95);
+    background: var(--lp-divider);
+    border-color: var(--lp-divider);
+    color: var(--lp-on-primary);
 }
 
 .quick-ai-edit-btn.primary:hover {
-    background: rgba(79, 172, 254, 0.26);
-    border-color: rgba(79, 172, 254, 0.55);
+    background: var(--lp-divider);
+    border-color: var(--lp-divider);
 }
 
 .quick-ai-edit-btn:disabled {
@@ -547,7 +547,7 @@
     gap: 8px;
     margin-top: 10px;
     padding-top: 10px;
-    border-top: 1px solid rgba(255, 255, 255, 0.12);
+    border-top: 1px solid var(--lp-divider);
 }
 
 .quick-ai-edit-result.visible {
@@ -557,7 +557,7 @@
 .quick-ai-edit-status {
     margin-top: 8px;
     font-size: 11px;
-    color: rgba(255, 255, 255, 0.7);
+    color: var(--lp-divider);
     display: none;
 }
 
@@ -566,7 +566,7 @@
 }
 
 .quick-ai-edit-status.loading {
-    color: rgba(255, 255, 255, 0.78);
+    color: var(--lp-divider);
 }
 
 .quick-ai-edit-status.loading::after {
@@ -575,9 +575,9 @@
     width: 18px;
     height: 10px;
     margin-left: 8px;
-    background: radial-gradient(circle, rgba(255, 255, 255, 0.75) 2px, transparent 2.5px) 0 50% / 6px 10px no-repeat,
-        radial-gradient(circle, rgba(255, 255, 255, 0.55) 2px, transparent 2.5px) 6px 50% / 6px 10px no-repeat,
-        radial-gradient(circle, rgba(255, 255, 255, 0.35) 2px, transparent 2.5px) 12px 50% / 6px 10px no-repeat;
+    background: radial-gradient(circle, var(--lp-divider) 2px, transparent 2.5px) 0 50% / 6px 10px no-repeat,
+        radial-gradient(circle, var(--lp-divider) 2px, transparent 2.5px) 6px 50% / 6px 10px no-repeat,
+        radial-gradient(circle, var(--lp-divider) 2px, transparent 2.5px) 12px 50% / 6px 10px no-repeat;
     animation: quickAiDots 1.05s ease-in-out infinite;
     vertical-align: middle;
 }
@@ -605,7 +605,7 @@
 .quick-edit-toolbar .toolbar-divider {
     width: 1px;
     height: 18px;
-    background: rgba(255, 255, 255, 0.2);
+    background: var(--lp-divider);
     margin: 0 3px;
 }
 
@@ -619,14 +619,14 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    color: rgba(255, 255, 255, 0.7);
+    color: var(--lp-divider);
     transition: all 0.2s ease;
     font-size: 12px;
 }
 
 .quick-edit-tool-btn:hover {
-    background: rgba(255, 255, 255, 0.15);
-    color: #fff;
+    background: var(--lp-divider);
+    color: var(--lp-on-primary);
 }
 
 .quick-edit-tool-btn:active {
@@ -634,13 +634,13 @@
 }
 
 .quick-edit-tool-btn.danger:hover {
-    background: rgba(220, 53, 69, 0.3);
-    color: #ff6b6b;
+    background: var(--lp-divider);
+    color: var(--lp-danger);
 }
 
 .quick-edit-tool-btn.reset:hover {
-    background: rgba(255, 193, 7, 0.3);
-    color: #ffc107;
+    background: var(--lp-divider);
+    color: var(--lp-accent);
 }
 
 .quick-edit-tool-btn:disabled {
@@ -651,9 +651,9 @@
 /* 工具栏状态指示器 */
 .toolbar-status {
     font-size: 11px;
-    color: rgba(255, 255, 255, 0.7);
+    color: var(--lp-divider);
     padding: 2px 8px;
-    background: rgba(255, 255, 255, 0.1);
+    background: var(--lp-divider);
     border-radius: 4px;
     opacity: 0;
     transition: opacity 0.3s ease;
@@ -665,25 +665,25 @@
 }
 
 .toolbar-status.success {
-    color: #4ade80;
-    background: rgba(74, 222, 128, 0.15);
+    color: var(--lp-success);
+    background: var(--lp-divider);
 }
 
 .toolbar-status.warning {
-    color: #fbbf24;
-    background: rgba(251, 191, 36, 0.15);
+    color: var(--lp-accent);
+    background: var(--lp-divider);
 }
 
 .toolbar-status.info {
-    color: #60a5fa;
-    background: rgba(96, 165, 250, 0.15);
+    color: var(--lp-info);
+    background: var(--lp-divider);
 }
 
 /* 颜色选择器样式 */
 .quick-edit-color-input {
     width: 22px;
     height: 22px;
-    border: 2px solid rgba(255, 255, 255, 0.3);
+    border: 2px solid var(--lp-divider);
     border-radius: 4px;
     cursor: pointer;
     padding: 0;
@@ -700,13 +700,13 @@
 }
 
 .quick-edit-tool-btn.active {
-    background: rgba(79, 172, 254, 0.4);
-    color: #4facfe;
+    background: var(--lp-divider);
+    color: var(--lp-info);
 }
 
 /* 选中元素样式 */
 .quick-edit-element-selected {
-    outline: 2px solid #4facfe !important;
+    outline: 2px solid var(--lp-border) !important;
     outline-offset: 2px !important;
     position: relative !important;
     cursor: move !important;
@@ -717,11 +717,11 @@
     position: absolute;
     width: 10px;
     height: 10px;
-    background: #4facfe;
-    border: 2px solid white;
+    background: var(--lp-info-bg);
+    border: 2px solid var(--lp-border);
     border-radius: 2px;
     z-index: 1001;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    box-shadow: none;
 }
 
 .resize-handle.nw {
@@ -785,7 +785,7 @@
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.5);
+    background: var(--lp-mask);
     backdrop-filter: blur(5px);
     z-index: 9999;
     display: flex;
@@ -799,7 +799,7 @@
     backdrop-filter: blur(20px);
     border: 1px solid var(--glass-border);
     border-radius: var(--border-radius-xl);
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    box-shadow: none;
     width: 400px;
     max-width: 90vw;
     overflow: hidden;
@@ -825,8 +825,8 @@
     right: 0;
     bottom: 0;
     background:
-        radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.1) 0%, transparent 50%),
-        radial-gradient(circle at 80% 80%, rgba(255, 255, 255, 0.05) 0%, transparent 50%);
+        radial-gradient(circle at 20% 20%, var(--lp-divider) 0%, transparent 50%),
+        radial-gradient(circle at 80% 80%, var(--lp-divider) 0%, transparent 50%);
     pointer-events: none;
 }
 
@@ -842,7 +842,7 @@
 .image-select-close {
     background: transparent;
     backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.3);
+    border: 1px solid var(--lp-divider);
     color: var(--accent-contrast);
     width: 32px;
     height: 32px;
@@ -858,8 +858,8 @@
 }
 
 .image-select-close:hover {
-    background: rgba(255, 255, 255, 0.2);
-    border-color: rgba(255, 255, 255, 0.4);
+    background: var(--lp-divider);
+    border-color: var(--lp-divider);
     transform: scale(1.1);
 }
 
@@ -893,15 +893,15 @@
     left: -100%;
     width: 100%;
     height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(79, 172, 254, 0.1), transparent);
+    background: linear-gradient(90deg, transparent, var(--lp-divider), transparent);
     transition: left 0.6s;
 }
 
 .image-select-option:hover {
-    background: rgba(79, 172, 254, 0.1);
-    border-color: rgba(79, 172, 254, 0.3);
+    background: var(--lp-divider);
+    border-color: var(--lp-divider);
     transform: translateY(-2px);
-    box-shadow: 0 4px 15px rgba(79, 172, 254, 0.2);
+    box-shadow: none;
 }
 
 .image-select-option:hover::before {
@@ -910,7 +910,7 @@
 
 .image-select-option i {
     font-size: 1.5rem;
-    color: rgba(79, 172, 254, 0.8);
+    color: var(--lp-divider);
     margin-bottom: var(--spacing-xs);
 }
 
@@ -934,7 +934,7 @@
 .outline-modal {
     position: fixed;
     inset: 0;
-    background: rgba(15, 23, 42, 0.4);
+    background: var(--lp-overlay);
     backdrop-filter: blur(4px);
     -webkit-backdrop-filter: blur(4px);
     z-index: 10001;
@@ -954,7 +954,7 @@
     max-height: 85vh;
     display: flex;
     flex-direction: column;
-    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25);
+    box-shadow: none;
 }
 
 /* 头部 */
@@ -1059,7 +1059,7 @@
 .outline-field__textarea:focus {
     outline: none;
     border-color: var(--accent-strong);
-    box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.08);
+    box-shadow: none;
 }
 
 /* 要点容器 */
@@ -1102,7 +1102,7 @@
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(15, 23, 42, 0.4);
+    background: var(--lp-overlay);
     backdrop-filter: blur(4px);
     -webkit-backdrop-filter: blur(4px);
     z-index: 10002; /* 高于 outline-modal(10001)，因为从其内部弹出 */
@@ -1121,7 +1121,7 @@
     max-width: 600px;
     width: 100%;
     border: 1px solid var(--glass-border);
-    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.25);
+    box-shadow: none;
     animation: aiOptimizeSlideIn 0.3s ease;
     max-height: 90vh;
     overflow: hidden;
@@ -1156,7 +1156,7 @@
 .ai-optimize-modal__subtitle {
     margin: 0;
     font-size: 0.95rem;
-    color: rgba(255, 255, 255, 0.72);
+    color: var(--lp-divider);
 }
 
 .ai-optimize-modal__close {
@@ -1245,7 +1245,7 @@
 .ai-optimize-modal .input-textarea:focus {
     outline: none;
     border-color: var(--accent-strong);
-    box-shadow: 0 0 0 3px rgba(17, 17, 17, 0.08);
+    box-shadow: none;
 }
 
 .ai-optimize-modal .suggestions {
@@ -1288,7 +1288,7 @@
     background: var(--accent-strong);
     border-color: var(--accent-strong);
     color: var(--accent-contrast);
-    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.18);
+    box-shadow: none;
 }
 
 /* 底部 */

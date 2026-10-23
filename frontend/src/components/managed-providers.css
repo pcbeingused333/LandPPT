@@ -1,18 +1,18 @@
 .managed-provider-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr)); gap:14px; }
-.managed-provider-card { display:flex; flex-direction:column; min-width:0; padding:18px; border:1px solid var(--border,#e5e7eb); border-radius:12px; background:var(--surface,#fff); }
+.managed-provider-card { display:flex; flex-direction:column; min-width:0; padding:18px; border:1px solid var(--border,var(--lp-border)); border-radius:12px; background:var(--surface,var(--lp-surface)); }
 .managed-provider-heading,.managed-provider-actions { display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; }
 .managed-provider-identity { display:flex; align-items:center; gap:12px; min-width:0; }
 .managed-provider-identity > div { min-width:0; }
 .managed-provider-identity strong { display:block; font-size:15px; overflow-wrap:anywhere; }
 .managed-provider-identity .subtle { display:block; font-size:12px; margin-top:3px; }
-.managed-provider-identity .ant-avatar { flex-shrink:0; background:#18181b; color:#fff; }
-.managed-provider-description { white-space:pre-wrap; overflow-wrap:anywhere; flex:1; margin:16px 0; color:#52525b; line-height:1.7; }
-.managed-provider-actions { margin-top:16px; padding-top:14px; border-top:1px solid #eee; }
+.managed-provider-identity .ant-avatar { flex-shrink:0; background:var(--lp-primary); color:var(--lp-on-primary); }
+.managed-provider-description { white-space:pre-wrap; overflow-wrap:anywhere; flex:1; margin:16px 0; color:var(--lp-secondary); line-height:1.7; }
+.managed-provider-actions { margin-top:16px; padding-top:14px; border-top:1px solid var(--lp-border); }
 .managed-provider-description:empty { display:none; }
 .managed-provider-admin-list { display:grid; gap:12px; }
-.managed-provider-admin-row { padding:18px; border:1px solid #e5e7eb; border-radius:12px; background:#fff; }
+.managed-provider-admin-row { padding:18px; border:1px solid var(--lp-border); border-radius:12px; background:var(--lp-surface); }
 .managed-provider-admin-row[draggable=true] { cursor:grab; }
 .managed-provider-admin-row .managed-provider-heading > .ant-space { flex-wrap:wrap; }
-.managed-provider-base { display:block; margin:12px 0; overflow-wrap:anywhere; color:#71717a; font-size:12px; }
-.managed-provider-admin-row:focus { outline:2px solid #18181b; outline-offset:3px; }
+.managed-provider-base { display:block; margin:12px 0; overflow-wrap:anywhere; color:var(--lp-secondary); font-size:12px; }
+.managed-provider-admin-row:focus { outline:2px solid var(--lp-border-strong); outline-offset:3px; }
 @media(max-width:600px) { .managed-provider-card,.managed-provider-admin-row { padding:14px; } .managed-provider-actions > .ant-space { flex:1; justify-content:flex-end; } }

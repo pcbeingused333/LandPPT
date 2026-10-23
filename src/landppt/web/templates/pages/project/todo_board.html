@@ -1,32 +1,7 @@
 {% extends "antd_base.html" %}
 {% block title %}任务看板 - {{ todo_board.title }} - LandPPT{% endblock %}
 {% block page_data %}
-{% import "components/project/workspace_state.html" as ws with context %}
-{% set requirements_stage = todo_board.stages | selectattr('id', 'equalto', 'requirements_confirmation') | first %}
-{% set outline_stage = todo_board.stages | selectattr('id', 'equalto', 'outline_generation') | first %}
-{% set ppt_stage = todo_board.stages | selectattr('id', 'equalto', 'ppt_creation') | first %}
-"page": "todo", "projectId": {{ todo_board.task_id|tojson }}, "title": {{ todo_board.title|tojson }},
-"unattendedActive": {{ (unattended_active|default(false))|tojson }},
-"hasOutline": {{ (project and project.outline and project.outline.get('slides')|length > 0)|default(false, true)|tojson }},
-"hasOutput": {{ (true if project and (project.slides_data or project.slides_html) else false)|tojson }},
-"showRequirements": {{ (true if (not requirements_stage or requirements_stage.status == 'pending') and not (project and project.confirmed_requirements) and not unattended_active|default(false) else false)|tojson }},
-"renderMode": {{ ((project.project_metadata or {}).get('render_mode', 'html') if project else 'html')|tojson }},
-"generationMode": {{ ((project.project_metadata or {}).get('generation_mode', 'freeform') if project else 'freeform')|tojson }},
-{% set source_req = (project.confirmed_requirements|default({}, true)) if project else {} %}
-{% set original_files = (source_req.get('uploaded_files') or []) if source_req.get('content_source') in ['file', 'mixed'] else [] %}
-"sourceSummary": {
-    "kind": {{ source_req.get('content_source', 'manual')|tojson }},
-    "files": [{% for item in original_files if item is mapping %}{{ item.get('filename', '附件')|tojson }}{% if not loop.last %},{% endif %}{% endfor %}],
-    "urls": {{ (source_req.get('source_urls') or [])|tojson }}
-},
-"outlineInitial": {
-    "outline": {{ (project.outline if project and project.outline else none)|tojson }},
-    "language": {{ ((project.project_metadata or {}).get('language') if project else none)|tojson }},
-    "confirmed": {{ (true if project and project.confirmed_requirements else false)|tojson }},
-    "stageStatus": {{ (outline_stage.status if outline_stage else '')|tojson }},
-    "pptStageStatus": {{ (ppt_stage.status if ppt_stage else '')|tojson }}
-},
-"workspace": {{ ws.state|tojson }}
+{% include "components/project/workspace_planning_data.html" %}
 {% endblock %}
 {% block extra_js %}
 <script src="/static/js/shared/unattended_monitor.js?v=20261012"></script>

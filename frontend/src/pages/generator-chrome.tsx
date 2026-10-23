@@ -20,7 +20,7 @@ const controls = [
   { id: 'slideshowBtn', label: '幻灯片放映', icon: <PlaySquareOutlined aria-hidden /> },
 ];
 
-export default function GeneratorChrome({ data }: { data: ApiData }) {
+export default function GeneratorChrome({ data, active = true }: { data: ApiData; active?: boolean }) {
   const { modal } = App.useApp();
   const dialogs = useRef(new Set<() => void>());
   const templateController = useMemo(() => createTemplateWizardController({ projectId: data.projectId, ...data.templateInitial, unattended: !!data.unattendedActive }, {
@@ -44,15 +44,17 @@ export default function GeneratorChrome({ data }: { data: ApiData }) {
     confirm: text => ask(text, new AbortController().signal),
   }), [data, templateController]);
   const [state, setState] = useState(controller.getSnapshot);
+  const activeRef = useRef(active); activeRef.current = active;
+  useEffect(() => { controller.setVisible(active && !document.hidden); }, [active, controller]);
   const [unattendedStatus, setUnattendedStatus] = useState<string>();
   const [monitorVisible, setMonitorVisible] = useState(!!data.unattendedActive);
   const settingsButton = useRef<HTMLButtonElement>(null);
   useEffect(() => {
     const unsubscribe = controller.subscribe(setState);
-    const visibility = () => controller.setVisible(!document.hidden);
+    const visibility = () => controller.setVisible(activeRef.current && !document.hidden);
     const hide = () => { templateController.cancel(); controller.suspend(); dialogs.current.forEach(cancel => cancel()); };
     const show = (event: PageTransitionEvent) => { if (event.persisted) controller.resume(); };
-    templateController.mount(); controller.setVisible(!document.hidden); controller.mount();
+    templateController.mount(); controller.setVisible(activeRef.current && !document.hidden); controller.mount();
     document.addEventListener('visibilitychange', visibility);
     window.addEventListener('pagehide', hide); window.addEventListener('pageshow', show);
     return () => {
@@ -103,11 +105,12 @@ export default function GeneratorChrome({ data }: { data: ApiData }) {
     else if (id === 'pauseBtn') controller.pause();
     else if (id === 'resumeBtn') void controller.resumeGeneration();
     else if (id === 'stopBtn') void controller.stop();
+    else if (id === 'editorBtn' && data.embedded) location.assign(`${base}/edit`);
     else window.open(`${base}/${id === 'editorBtn' ? 'edit' : 'fullscreen'}`, '_blank', 'noopener');
   }
   return <>
     <GeneratorWizard controller={templateController} />
-    <main className="main-container generator-workspace generator-ant-workspace">
+    <section className="main-container generator-workspace generator-ant-workspace" aria-label="幻灯片生成工作区">
     <header className="generator-ant-chrome">
     <ProjectWorkspaceHeader back={{ href: base, label: '返回项目详情' }} title={data.title}
       meta={<><Tag>{packageMode ? '快速模式 · 模板包' : '自由设计'}</Tag><span className="subtle">{packageMode ? '编写内容，自动匹配模板版式' : '逐页设计内容与风格'}</span></>}
@@ -119,11 +122,11 @@ export default function GeneratorChrome({ data }: { data: ApiData }) {
       stages={<ProjectStages projectId={data.projectId} state={data.workspace} current="generate" generating={running} />} />
     </header>
     <div className="content-area"><div className="editor-section">
-    <div id="unattendedMonitor" hidden={!monitorVisible}><UnattendedPanel projectId={data.projectId} initiallyActive={!!data.unattendedActive} onUpdate={run => setUnattendedStatus(run.task_status || run.status)} onVisibility={setMonitorVisible} onComplete={run => { setUnattendedStatus(run.task_status || run.status); if (!reloadTimer.current) reloadTimer.current = setTimeout(() => location.reload(), run.task_status === 'completed' ? 1500 : 6000); }} /></div>
-    <div id="generatorStatusUI">{state.notice && <Alert type="warning" showIcon title={state.notice} />}{state.visible && <section className="generator-ant-status" aria-label="生成状态"><div className="generator-ant-status-row"><span role={state.state === 'error' ? 'alert' : 'status'} aria-live="polite">{state.message}</span><Space size={4} className="generator-ant-status-tools"><Badge status={connectionStatus} text={state.connection} /><Button size="small" type="link" icon={<HistoryOutlined aria-hidden />} aria-haspopup="dialog" onClick={() => setLogOpen(true)}>任务记录</Button></Space></div>{state.state !== 'complete' && <Progress percent={state.percent} format={percent => `${Math.round(percent || 0)}%`} strokeColor="#111" status={state.state === 'error' ? 'exception' : 'normal'} size="small" />}</section>}</div>
+    <div id={active ? "unattendedMonitor" : undefined} hidden={!monitorVisible}>{active && <UnattendedPanel projectId={data.projectId} initiallyActive={!!data.unattendedActive} onUpdate={run => setUnattendedStatus(run.task_status || run.status)} onVisibility={setMonitorVisible} onComplete={run => { setUnattendedStatus(run.task_status || run.status); if (!reloadTimer.current) reloadTimer.current = setTimeout(() => location.reload(), run.task_status === 'completed' ? 1500 : 6000); }} />}</div>
+    <div id="generatorStatusUI">{state.notice && <Alert type="warning" showIcon title={state.notice} />}{state.visible && <section className="generator-ant-status" aria-label="生成状态"><div className="generator-ant-status-row"><span role={state.state === 'error' ? 'alert' : 'status'} aria-live="polite">{state.message}</span><Space size={4} className="generator-ant-status-tools"><Badge status={connectionStatus} text={state.connection} /><Button size="small" type="link" icon={<HistoryOutlined aria-hidden />} aria-haspopup="dialog" onClick={() => setLogOpen(true)}>任务记录</Button></Space></div>{state.state !== 'complete' && <Progress percent={state.percent} format={percent => `${Math.round(percent || 0)}%`} strokeColor="var(--lp-primary)" status={state.state === 'error' ? 'exception' : 'normal'} size="small" />}</section>}</div>
     <GeneratorPreview data={data} state={state} unattendedStatus={unattendedStatus} />
     </div></div>
-    </main>
+    </section>
     <Drawer title="任务记录" open={logOpen} onClose={() => setLogOpen(false)} size={Math.min(380, window.innerWidth)} className="generator-task-log">
       {log.length ? <Timeline items={[...log].reverse().map(entry => ({ key: entry.key, color: entry.color, content: <><div>{entry.text}</div><Typography.Text type="secondary">{entry.time}</Typography.Text></> }))} /> : <Typography.Paragraph type="secondary">开始生成后，这里会按时间记录每一步进度。</Typography.Paragraph>}
     </Drawer>

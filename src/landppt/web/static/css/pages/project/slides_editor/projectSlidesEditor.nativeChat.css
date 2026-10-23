@@ -16,7 +16,7 @@
     justify-content: center;
     position: relative;
     overflow: hidden;
-    box-shadow: 0 2px 10px rgba(31, 38, 135, 0.1);
+    box-shadow: none;
 }
 
 .ai-native-dialog-btn::before {
@@ -26,16 +26,16 @@
     left: -100%;
     width: 100%;
     height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    background: linear-gradient(90deg, transparent, var(--lp-divider), transparent);
     transition: left 0.6s;
 }
 
 .ai-native-dialog-btn:hover {
-    background: rgba(13, 110, 253, 0.08);
-    border-color: rgba(13, 110, 253, 0.28);
-    color: rgba(13, 110, 253, 0.95);
+    background: var(--lp-divider);
+    border-color: var(--lp-divider);
+    color: var(--lp-info);
     transform: translateY(-2px) scale(1.05);
-    box-shadow: 0 4px 15px rgba(13, 110, 253, 0.18);
+    box-shadow: none;
 }
 
 .ai-native-dialog-btn:hover::before {
@@ -49,13 +49,13 @@
     padding: 0;
     width: min(960px, calc(100vw - 48px));
     height: min(78vh, 760px);
-    box-shadow: var(--shadow-soft);
+    box-shadow: none;
     background: var(--surface-elevated);
     overflow: hidden;
 }
 
 .ai-native-chat-dialog::backdrop {
-    background: rgba(0, 0, 0, 0.55);
+    background: var(--lp-mask);
 }
 
 .ai-native-chat-dialog-header {
@@ -91,8 +91,8 @@
 }
 
 .ai-native-chat-dialog-close:hover {
-    background: rgba(0, 0, 0, 0.05);
-    border-color: rgba(0, 0, 0, 0.08);
+    background: var(--lp-overlay);
+    border-color: var(--lp-overlay);
 }
 
 .ai-native-chat-dialog-body {
@@ -128,8 +128,8 @@
 }
 
 .ai-native-chat-input:focus {
-    border-color: rgba(13, 110, 253, 0.55);
-    box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.15);
+    border-color: var(--lp-divider);
+    box-shadow: none;
 }
 
 .ai-native-chat-send-btn {
@@ -154,7 +154,7 @@
 
 .ai-native-chat-send-btn:hover:not(:disabled) {
     transform: translateY(-1px);
-    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+    box-shadow: none;
 }
 
 .ai-native-chat-hint {

@@ -5,7 +5,7 @@
     left: 0;
     width: 100vw;
     height: 100vh;
-    background: rgba(0, 0, 0, 0.7);
+    background: var(--lp-mask);
     backdrop-filter: blur(8px);
     z-index: 10002;
     display: none;
@@ -23,7 +23,7 @@
     padding: 40px;
     min-width: 420px;
     max-width: 520px;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+    box-shadow: none;
     text-align: center;
 }
 
@@ -50,7 +50,7 @@
 
 .export-modal .export-progress-bar-inner {
     height: 100%;
-    background: var(--accent-strong, #333);
+    background: var(--accent-strong, var(--lp-primary));
     border-radius: 10px;
     transition: width 0.4s ease;
     width: 0%;
@@ -96,16 +96,16 @@
 
 .export-modal .export-icon {
     font-size: 3rem;
-    color: var(--accent-strong, #333);
+    color: var(--accent-strong, var(--lp-text));
     margin-bottom: 20px;
 }
 
 .export-modal .export-icon.success {
-    color: #10b981;
+    color: var(--lp-success);
 }
 
 .export-modal .export-icon.error {
-    color: #ef4444;
+    color: var(--lp-danger);
 }
 
 @keyframes exportSpin {

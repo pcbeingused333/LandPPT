@@ -107,9 +107,7 @@ def document_setup(page, load, svg=False, empty=False, slide_count=2):
 
 
 def panel(page, name):
-    if page.viewport_size["width"] <= 700 and page.locator(
-        ".editor-container"
-    ).evaluate("node=>node.classList.contains('sidebar-collapsed')"):
+    if page.locator(".editor-container").evaluate("node=>node.classList.contains('sidebar-collapsed')"):
         page.get_by_role("button", name="展开或收起幻灯片列表").click()
     page.locator(".editor-document-tabs").get_by_text(name, exact=True).click()
 

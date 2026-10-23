@@ -6,7 +6,9 @@ import { landpptTheme } from './theme';
 import { Shell, type ShellData } from './shell';
 import { useSectionNavigation, type SectionLoaders } from './navigation';
 import { CreationDraftProvider } from './components/creation-draft';
+import '../../src/landppt/web/static/css/shared/design-tokens.css';
 import './styles.css';
+import './workspace.css';
 
 const sectionLoaders: SectionLoaders = {
   dashboard: () => import('./pages/dashboard'), settings: () => import('./pages/settings'), projects: () => import('./pages/projects'),
@@ -62,7 +64,7 @@ function LandPPT({ initial }: { initial: ShellData & Record<string, any> }) {
       {Page ? <Page data={data} /> : <Result status="404" title="页面不存在" extra={<Button href="/dashboard">返回工作台</Button>} />}
     </Suspense></PageBoundary>;
   }, [view]);
-  return <CreationDraftProvider key={`${data.user?.username || 'guest'}:${!!data.user?.is_admin}`}>{data.page === 'slides-editor' || data.page === 'generator-workspace' || data.page === 'presentation' ? page : <Shell data={data} pending={pending}>{page}</Shell>}</CreationDraftProvider>;
+  return <CreationDraftProvider key={`${data.user?.username || 'guest'}:${!!data.user?.is_admin}`}>{data.page === 'presentation' ? page : <Shell data={data} pending={pending}>{page}</Shell>}</CreationDraftProvider>;
 }
 if (root) {
   const initial = JSON.parse(document.getElementById('antdData')!.textContent!) as ShellData & Record<string, any>;

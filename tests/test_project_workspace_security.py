@@ -56,10 +56,10 @@ async def test_owned_project_helper_hides_other_users_projects(monkeypatch):
 @pytest.mark.parametrize(
     "query,expected",
     [
-        ("", "todo_board_with_editor.html"),
-        ("?view=planning", "todo_board.html"),
-        ("?view=planning&auto_start=true", "todo_board.html"),
-        ("?view=auto", "todo_board_with_editor.html"),
+        ("", "generate"),
+        ("?view=planning", "planning"),
+        ("?view=planning&auto_start=true", "planning"),
+        ("?view=auto", "generate"),
     ],
 )
 def test_explicit_planning_view_stays_accessible_after_slides_exist(
@@ -82,12 +82,13 @@ def test_explicit_planning_view_stays_accessible_after_slides_exist(
         slides_data=[{"html_content": "Saved"}],
         project_metadata={},
     )
-    manager = SimpleNamespace(get_project=AsyncMock(return_value=project))
+    manager = SimpleNamespace(get_project=AsyncMock(return_value=project), get_project_versions=AsyncMock(return_value=[]))
     service = SimpleNamespace(
         project_manager=manager,
         get_project_todo_board=AsyncMock(return_value=SimpleNamespace(stages=[])),
     )
     monkeypatch.setattr(routes, "ppt_service", service)
+    monkeypatch.setattr(routes, "_resolve_project_narration_state", AsyncMock(return_value=(False, [])))
     monkeypatch.setattr(
         routes, "has_active_unattended_run", AsyncMock(return_value=False)
     )
@@ -95,7 +96,7 @@ def test_explicit_planning_view_stays_accessible_after_slides_exist(
         routes,
         "templates",
         SimpleNamespace(
-            TemplateResponse=lambda name, context: JSONResponse({"template": name})
+            TemplateResponse=lambda name, context: JSONResponse({"template": name, "view": context.get("workspace_view")})
         ),
     )
     app = FastAPI()
@@ -103,8 +104,10 @@ def test_explicit_planning_view_stays_accessible_after_slides_exist(
     app.dependency_overrides[get_current_user_required] = lambda: _user(7)
     response = TestClient(app).get("/projects/owned/todo" + query)
     assert response.status_code == 200
-    assert response.json()["template"] == "pages/project/" + expected
+    assert response.json() == {"template": "pages/project/project_slides_editor.html", "view": expected}
+    assert "no-store" in response.headers["cache-control"]
     assert manager.get_project.await_count == 2
     assert all(
         call.kwargs == {"user_id": 7} for call in manager.get_project.await_args_list
     )
+    service.get_project_todo_board.assert_awaited_once_with("owned", user_id=7)

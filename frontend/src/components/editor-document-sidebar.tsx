@@ -1,7 +1,8 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Alert, App, Button, Empty, Input, Segmented, Select, Skeleton, Tag, Tooltip } from 'antd';
-import { ArrowLeftOutlined, ArrowRightOutlined, DeleteOutlined, EditOutlined, EyeOutlined, FileTextOutlined, PlusOutlined, ReloadOutlined, RobotOutlined, SaveOutlined } from '@ant-design/icons';
+import { ArrowLeftOutlined, ArrowRightOutlined, DeleteOutlined, EditOutlined, EyeOutlined, FileTextOutlined, FolderOutlined, DownloadOutlined, PlusOutlined, ReloadOutlined, RobotOutlined, SaveOutlined, SearchOutlined } from '@ant-design/icons';
 import { request, type ApiData } from '../api';
+import { nativeSelectIsOpen } from './native-controls';
 import { EditorOutlineNavigation } from './editor-outline-navigation';
 import { EditorOutlineBatch, type BatchPage } from './editor-outline-batch';
 import './editor-document-sidebar.css';
@@ -28,11 +29,17 @@ const speechValue = (script: ApiData | null, title: string): ApiData => ({
   estimated_duration: script?.estimated_duration || '', speaker_notes: script?.speaker_notes || '',
 });
 
-export function EditorDocumentSidebar({ projectId, pages, current, selected, dialogCount, bridge }: {
-  projectId: string; pages: DocumentPage[]; current: number; selected: number; dialogCount: number; bridge: DocumentBridge;
+export function EditorDocumentSidebar({ projectId, pages, current, selected, dialogCount, bridge, onNavigate }: {
+  projectId: string; pages: DocumentPage[]; current: number; selected: number; dialogCount: number; bridge: DocumentBridge; onNavigate?: () => void;
 }) {
   const { message, modal } = App.useApp();
   const [panel, setPanel] = useState<Panel>('slides'), [language, setLanguage] = useState('zh');
+  const [filter, setFilter] = useState('');
+  useEffect(() => {
+    const nodes = document.querySelectorAll<HTMLElement>('#slidesSidebar .slide-thumbnail');
+    nodes.forEach(node => { node.hidden = panel === 'slides' && !!filter.trim() && !node.textContent?.toLowerCase().includes(filter.trim().toLowerCase()); });
+    return () => nodes.forEach(node => { node.hidden = false; });
+  }, [filter, panel, pages]);
   const [, redraw] = useState(0), [reload, setReload] = useState(0);
   const drafts = useRef(new Map<string, Draft>()), pagesRef = useRef(pages), mounted = useRef(true);
   pagesRef.current = pages;
@@ -141,13 +148,24 @@ export function EditorDocumentSidebar({ projectId, pages, current, selected, dia
   return <div className="editor-document-sidebar" onKeyDown={event => {
     // Keep native canvas shortcuts away from text fields and Ant popups.
     event.stopPropagation();
+    if (event.key === 'Escape' && !event.defaultPrevented && !dialogCount && !batchOpen && !nativeSelectIsOpen(event.target) && window.matchMedia('(max-width: 1023px)').matches) {
+      event.preventDefault(); bridge.call('toggleSidebar'); document.querySelector<HTMLButtonElement>('.editor-ant-header [aria-controls="slidesSidebar"]')?.focus();
+    }
     if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's' && textPanel) { event.preventDefault(); void save(); }
     else if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's' && panel === 'contents') { event.preventDefault(); void bridge.save(); }
   }}>
+    <header className="workspace-files-heading"><strong>项目文件</strong><Tooltip title="在当前页后新建幻灯片"><Button type="text" aria-label="新建幻灯片" icon={<PlusOutlined aria-hidden />} onClick={() => bridge.call('insertNewSlide')} /></Tooltip></header>
+    <div className="workspace-file-search"><Input aria-label="搜索项目文件" placeholder="查找页面…" prefix={<SearchOutlined aria-hidden />} value={filter} allowClear onChange={event => { setFilter(event.target.value); switchPanel('slides'); }} /></div>
+    <nav className="workspace-file-folders" aria-label="项目文件夹">
+      <a title="来源资料" href={`/image-gallery?tab=sources&project=${encodeURIComponent(projectId)}`}><FolderOutlined aria-hidden />来源资料</a>
+      <button title="大纲与章节" type="button" onClick={() => { switchPanel('contents'); onNavigate?.(); }}><FileTextOutlined aria-hidden />大纲与章节</button>
+      <a title="导出文件" href={`/image-gallery?tab=exports&project=${encodeURIComponent(projectId)}`}><DownloadOutlined aria-hidden />导出文件</a>
+      <button className="workspace-compact-create" type="button" title="新建幻灯片" aria-label="新建幻灯片" onClick={() => bridge.call('insertNewSlide')}><PlusOutlined aria-hidden /></button>
+    </nav>
     <div className="editor-document-tabs"><Segmented block aria-label="左侧内容" value={panel} onChange={switchPanel} options={[
       { value: 'slides', label: '幻灯片' }, { value: 'contents', label: '目录' }, { value: 'outline', label: '大纲' }, { value: 'speech', label: '讲稿' },
     ]} /></div>
-    <EditorOutlineNavigation pages={pages} current={current} visible={panel === 'contents'} disabled={[...drafts.current.values()].some(item => item.saving)} batchDisabled={dirtyCount > 0} onSelect={index => bridge.call('selectSlide', index)} onBatchEdit={openBatch} />
+    <EditorOutlineNavigation pages={pages} current={current} visible={panel === 'contents'} disabled={[...drafts.current.values()].some(item => item.saving)} batchDisabled={dirtyCount > 0} onSelect={index => { onNavigate?.(); bridge.call('selectSlide', index); }} onBatchEdit={openBatch} />
     <EditorOutlineBatch open={batchOpen} projectId={projectId} pages={batchPages} origin={batchOrigin.current} onClose={() => setBatchOpen(false)} onSaved={items => { items.forEach(item => { drafts.current.delete(key('outline', item.key)); bridge.applyDocument(item.key, item.document); }); changed(); }} />
     {panel === 'slides' ? <div className="editor-document-selection">Ctrl+点击多选 · 已选 {selected} 页{dirtyCount > 0 && <Tag>{dirtyCount} 份草稿</Tag>}</div> : panel === 'contents' ? null : <>
       <div className="editor-document-nav">

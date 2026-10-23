@@ -62,6 +62,28 @@ async def _resolve_project_narration_state(project_id: str, user_id: int) -> tup
     return has_speech_scripts, narration_languages
 
 
+async def _render_project_workspace(request, project, user, *, view="slides", todo_board=None, versions=None):
+    """All project URLs share one editor shell and the established controllers."""
+    project_id = project.project_id
+    if todo_board is None:
+        todo_board = await ppt_service.get_project_todo_board(project_id, user_id=user.id)
+    if versions is None:
+        versions = await ppt_service.project_manager.get_project_versions(project_id, user_id=user.id)
+    has_speech_scripts, narration_languages = await _resolve_project_narration_state(project_id, user.id)
+    response = templates.TemplateResponse(
+        "pages/project/project_slides_editor.html",
+        {
+            "request": request, "user": user, "project": project,
+            "todo_board": todo_board, "versions": versions, "workspace_view": view,
+            "unattended_active": await has_active_unattended_run(project_id, user.id),
+            "enable_auto_layout_repair": ai_config.enable_auto_layout_repair,
+            "narration_video_tools_enabled": bool(getattr(user, "is_admin", False)) and getattr(app_config, "narration_video_tools_enabled", True),
+            "has_speech_scripts": has_speech_scripts, "narration_languages": narration_languages,
+        },
+    )
+    return _apply_no_store_headers(response)
+
+
 @router.get("/projects/{project_id}", response_class=HTMLResponse)
 async def web_project_detail(
     request: Request,
@@ -77,15 +99,7 @@ async def web_project_detail(
         todo_board = await ppt_service.get_project_todo_board(project_id, user_id=user.id)
         versions = await ppt_service.project_manager.get_project_versions(project_id, user_id=user.id)
 
-        return templates.TemplateResponse(
-            "pages/project/project_detail.html",
-            {
-                "request": request,
-                "project": project,
-                "todo_board": todo_board,
-                "versions": versions,
-            },
-        )
+        return await _render_project_workspace(request, project, user, view="overview", todo_board=todo_board, versions=versions)
     except Exception as exc:
         return templates.TemplateResponse("error.html", {"request": request, "error": str(exc)})
 
@@ -117,7 +131,7 @@ async def web_project_todo_board(
                 {"request": request, "error": f"项目不存在 (ID: {project_id})。请检查项目ID是否正确。"},
             )
 
-        todo_board = await ppt_service.get_project_todo_board(project_id)
+        todo_board = await ppt_service.get_project_todo_board(project_id, user_id=user.id)
         if not todo_board:
             return templates.TemplateResponse(
                 "error.html",
@@ -144,22 +158,9 @@ async def web_project_todo_board(
             and (ppt_creation_running or has_slides or has_selected_template or auto_start)
         )
 
-        template_name = (
-            "pages/project/todo_board_with_editor.html"
-            if use_integrated_editor
-            else "pages/project/todo_board.html"
+        return await _render_project_workspace(
+            request, project, user, view="generate" if use_integrated_editor else "planning", todo_board=todo_board,
         )
-        template_context = {
-            "request": request,
-            "todo_board": todo_board,
-            # While an unattended run owns this project the page must not start its
-            # own outline/PPT generation, or the two race and double-bill.
-            "unattended_active": await has_active_unattended_run(project_id, user.id),
-        }
-        if project:
-            template_context["project"] = project
-
-        return templates.TemplateResponse(template_name, template_context)
     except Exception as exc:
         return templates.TemplateResponse("error.html", {"request": request, "error": str(exc)})
 
@@ -179,19 +180,7 @@ async def edit_project_ppt(
         if not project.slides_data:
             project.slides_data = []
 
-        has_speech_scripts, narration_languages = await _resolve_project_narration_state(project_id, user.id)
-        response = templates.TemplateResponse(
-            "pages/project/project_slides_editor.html",
-            {
-                "request": request,
-                "project": project,
-                "enable_auto_layout_repair": ai_config.enable_auto_layout_repair,
-                "narration_video_tools_enabled": bool(getattr(user, "is_admin", False)) and getattr(app_config, "narration_video_tools_enabled", True),
-                "has_speech_scripts": has_speech_scripts,
-                "narration_languages": narration_languages,
-            },
-        )
-        return _apply_no_store_headers(response)
+        return await _render_project_workspace(request, project, user)
     except Exception as exc:
         logger.error("Error loading project editor for %s: %s", project_id, exc)
         return templates.TemplateResponse("error.html", {"request": request, "error": str(exc)})

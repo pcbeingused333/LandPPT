@@ -3,7 +3,7 @@
     const container = document.querySelector('.editor-container');
     const sidebar = document.getElementById('slidesSidebar');
     const backdrop = document.querySelector('.workspace-sidebar-backdrop');
-    const mobile = window.matchMedia('(max-width: 700px)');
+    const mobile = window.matchMedia('(max-width: 1023px)');
     const listeners = new Set();
     let open = !mobile.matches;
     function setSidebar(value) {

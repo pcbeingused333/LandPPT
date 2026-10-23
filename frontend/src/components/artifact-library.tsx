@@ -8,18 +8,18 @@ import { ArtifactMediaPreview } from './artifact-media-preview';
 const kinds = [{ value: '', label: '全部类型' }, { value: 'pdf', label: 'PDF' }, { value: 'pptx', label: 'PPTX' }, { value: 'audio', label: '讲解音频' }, { value: 'video', label: '讲解视频' }];
 const icons = { pdf: FilePdfOutlined, pptx: FilePptOutlined, audio: AudioOutlined, video: VideoCameraOutlined };
 
-export function ArtifactLibrary({ active }: { active: boolean }) {
+export function ArtifactLibrary({ active, projectId: fixedProjectId }: { active: boolean; projectId?: string }) {
   const [files, setFiles] = useState<ApiData[]>([]), [total, setTotal] = useState(0), [page, setPage] = useState(1);
   const [category, setCategory] = useState(''), [search, setSearch] = useState(''), [query, setQuery] = useState(''), [sort, setSort] = useState('newest');
-  const [projectId, setProjectId] = useState(() => new URLSearchParams(location.search).get('project') || ''), [project, setProject] = useState<ApiData | null>(null);
+  const [projectId, setProjectId] = useState(() => fixedProjectId ?? (new URLSearchParams(location.search).get('project') || '')), [project, setProject] = useState<ApiData | null>(null);
   const [loading, setLoading] = useState(false), [error, setError] = useState(''), [reload, setReload] = useState(0);
   const [preview, setPreview] = useState<ApiData | null>(null);
   const previewTrigger = useRef<HTMLElement | null>(null);
   useEffect(() => { if (!active) setPreview(null); }, [active]);
-  useEffect(() => { if (active) { const id = new URLSearchParams(location.search).get('project') || ''; if (id !== projectId) { setProjectId(id); setProject(null); setPage(1); } } }, [active]);
+  useEffect(() => { if (active) { const id = fixedProjectId ?? (new URLSearchParams(location.search).get('project') || ''); if (id !== projectId) { setProjectId(id); setProject(null); setPage(1); } } }, [active, fixedProjectId]);
   useEffect(() => { const timer = setTimeout(() => setQuery(search), 200); return () => clearTimeout(timer); }, [search]);
   useEffect(() => {
-    if (!active || projectId !== (new URLSearchParams(location.search).get('project') || '')) return;
+    if (!active || projectId !== (fixedProjectId ?? (new URLSearchParams(location.search).get('project') || ''))) return;
     const controller = new AbortController();
     setLoading(true); setError('');
     const params = new URLSearchParams({ page: String(page), per_page: '20', category, search: query, sort });
@@ -40,7 +40,7 @@ export function ArtifactLibrary({ active }: { active: boolean }) {
   return <div className="artifact-library settings-stack">
     <div className="page-heading"><div><h1>导出文件</h1><p>文稿、音频和视频</p></div><Button href="/projects">打开项目</Button></div>
     <Flex align="center" gap={8} wrap><Typography.Text type="secondary">仅展示系统已保存的文件。</Typography.Text><Popover title="文件范围" trigger="click" content={<Typography.Paragraph style={{ maxWidth: 240, margin: 0 }}>客户端 PPTX 和 HTML 文件包不会自动入库，请在浏览器下载目录中查找。</Typography.Paragraph>}><Button type="link" size="small">文件范围</Button></Popover></Flex>
-    {projectId && <Flex align="center" gap={8} className="artifact-library-scope"><Tag><Typography.Text ellipsis={{ tooltip: project?.title }}>项目：{project?.title || '当前项目'}</Typography.Text></Tag><Button type="link" size="small" aria-label="查看所有项目文件" onClick={clearProject}>所有项目</Button></Flex>}
+    {projectId && <Flex align="center" gap={8} className="artifact-library-scope"><Tag><Typography.Text ellipsis={{ tooltip: project?.title }}>项目：{project?.title || '当前项目'}</Typography.Text></Tag>{!fixedProjectId && <Button type="link" size="small" aria-label="查看所有项目文件" onClick={clearProject}>所有项目</Button>}</Flex>}
     <Card size="small"><div className="artifact-library-toolbar">
       <Input.Search aria-label="搜索导出文件" enterButton={<Button className="artifact-library-search-submit" aria-label="搜索导出文件" icon={<SearchOutlined aria-hidden />} />} placeholder="搜索文件名或项目名称" allowClear maxLength={200} value={search} onChange={event => { setSearch(event.target.value); setPage(1); }} onSearch={value => { setQuery(value); setPage(1); }} />
       <Select aria-label="导出文件类型" value={category} options={kinds} onChange={value => { setCategory(value); setPage(1); }} />

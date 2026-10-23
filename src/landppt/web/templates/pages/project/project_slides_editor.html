@@ -3,14 +3,19 @@
 
 <head>
     <meta charset="UTF-8">
+    <meta name="color-scheme" content="dark light">
+    <!-- Bootstrap first: its reboot must not override the shared design tokens and app shell. -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/shared/design-tokens.css?v=20261023">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PPT编辑器 - {{ project.title }}</title>
-    <link rel="stylesheet" href="/static/antd/app.css?v=0.4.0-project-agent-r2">
+    <link rel="stylesheet" href="/static/antd/app.css?v=20261023-editor-compact">
     <link rel="icon" type="image/svg+xml" href="/static/images/favicon.svg">
     <link rel="alternate icon" href="/favicon.ico">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="/static/css/shared/notify.css">
+    <link rel="stylesheet" href="/static/css/shared/notify.css?v=20261023-workspace">
+    <link rel="stylesheet" href="/static/css/shared/notification_center.css?v=20261023-workspace">
+    <link rel="stylesheet" href="/static/css/shared/site_notice.css?v=20261023-workspace">
     <script src="/static/js/shared/notify.js?v=20260726"></script>
     <!-- CodeMirror CSS -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.css">
@@ -19,24 +24,25 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/dracula.min.css">
     <!-- CodeMirror Search Dialog CSS -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/dialog/dialog.min.css">
-    <link rel="stylesheet" href="/static/css/pages/project/slides_editor/projectSlidesEditor.css?v=20260925-compact-toolbar-v2">
-    <link rel="stylesheet" href="/static/css/pages/project/slides_editor/projectSlidesEditor.aiSidebar.css?v=20260726-agent-loop-v2">
-    <link rel="stylesheet" href="/static/css/pages/project/slides_editor/projectSlidesEditor.nativeChat.css?v=20260402-split">
-    <link rel="stylesheet" href="/static/css/pages/project/slides_editor/projectSlidesEditor.quickEdit.css?v=20260726-agent-loop-v2">
-<link rel="stylesheet" href="/static/css/pages/project/slides_editor/projectSlidesEditor.svgEdit.css?v=20260913-svg-editor-v4">
-    <link rel="stylesheet" href="/static/css/pages/project/slides_editor/projectSlidesEditor.imageLibrary.css?v=20261002-controls">
-    <link rel="stylesheet" href="/static/css/pages/project/slides_editor/projectSlidesEditor.speechDialog.css?v=20260402-split">
-    <link rel="stylesheet" href="/static/css/pages/project/slides_editor/projectSlidesEditor.speechModal.css?v=20260402-split">
-    <link rel="stylesheet" href="/static/css/pages/project/slides_editor/projectSlidesEditor.export.css?v=20260402-split">
-    <link rel="stylesheet" href="/static/css/pages/project/slides_editor/projectSlidesEditor.changeTemplate.css?v=20260404">
-    <link rel="stylesheet" href="/static/css/pages/project/slides_editor/projectSlidesEditor.workspace.css?v=20261002-controls">
-    <link rel="stylesheet" href="/static/css/shared/ui.css?v=20261002-system">
+    <link rel="stylesheet" href="/static/css/pages/project/slides_editor/projectSlidesEditor.css?v=20261023-workspace">
+    <link rel="stylesheet" href="/static/css/pages/project/slides_editor/projectSlidesEditor.aiSidebar.css?v=20261023-workspace">
+    <link rel="stylesheet" href="/static/css/pages/project/slides_editor/projectSlidesEditor.nativeChat.css?v=20261023-workspace">
+    <link rel="stylesheet" href="/static/css/pages/project/slides_editor/projectSlidesEditor.quickEdit.css?v=20261023-workspace">
+<link rel="stylesheet" href="/static/css/pages/project/slides_editor/projectSlidesEditor.svgEdit.css?v=20261023-workspace">
+    <link rel="stylesheet" href="/static/css/pages/project/slides_editor/projectSlidesEditor.imageLibrary.css?v=20261023-workspace">
+    <link rel="stylesheet" href="/static/css/pages/project/slides_editor/projectSlidesEditor.speechDialog.css?v=20261023-workspace">
+    <link rel="stylesheet" href="/static/css/pages/project/slides_editor/projectSlidesEditor.speechModal.css?v=20261023-workspace">
+    <link rel="stylesheet" href="/static/css/pages/project/slides_editor/projectSlidesEditor.export.css?v=20261023-workspace">
+    <link rel="stylesheet" href="/static/css/pages/project/slides_editor/projectSlidesEditor.changeTemplate.css?v=20261023-workspace">
+    <link rel="stylesheet" href="/static/css/pages/project/slides_editor/projectSlidesEditor.workspace.css?v=20261023-workspace">
+    <link rel="stylesheet" href="/static/css/shared/ui.css?v=20261023-workspace">
 </head>
 
 <body class="landppt-editor">
     <div class="editor-container">
         <div id="editorAntHeader"></div>
         <div class="d-flex workspace-body">
+            <div id="editorAntWorkspace"></div>
             <button type="button" class="workspace-sidebar-backdrop" aria-label="关闭幻灯片列表" hidden></button>
             <!-- Slides Sidebar -->
             <div class="slides-sidebar" id="slidesSidebar">
@@ -85,6 +91,7 @@
             <div class="main-editor" style="flex: 1;">
                 <!-- Toolbar -->
                 <div id="editorAntToolbar"></div>
+                <div id="editorWorkspacePage"></div>
                 <div class="editor-content is-preview-mode">
                     <!-- Preview Pane -->
                     <div class="preview-pane" id="previewPane">
@@ -581,7 +588,7 @@
     <script src="/static/js/pages/project/slides_editor/projectSlidesEditor.quickEditStyling.js?v=20261013-quick-ui-v2"></script>
     <script src="/static/js/pages/project/slides_editor/projectSlidesEditor.svgEdit.js?v=20261022-editor-final"></script>
     <script src="/static/js/pages/project/slides_editor/projectSlidesEditor.slideImageOps.js?v=20261022-editor-final"></script>
-    <script src="/static/js/pages/project/slides_editor/projectSlidesEditor.slideMediaUi.js?v=20261022-editor-final"></script>
+    <script src="/static/js/pages/project/slides_editor/projectSlidesEditor.slideMediaUi.js?v=20261023-workspace"></script>
     <script src="/static/js/pages/project/slides_editor/projectSlidesEditor.pretextBridge.js?v=20260406-pretext"></script>
     <script src="/static/js/pages/project/slides_editor/projectSlidesEditor.nativeChat.js?v=20261022-editor-final"></script>
     <script src="/static/js/pages/project/slides_editor/projectSlidesEditor.aiChat.js?v=20260911-svg-edit-v1"></script>
@@ -646,8 +653,8 @@
     </div>
     <link rel="stylesheet" href="/static/css/template-packages.css?v=20261013-workspace-grid">
     <script src="/static/js/template-packages.js?v=20261022-editor-port"></script>
-    <script src="/static/js/pages/project/slides_editor/projectSlidesEditor.workspace.js?v=20261022-editor-final"></script>
-    <script src="/static/js/pages/project/slides_editor/projectSlidesEditor.engine.js?v=20261022-outline-navigation"></script>
+    <script src="/static/js/pages/project/slides_editor/projectSlidesEditor.workspace.js?v=20261023-workspace"></script>
+    <script src="/static/js/pages/project/slides_editor/projectSlidesEditor.engine.js?v=20261023-workspace"></script>
     <script src="/static/js/pages/project/slides_editor/projectSlidesEditor.antBridge.js?v=20261022-editor-final"></script>
     <div id="antdRoot"></div>
     {% import "components/project/workspace_state.html" as ws with context %}
@@ -655,9 +662,31 @@
         'page': 'slides-editor', 'projectId': project.project_id, 'title': project.title,
         'standardExport': standard_pptx_export_enabled | default(false),
         'autoRepair': enable_auto_layout_repair | default(false),
-        'workspace': ws.state
-    } | tojson }}</script>
-    <script type="module" src="/static/antd/app.js?v=0.4.0-project-agent-r2"></script>
+        'workspace': ws.state,
+        'workspaceView': workspace_view | default('slides'),
+        'user': {'username': user.username, 'is_admin': user.is_admin} if user is defined and user else none,
+        'creditsEnabled': credits_enabled | default(false)
+    } | tojson }}
+    </script>
+    {% if workspace_view is defined %}
+    <script id="workspaceData" type="application/json">{
+        "detail": { {% include "components/project/workspace_detail_data.html" %} },
+        "planning": { {% include "components/project/workspace_planning_data.html" %} },
+        "generation": {
+            "page": "generator-workspace", "embedded": true, "projectId": {{ project.project_id | tojson }}, "title": {{ project.title | tojson }},
+            "generationMode": {{ ((project.project_metadata or {}).get('generation_mode', 'freeform')) | tojson }},
+            "unattendedActive": {{ (unattended_active | default(false)) | tojson }},
+            "workspace": {{ ws.state | tojson }},
+            "slideTitles": {{ (project.outline.slides | map(attribute='title', default='未命名页面') | list if project.outline and project.outline.slides else []) | tojson }},
+            "templateInitial": { "topic": {{ project.topic | tojson }}, "templateMode": {{ ((project.project_metadata or {}).get('template_mode', '')) | tojson }} },
+            "generationInitial": { "slides": {{ (project.slides_data or []) | tojson }}, "total": {{ (project.outline.slides | length if project.outline and project.outline.slides else 0) | tojson }}, "status": {{ project.status | tojson }} }
+        }
+    }</script>
+    {% endif %}
+    <script src="/static/js/shared/notification_center.js?v=20261012-antd"></script>
+    <script src="/static/js/shared/site_notice.js?v=20260322"></script>
+    <script src="/static/js/shared/unattended_monitor.js?v=20261012"></script>
+    <script type="module" src="/static/antd/app.js?v=20261023-editor-compact"></script>
 </body>
 
 </html>

@@ -1,23 +1,33 @@
 import { theme, type ThemeConfig } from 'antd';
 
+// Resolve the shared Jinja/native palette before React mounts.
+const palette = getComputedStyle(document.documentElement);
+const color = (name: string) => palette.getPropertyValue(`--lp-${name}`).trim();
+
 export const landpptTheme: ThemeConfig = {
-  algorithm: theme.defaultAlgorithm,
+  algorithm: document.documentElement.dataset.theme === 'light' ? theme.defaultAlgorithm : theme.darkAlgorithm,
+  cssVar: { key: 'landppt' },
   token: {
-    colorPrimary: '#111111', colorInfo: '#111111', colorLink: '#111111',
-    colorPrimaryBg: '#f2f2f2', colorPrimaryBorder: '#dedede',
-    colorInfoBg: '#f2f2f2', colorInfoBorder: '#dedede', colorInfoText: '#252936',
-    colorText: '#252936', colorTextSecondary: '#6b7280',
-    colorBgLayout: '#f5f5f7', colorBgContainer: '#ffffff', colorBorder: '#dedede',
-    fontSize: 14, borderRadius: 8, controlHeight: 32, motion: false,
-    fontFamily: '"PingFang SC", "Microsoft YaHei", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+    colorPrimary: color('primary'), colorInfo: color('info'), colorLink: color('text'),
+    colorSuccess: color('success'), colorWarning: color('accent'), colorError: color('danger'),
+    colorText: color('text'), colorTextSecondary: color('secondary'), colorTextTertiary: color('muted'),
+    colorTextPlaceholder: color('muted'), colorTextDisabled: color('disabled'),
+    colorBgLayout: color('bg'), colorBgContainer: color('surface'), colorBgElevated: color('elevated'),
+    colorBorder: color('border'), colorBorderSecondary: color('border'), colorBgMask: color('mask'),
+    colorTextLightSolid: color('on-primary'),
+    fontSize: 14, borderRadius: 10, borderRadiusLG: 16, controlHeight: 36, motion: false,
+    fontFamily: palette.getPropertyValue('--lp-font').trim(),
+    boxShadow: 'none', boxShadowSecondary: 'none',
   },
   components: {
-    Button: { fontWeight: 500, primaryShadow: '0 1px 2px #00000020', defaultShadow: '0 1px 2px #00000005', defaultHoverBg: '#f7f7f8', defaultHoverBorderColor: '#a1a1aa' },
-    Card: { borderRadiusLG: 10, headerBg: '#fcfcfd' },
-    Select: {
-      optionSelectedBg: '#f0f0f0', optionSelectedColor: '#111111',
-      optionActiveBg: '#f7f7f7', controlItemBgActiveHover: '#e8e8e8',
-    },
+    Button: { fontWeight: 500, borderRadius: 999, primaryColor: color('on-primary'), primaryShadow: 'none', defaultShadow: 'none', defaultHoverBg: color('hover'), defaultHoverBorderColor: color('border-strong'), colorPrimary: color('primary'), colorPrimaryHover: color('text'), colorPrimaryActive: color('secondary') },
+    Card: { borderRadiusLG: 16, headerBg: 'transparent' },
+    Input: { colorBgContainer: color('elevated'), activeShadow: 'none', activeBorderColor: color('border-strong'), hoverBorderColor: color('border-strong') },
+    Select: { optionSelectedBg: color('hover'), optionSelectedColor: color('text'), optionActiveBg: color('hover'), activeBorderColor: color('border-strong'), activeOutlineColor: 'transparent' },
+    Segmented: { trackBg: color('bg'), itemSelectedBg: color('hover'), itemSelectedColor: color('text') },
     Tabs: { horizontalItemGutter: 24 },
+    Modal: { contentBg: color('surface'), headerBg: color('surface') },
+    Drawer: { colorBgElevated: color('surface') },
+    Tooltip: { colorBgSpotlight: color('hover'), colorTextLightSolid: color('text') },
   },
 };

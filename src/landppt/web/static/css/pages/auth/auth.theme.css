@@ -1,0 +1,23 @@
+/* Account forms share the app palette; the brand illustration owns its art. */
+body.auth-body { background: var(--lp-bg); color-scheme: dark; }
+.auth-body .form-panel {
+  --ink: var(--lp-text);
+  --ink-2: var(--lp-text);
+  --muted: var(--lp-secondary);
+  --muted-2: var(--lp-muted);
+  --paper: var(--lp-surface);
+  --paper-2: var(--lp-elevated);
+  --border: var(--lp-border);
+  --border-strong: var(--lp-border-strong);
+  --danger-bg: var(--lp-danger-bg);
+  --success-bg: var(--lp-success-bg);
+  --shadow: none;
+  --shadow-soft: none;
+  background: var(--lp-surface);
+}
+.auth-body .form-panel :is(input,select,textarea) { background: var(--lp-elevated); color: var(--lp-text); }
+.auth-body .form-panel input::placeholder { color: var(--lp-muted); }
+.auth-body .form-panel .btn-primary { background: var(--lp-primary); color: var(--lp-on-primary); border-color: transparent; border-radius: 999px; }
+.auth-body .form-panel .btn-primary:hover { background: var(--lp-text); }
+.auth-body .form-panel .btn-secondary:hover { background: var(--lp-hover); }
+.auth-body .auth-card { border-color: var(--lp-border); box-shadow: none; }

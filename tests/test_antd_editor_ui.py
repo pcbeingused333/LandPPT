@@ -321,9 +321,7 @@ def test_editor_cancelled_image_confirm_resolves_original_promise(ui_page):
 def test_editor_save_source_and_failed_save_keep_existing_payload(ui_page):
     page, load = ui_page
     state = setup(page, load)
-    page.get_by_role("toolbar", name="幻灯片编辑工具").get_by_text(
-        "代码", exact=True
-    ).click()
+    page.get_by_role("toolbar", name="幻灯片编辑工具").get_by_title("代码", exact=True).click()
     source = HTML.replace("原始演示内容", "保存后的内容")
     page.locator("#codeEditor").fill(source)
     state["fail"] = True
@@ -349,7 +347,7 @@ def test_editor_permission_dependent_actions_keep_visibility(ui_page, restricted
     )
     page.keyboard.press("Escape")
     page.get_by_role("button", name="AI 编辑", exact=True).click()
-    expect(page.get_by_role("dialog", name=re.compile("^AI 编辑助手"))).to_be_visible()
+    expect(page.get_by_role("region", name="AI 编辑助手", exact=True)).to_be_visible()
     assert page.get_by_role("button", name="修复排版", exact=True).count() == (
         0 if restricted else 1
     )
@@ -504,7 +502,7 @@ def test_editor_empty_state_has_clear_counter_and_disabled_actions(ui_page):
     assert not state["writes"] and not state["errors"]
 
 
-def test_editor_ant_select_keeps_visible_value_and_primary_action_black(ui_page):
+def test_editor_ant_select_keeps_visible_value_and_primary_action_light(ui_page):
     page, load = ui_page
     state = setup(page, load)
     original = page.locator("#slideFrame").get_attribute("srcdoc")
@@ -519,7 +517,7 @@ def test_editor_ant_select_keeps_visible_value_and_primary_action_black(ui_page)
     save = dialog.get_by_role("button", name="保存大纲", exact=True)
     assert (
         save.evaluate("node => getComputedStyle(node).backgroundColor")
-        == "rgb(17, 17, 17)"
+        == "rgb(245, 245, 245)"
     )
     field.click()
     page.locator(".ant-select-dropdown .ant-select-item-option-content").filter(

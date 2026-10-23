@@ -734,7 +734,7 @@ def test_saved_sponsor_visibility_updates_footer_without_reload(ui_page, enabled
     public = {"sponsor_page_enabled": not enabled, "site_notice": None}
     page.route("**/api/community/public-settings", lambda route: route.fulfill(json=public))
     community(page, load, "sponsors", settings={**SETTINGS, "sponsor_page_enabled": not enabled})
-    footer = page.locator("#footerSponsorLink")
+    footer = page.locator("#navSponsorLink")
     expect(footer).to_have_text("赞助预览" if enabled else "赞助感谢")
     page.evaluate("window.sponsorHeader = document.querySelector('.app-header')")
     page.get_by_label("公开赞助感谢页", exact=True).set_checked(enabled)
@@ -764,14 +764,14 @@ def test_failed_sponsor_visibility_save_keeps_footer_and_draft(ui_page):
 
     page.route("**/api/community/public-settings", public_settings)
     community(page, load, "sponsors", settings={**SETTINGS, "sponsor_page_enabled": False})
-    expect(page.locator("#footerSponsorLink")).to_have_text("赞助预览")
+    expect(page.locator("#navSponsorLink")).to_have_text("赞助预览")
     page.get_by_label("公开赞助感谢页", exact=True).check()
     page.route("**/admin/api/community/settings", lambda route: route.fulfill(status=500, json={"detail": "展示设置保存失败"}))
     count = len(reads)
     page.get_by_role("button", name="保存全部运营配置", exact=True).click()
     expect(page.get_by_text("展示设置保存失败", exact=True)).to_be_visible()
     expect(page.get_by_label("公开赞助感谢页", exact=True)).to_be_checked()
-    expect(page.locator("#footerSponsorLink")).to_have_text("赞助预览")
+    expect(page.locator("#navSponsorLink")).to_have_text("赞助预览")
     assert len(reads) == count
 
 
@@ -790,12 +790,12 @@ def test_older_public_settings_response_cannot_replace_saved_visibility(ui_page)
     page.evaluate("window.dispatchEvent(new Event('landppt:community-settings-saved'))")
     page.wait_for_function("window.sponsorSettingsReads.length === 2")
     page.evaluate("window.sponsorSettingsReads[1]({sponsor_page_enabled: true})")
-    expect(page.locator("#footerSponsorLink")).to_have_text("赞助感谢")
+    expect(page.locator("#navSponsorLink")).to_have_text("赞助感谢")
     page.evaluate("""async () => {
       window.sponsorSettingsReads[0]({sponsor_page_enabled: false});
       await new Promise(requestAnimationFrame);
     }""")
-    expect(page.locator("#footerSponsorLink")).to_have_text("赞助感谢")
+    expect(page.locator("#navSponsorLink")).to_have_text("赞助感谢")
 
 
 @pytest.mark.parametrize("width", [1440, 320])
@@ -808,7 +808,9 @@ def test_sponsor_footer_visibility_follows_public_setting_and_role(ui_page, widt
     user = None if role == "guest" else dict(username="sponsor-user", is_admin=role == "admin")
     load("pages/community/sponsor_thanks.html", path="/sponsors", user=user, sponsors=[])
     expect(page.get_by_role("heading", name="赞助感谢", exact=True)).to_be_visible()
-    footer = page.locator("#footerSponsorLink")
+    if width == 320:
+        page.get_by_role("button", name="菜单", exact=True).click()
+    footer = page.locator("#mobileSponsorLink" if width == 320 else "#navSponsorLink")
     if enabled or role == "admin":
         expect(footer).to_be_visible()
         expect(footer).to_have_text("赞助感谢" if enabled else "赞助预览")

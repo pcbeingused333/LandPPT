@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { Button, Flex, Grid, Steps, Tooltip } from 'antd';
 import { ArrowLeftOutlined } from '@ant-design/icons';
+import { navigatePage } from '../navigation';
 
 // Facts come from the server (components/project/workspace_state.html); the bar
 // only reads them and links to existing routes, never starts or skips work.
@@ -47,7 +48,7 @@ export function ProjectStages({ projectId, state, current, generating, hub = fal
   const index = order.indexOf(current);
   return <nav className="project-stages" aria-label="创作阶段">
     <Steps size="small" type={screens.md ? 'navigation' : 'default'} responsive={false} current={index}
-      onChange={next => { const link = stages[next].link; if ((hub || next !== index) && link) location.assign(link); }}
+      onChange={next => { const link = stages[next].link; if ((hub || next !== index) && link) navigatePage(link); }}
       items={stages.map((stage, position) => ({
         title: <Tooltip title={stage.hint}><span aria-current={!hub && position === index ? 'step' : undefined}>{stage.title}</span></Tooltip>,
         status: stage.status, disabled: !stage.link && (hub || position !== index),

@@ -1,24 +1,5 @@
 {% extends "antd_base.html" %}
 {% block title %}{{ project.title }} - 项目详情 - LandPPT{% endblock %}
 {% block page_data %}
-{% import "components/project/workspace_state.html" as ws with context %}
-"page": "project-detail",
-"project": {
-    "project_id": {{ project.project_id | tojson }}, "title": {{ project.title | tojson }}, "topic": {{ project.topic | tojson }},
-    "scenario": {{ project.scenario | tojson }}, "status": {{ project.status | tojson }}, "version": {{ project.version }},
-    "requirements": {{ project.requirements | tojson }}, "created": {{ (project.created_at | strftime('%Y-%m-%d %H:%M')) | tojson }},
-    "hasSlides": {{ ((project.slides_data | default([], true) | length > 0) or (project.slides_html is not none and project.slides_html | length > 0)) | tojson }},
-    "outline": {{ project.outline | tojson }}
-},
-"board": {% if todo_board %}{
-    "progress": {{ todo_board.overall_progress }},
-    "stages": [{% for stage in todo_board.stages %}{
-        "id": {{ stage.id | tojson }}, "name": {{ stage.name | tojson }}, "description": {{ stage.description | tojson }},
-        "status": {{ stage.status | tojson }}, "progress": {{ stage.progress | default(0, true) }}
-    }{% if not loop.last %},{% endif %}{% endfor %}]
-}{% else %}null{% endif %},
-"versions": [{% for version in versions | default([]) %}{
-    "version": {{ version.version }}, "description": {{ version.description | tojson }}, "timestamp": {{ (version.timestamp | strftime('%Y-%m-%d %H:%M:%S')) | tojson }}
-}{% if not loop.last %},{% endif %}{% endfor %}],
-"workspace": {{ ws.state|tojson }}
+{% include "components/project/workspace_detail_data.html" %}
 {% endblock %}

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { App, Button, Drawer, Dropdown, Space, Tooltip } from 'antd';
-import { BellOutlined, MenuOutlined, UserOutlined, SettingOutlined, LogoutOutlined, GithubOutlined, MailOutlined, HeartOutlined } from '@ant-design/icons';
+import { App, Button, Drawer, Dropdown, Input, Space, Tooltip } from 'antd';
+import { BellOutlined, MenuOutlined, UserOutlined, SettingOutlined, LogoutOutlined, GithubOutlined, MailOutlined, HeartOutlined, SearchOutlined, AppstoreOutlined, FolderOutlined, PictureOutlined, LayoutOutlined, MenuFoldOutlined, MenuUnfoldOutlined, PlusOutlined, FileTextOutlined } from '@ant-design/icons';
 import { version } from '../package.json';
 import { modalFocus } from './components/modal-focus';
 import { NotificationDrawer, SiteAnnouncement } from './components/shell-feedback';
@@ -20,6 +20,12 @@ declare global {
 
 export function Shell({ data, children, pending = '' }: { data: ShellData; children: ReactNode; pending?: string }) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState(() => {
+    try { const saved = localStorage.getItem('landppt:sidebar-collapsed'); if (saved !== null) return saved === '1'; } catch { /* Use the viewport default when storage is unavailable. */ }
+    return window.matchMedia('(min-width: 1024px) and (max-width: 1399px)').matches;
+  });
+  const [search, setSearch] = useState('');
+  const [recent, setRecent] = useState<ApiData[]>([]);
   const authPage = data.page === 'auth';
   const menuTrigger = useRef<HTMLButtonElement>(null);
   const { modal, message } = App.useApp();
@@ -28,6 +34,16 @@ export function Shell({ data, children, pending = '' }: { data: ShellData; child
   const [notifications, setNotifications] = useState<ApiData>({});
   const [notificationOpen, setNotificationOpen] = useState(false);
   const center = useRef<any>(null);
+  useEffect(() => { try { localStorage.setItem('landppt:sidebar-collapsed', collapsed ? '1' : '0'); } catch { /* Storage may be unavailable in private browsing. */ } }, [collapsed]);
+  useEffect(() => {
+    if (!data.user || data.page === 'home' || data.page === 'auth') { setRecent([]); return; }
+    const controller = new AbortController();
+    void fetch('/api/projects?page=1&page_size=8', { credentials: 'same-origin', cache: 'no-store', signal: controller.signal })
+      .then(response => response.ok ? response.json() : null)
+      .then(value => { if (!controller.signal.aborted) setRecent(Array.isArray(value?.projects) ? value.projects.slice(0, 8) : []); })
+      .catch(() => { /* The navigation remains usable when the project list is unavailable. */ });
+    return () => controller.abort();
+  }, [data.user?.username, data.page, pending]);
   useEffect(() => {
     let disposed = false;
     let reading: AbortController | undefined;
@@ -64,33 +80,41 @@ export function Shell({ data, children, pending = '' }: { data: ShellData; child
   }, [data.user?.username]);
   useEffect(() => { setMenuOpen(false); }, [data.page]);
   const links = [
-    ['工作台', '/dashboard'], ['项目', '/projects'], ['模板', '/global-master-templates'], ['素材', '/image-gallery'],
+    ['工作台', '/dashboard', <AppstoreOutlined aria-hidden />], ['项目', '/projects', <FolderOutlined aria-hidden />], ['模板', '/global-master-templates', <LayoutOutlined aria-hidden />], ['素材', '/image-gallery', <PictureOutlined aria-hidden />],
   ];
   const current = (href: string) => location.pathname === href || (href === '/projects' && location.pathname.startsWith('/projects/'));
   const logout = () => modal.confirm({ title: '退出登录', content: '确定要退出登录吗？', okText: '退出', cancelText: '取消', modalRender: modalFocus, onOk: () => { location.href = '/auth/logout'; } });
-  const navigation = <nav aria-label="主导航" className="app-nav">{links.map(([label, href]) => <a key={href} href={href} aria-current={current(href) ? 'page' : undefined}>{label}</a>)}</nav>;
+  const navigation = <nav aria-label="主导航" className="app-nav">{links.map(([label, href, icon]) => <Tooltip key={String(href)} title={collapsed && !menuOpen ? label : undefined} placement="right"><a href={String(href)} aria-label={String(label)} aria-current={current(String(href)) ? 'page' : undefined}>{icon}<span className="app-nav-label">{label}</span></a></Tooltip>)}</nav>;
+  const searchForm = <form className="sidebar-search" action="/projects" role="search"><Input aria-label="搜索项目" name="search" placeholder="搜索项目…" prefix={<SearchOutlined aria-hidden />} value={search} onChange={event => setSearch(event.target.value)} /><button className="sr-only" type="submit">搜索</button></form>;
+  const recentProjects = <section className="sidebar-recent" aria-label="最近项目"><div className="sidebar-section-label">最近项目</div>{recent.length ? recent.map(project => <a key={project.project_id} href={`/projects/${encodeURIComponent(project.project_id)}`} title={project.title} aria-current={location.pathname.startsWith(`/projects/${encodeURIComponent(project.project_id)}`) ? 'page' : undefined}><FileTextOutlined aria-hidden /><span>{project.title || '未命名项目'}</span></a>) : <p className="subtle">项目会显示在这里</p>}</section>;
   const account = data.user ? [
     { key: 'profile', label: <a href="/auth/profile">个人资料</a>, icon: <UserOutlined aria-hidden /> },
     ...(data.creditsEnabled ? [{ key: 'credits', label: <a href="/credits">我的积分</a> }] : []),
     ...(data.user.is_admin ? [{ key: 'admin', label: <a href="/admin">管理后台</a>, icon: <SettingOutlined aria-hidden /> }] : []),
     { key: 'logout', label: '退出登录', icon: <LogoutOutlined aria-hidden />, onClick: logout },
   ] : [];
-  return <div className={`app-shell${data.page === 'home' ? ' home-shell' : ''}`}>
+  return <div className={`app-shell${data.page === 'home' ? ' home-shell' : ''}${authPage ? ' auth-shell' : ''}${collapsed ? ' sidebar-collapsed' : ''}${['slides-editor', 'generator-workspace', 'project-detail', 'todo'].includes(data.page) ? ' workspace-shell' : ''}`}>
     <a className="skip-link" href="#appMain">跳到主内容</a>
-    <header className="app-header">
-      <a className="app-brand" href="/">LandPPT</a>
-      {!authPage && <div className="desktop-navigation">{navigation}</div>}
+    {!authPage && <aside className="app-sidebar" aria-label="应用侧栏">
+      <div className="sidebar-brand-row"><a className="app-brand" href="/home" aria-label="LandPPT 首页"><span className="brand-symbol" aria-hidden /><span className="sidebar-wordmark">LandPPT</span></a><Button type="text" aria-label={collapsed ? '展开导航' : '收起导航'} aria-expanded={!collapsed} icon={collapsed ? <MenuUnfoldOutlined aria-hidden /> : <MenuFoldOutlined aria-hidden />} onClick={() => setCollapsed(value => !value)} /></div>
+      {collapsed ? <Tooltip title="搜索项目" placement="right"><Button type="text" aria-label="搜索项目" href="/projects" icon={<SearchOutlined aria-hidden />} /></Tooltip> : searchForm}
+      <Tooltip title={collapsed ? '创建 PPT' : undefined} placement="right"><Button type="primary" className="sidebar-create" href="/create" aria-label="创建 PPT" icon={<PlusOutlined aria-hidden />}><span className="app-nav-label">创建 PPT</span></Button></Tooltip>
+      {navigation}{data.page !== 'home' && recentProjects}
+      <div className="sidebar-bottom">{data.creditsEnabled && <a className="sidebar-credits" href="/credits"><span>◈</span><span className="app-nav-label">我的积分</span></a>}<a href="/ai-config" aria-label="系统配置"><SettingOutlined aria-hidden /><span className="app-nav-label">系统配置</span></a>{(sponsorsEnabled || data.user?.is_admin) && <a id="navSponsorLink" href="/sponsors"><HeartOutlined aria-hidden /><span className="app-nav-label">{sponsorsEnabled ? '赞助感谢' : '赞助预览'}</span></a>}</div>
+    </aside>}
+    <div className="app-body"><header className="app-header">
+      {!authPage && <Button ref={menuTrigger} className="mobile-menu" type="text" aria-label="菜单" aria-expanded={menuOpen} icon={<MenuOutlined aria-hidden />} onClick={() => setMenuOpen(true)} />}
+      <a className="app-brand mobile-brand" href="/home">LandPPT</a><span className="app-location">{({ dashboard: '工作台', projects: '项目库', templates: '模板库', 'image-gallery': '素材库', 'slides-editor': '创作工作区', 'project-detail': '创作工作区', todo: '创作工作区', 'generator-workspace': '创作工作区' } as Record<string, string>)[data.page] || 'LandPPT'}</span>
       {authPage ? <Button className="app-account" href="/home">返回首页</Button> : <Space size={8} className="app-account">
         <Tooltip title="系统配置" trigger={['hover', 'focus']}><Button className="app-settings" type="text" href="/ai-config" aria-label="系统配置" icon={<SettingOutlined aria-hidden />} /></Tooltip>
         {data.user ? <><Button type="text" id="navNotificationBell" aria-label="通知" icon={<BellOutlined aria-hidden />}><span id="navNotificationBadge" hidden>0</span></Button>
           <Dropdown classNames={{ root: 'app-account-menu' }} menu={{ items: account }} trigger={['click']}><Button type="text" icon={<UserOutlined aria-hidden />} aria-label="账户菜单"><span className="account-name">{data.user.username}</span></Button></Dropdown></>
           : <Button href="/auth/login">登录</Button>}
-        <Button ref={menuTrigger} className="mobile-menu" type="text" aria-label="菜单" aria-expanded={menuOpen} icon={<MenuOutlined aria-hidden />} onClick={() => setMenuOpen(true)} />
       </Space>}
     </header>
     {pending && <div className="navigation-progress" role="status" aria-label="正在打开页面" />}
     <Drawer title="导航" open={menuOpen} onClose={() => setMenuOpen(false)} afterOpenChange={open => { if (!open) menuTrigger.current?.focus(); }} size={280}>
-      {navigation}<nav aria-label="辅助导航" className="app-nav account-nav"><a href="/create">创建 PPT</a><a href="/home">产品首页</a><a href="/ai-config">系统配置</a></nav><nav aria-label="账户导航" className="app-nav account-nav">
+      {searchForm}{navigation}{data.page !== 'home' && recentProjects}<nav aria-label="辅助导航" className="app-nav account-nav"><a href="/create">创建 PPT</a><a href="/home">产品首页</a><a href="/ai-config">系统配置</a>{(sponsorsEnabled || data.user?.is_admin) && <a id="mobileSponsorLink" href="/sponsors">{sponsorsEnabled ? '赞助感谢' : '赞助预览'}</a>}</nav><nav aria-label="账户导航" className="app-nav account-nav">
         {data.user ? <><a href="/auth/profile">个人资料</a>{data.creditsEnabled && <a href="/credits">我的积分</a>}{data.user.is_admin && <a href="/admin">管理后台</a>}<Button type="text" onClick={logout}>退出登录</Button></>
           : <><a href="/auth/login">登录</a><a href="/auth/login?tab=register">注册</a></>}
       </nav>
@@ -98,6 +122,6 @@ export function Shell({ data, children, pending = '' }: { data: ShellData; child
     <SiteAnnouncement notice={notice} />
     <NotificationDrawer open={notificationOpen} state={notifications} center={center.current} />
     <main id="appMain" tabIndex={-1} aria-busy={!!pending} className={`app-main${authPage ? ' auth-main' : ''}${data.page === 'home' ? ' home-main' : ''}`}>{children}</main>
-    <footer className="app-footer"><span>LandPPT · v{version}</span><a href="/home">产品首页</a><Tooltip title="GitHub" trigger={['hover', 'focus']}><a className="app-footer-icon" aria-label="GitHub" href="https://github.com/sligter/LandPPT" target="_blank" rel="noreferrer"><GithubOutlined aria-hidden /></a></Tooltip>{(sponsorsEnabled || data.user?.is_admin) && <a id="footerSponsorLink" className="app-footer-sponsor" href="/sponsors"><HeartOutlined aria-hidden />{sponsorsEnabled ? '赞助感谢' : '赞助预览'}</a>}<Tooltip title="商务合作" trigger={['hover', 'focus']}><a className="app-footer-icon" aria-label="商务合作" href="mailto:support@landppt.com"><MailOutlined aria-hidden /></a></Tooltip></footer>
-  </div>;
+    {data.page === 'home' && <footer className="app-footer"><span>LandPPT · v{version}</span><a href="/home">产品首页</a><Tooltip title="GitHub" trigger={['hover', 'focus']}><a className="app-footer-icon" aria-label="GitHub" href="https://github.com/sligter/LandPPT" target="_blank" rel="noreferrer"><GithubOutlined aria-hidden /></a></Tooltip>{(sponsorsEnabled || data.user?.is_admin) && <a id="footerSponsorLink" className="app-footer-sponsor" href="/sponsors"><HeartOutlined aria-hidden />{sponsorsEnabled ? '赞助感谢' : '赞助预览'}</a>}<Tooltip title="商务合作" trigger={['hover', 'focus']}><a className="app-footer-icon" aria-label="商务合作" href="mailto:support@landppt.com"><MailOutlined aria-hidden /></a></Tooltip></footer>}
+  </div></div>;
 }

@@ -34,7 +34,7 @@ def test_only_current_page_is_saved_and_shortcut_cannot_duplicate_pending_write(
     page, load = ui_page
     state = setup(page, load)
     page.locator(".slide-thumbnail").nth(1).click()
-    page.get_by_role("toolbar").get_by_text("代码", exact=True).click()
+    page.get_by_role("toolbar").get_by_title("代码", exact=True).click()
     source = HTML.replace("原始演示内容", "只修改第二页")
     page.locator("#codeEditor").fill(source)
     held = []

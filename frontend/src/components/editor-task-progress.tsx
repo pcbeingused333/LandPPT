@@ -21,7 +21,7 @@ export function editorTaskNotice(toast: ApiData) {
     title: <div className="editor-task-title"><strong>{task.title}</strong><span>{percent == null ? <><LoadingOutlined spin aria-hidden /> 处理中</> : `${percent}%`}</span></div>,
     description: <div className="editor-task-body"><p>{message}</p>{percent == null
       ? <span className="editor-task-wait">任务进行中，完成后会通知你。</span>
-      : <Progress aria-label={`${task.title}进度`} percent={percent} strokeColor="#111" size="small" showInfo={false} />}</div>,
+      : <Progress aria-label={`${task.title}进度`} percent={percent} strokeColor="var(--lp-primary)" size="small" showInfo={false} />}</div>,
     className: 'editor-task-notification',
     classNames: { title: 'editor-task-heading', description: 'editor-task-description' },
     styles: { root: { padding: 14 }, title: { marginInlineStart: 0, marginBottom: 6 }, description: { marginInlineStart: 0 } },

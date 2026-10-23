@@ -3,13 +3,15 @@
 
 <head>
     <meta charset="UTF-8">
+    <meta name="color-scheme" content="dark light">
+    <link rel="stylesheet" href="/static/css/shared/design-tokens.css?v=20261023">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>页面生成 - {{ todo_board.title }}</title>
     <script src="/static/js/shared/unattended_monitor.js?v=20261012"></script>
     <!-- CodeMirror CSS -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/dracula.min.css">
-    <link rel="stylesheet" href="/static/antd/app.css?v=0.4.0-project-agent-r2">
+    <link rel="stylesheet" href="/static/antd/app.css?v=20261023-workspace">
 </head>
 
 <body class="landppt-generator">
@@ -33,7 +35,7 @@
             "status": {{ (project.status if project else 'draft') | tojson }}
         }
     }</script>
-    <script type="module" src="/static/antd/app.js?v=0.4.0-project-agent-r2"></script>
+    <script type="module" src="/static/antd/app.js?v=20261023-workspace"></script>
     <!-- CodeMirror JS -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/xml/xml.min.js"></script>

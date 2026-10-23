@@ -76,7 +76,7 @@ export function EditorExportDialog({ record, index, projectTitle, cancel, dismis
       ]} />
       <section className="editor-export-progress" aria-label="PPTX 转换进度">
         <div className="editor-export-progress-heading"><span>{cancelling ? '正在取消导出' : progress.kind === 'success' ? '转换完成' : '转换进度'}</span><strong>{percent == null ? <><LoadingOutlined spin aria-hidden /> 处理中</> : `${percent}%`}</strong></div>
-        {percent != null && <Progress percent={percent} strokeColor="#111" showInfo={false} aria-label="PPTX 导出进度" />}
+        {percent != null && <Progress percent={percent} strokeColor="var(--lp-primary)" showInfo={false} aria-label="PPTX 导出进度" />}
         <p role="status" aria-live="polite">{stageMessage(progress)}</p>
       </section>
     </>}

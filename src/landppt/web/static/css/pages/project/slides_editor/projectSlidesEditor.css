@@ -1,42 +1,42 @@
-#svg-page-editor::backdrop { background: rgb(15 23 42 / 45%); }
-#svg-page-editor { color: #111827; background: #fff; box-shadow: 0 24px 80px #0003; }
-#svg-page-editor button { padding: 9px 14px; border: 1px solid #cbd5e1; border-radius: 8px; background: #fff; color: #111827; cursor: pointer; }
-#svg-page-editor button:hover { background: #f1f5f9; }
-#svg-page-editor button[data-save] { background: #111827; color: #fff; border-color: #111827; }
+#svg-page-editor::backdrop { background: var(--lp-info-bg); }
+#svg-page-editor { color: var(--lp-info); background: var(--lp-surface); box-shadow: none; }
+#svg-page-editor button { padding: 9px 14px; border: 1px solid var(--lp-border); border-radius: 8px; background: var(--lp-surface); color: var(--lp-info); cursor: pointer; }
+#svg-page-editor button:hover { background: var(--lp-elevated); }
+#svg-page-editor button[data-save] { background: var(--lp-info-bg); color: var(--lp-on-primary); border-color: var(--lp-border); }
 #svg-page-editor button:disabled { opacity: .5; cursor: wait; }
-#svg-page-editor input, #svg-page-editor textarea { padding: 7px; border: 1px solid #cbd5e1; border-radius: 6px; font: inherit; }
+#svg-page-editor input, #svg-page-editor textarea { padding: 7px; border: 1px solid var(--lp-border); border-radius: 6px; font: inherit; }
 #svg-page-editor label, #svg-page-editor [data-status] { font-size: 13px; }
 #svg-page-editor input[type=color] { height: 36px; padding: 3px; }
 
 :root {
-    --surface-dark: #0f0f10;
-    --surface-darker: #050506;
-    --surface-muted: #f4f5f7;
-    --surface-elevated: #ffffff;
+    --surface-dark: var(--lp-surface);
+    --surface-darker: var(--lp-bg);
+    --surface-muted: var(--lp-elevated);
+    --surface-elevated: var(--lp-surface);
 
-    --border-color: #d2d5da;
-    --border-color-strong: #101114;
+    --border-color: var(--lp-border);
+    --border-color-strong: var(--lp-border-strong);
 
-    --text-primary: #15171c;
-    --text-secondary: #3b3f45;
-    --text-muted: #6b7078;
+    --text-primary: var(--lp-text);
+    --text-secondary: var(--lp-secondary);
+    --text-muted: var(--lp-secondary);
 
-    --accent-color: #111214;
-    --accent-strong: #000000;
-    --accent-contrast: #ffffff;
+    --accent-color: var(--lp-primary);
+    --accent-strong: var(--lp-primary);
+    --accent-contrast: var(--lp-on-primary);
 
-    --shadow-soft: 0 20px 40px rgba(0, 0, 0, 0.08);
+    --shadow-soft: 0 20px 40px var(--lp-overlay);
 
-    --primary-color: #111214;
-    --secondary-color: #1f2023;
+    --primary-color: var(--lp-primary);
+    --secondary-color: var(--lp-text);
 
-    --glass-bg: #f3f4f6;
-    --glass-border: #d2d5da;
-    --glass-shadow: 0 16px 32px rgba(0, 0, 0, 0.08);
+    --glass-bg: var(--lp-elevated);
+    --glass-border: var(--lp-border);
+    --glass-shadow: 0 16px 32px var(--lp-overlay);
 
-    --bg-primary: #ffffff;
-    --bg-secondary: #f6f7f9;
-    --bg-tertiary: #eceff2;
+    --bg-primary: var(--lp-bg);
+    --bg-secondary: var(--lp-elevated);
+    --bg-tertiary: var(--lp-elevated);
 
     --border-radius: 8px;
     --border-radius-sm: 10px;
@@ -81,7 +81,7 @@ body::before {
     background: var(--surface-elevated);
     border: 1px solid var(--border-color);
     border-radius: var(--border-radius-xl);
-    box-shadow: var(--shadow-soft);
+    box-shadow: none;
     margin: var(--spacing-lg);
     height: calc(100vh - (var(--spacing-lg) * 2));
     overflow: hidden;
@@ -115,7 +115,7 @@ body::before {
 .editor-header h2 {
     position: relative;
     z-index: 1;
-    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    text-shadow: 0 2px 8px var(--lp-overlay);
     font-weight: 700;
     font-size: 1.5rem;
     letter-spacing: -0.01em;
@@ -165,18 +165,18 @@ body::before {
 .slide-thumbnail:hover {
     border-color: var(--border-color-strong);
     transform: translateY(-2px);
-    box-shadow: 0 16px 32px rgba(0, 0, 0, 0.08);
+    box-shadow: none;
 }
 
 .slide-thumbnail.active {
     border-color: var(--accent-strong);
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.12);
+    box-shadow: none;
     transform: translateY(-3px);
 }
 
 .slide-thumbnail.selected {
-    border-color: #0d6efd;
-    box-shadow: 0 0 0 2px rgba(13, 110, 253, 0.25);
+    border-color: var(--lp-border);
+    box-shadow: none;
 }
 
 .slide-thumbnail.selected::after {
@@ -187,14 +187,14 @@ body::before {
     width: 22px;
     height: 22px;
     border-radius: 50%;
-    background: #0d6efd;
-    color: #fff;
+    background: var(--lp-info-bg);
+    color: var(--lp-on-primary);
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 12px;
     font-weight: 800;
-    box-shadow: 0 8px 20px rgba(13, 110, 253, 0.35);
+    box-shadow: none;
     pointer-events: none;
     z-index: 5;
 }
@@ -206,8 +206,8 @@ body::before {
 }
 
 .slide-thumbnail.drag-over {
-    border-color: #ffc107;
-    background: rgba(255, 193, 7, 0.1);
+    border-color: var(--lp-border);
+    background: var(--lp-divider);
 }
 
 .slide-preview {
@@ -219,7 +219,7 @@ body::before {
     pointer-events: none;
     position: relative;
     overflow: hidden;
-    background: #f8f9fa;
+    background: var(--lp-canvas);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -230,7 +230,7 @@ body::before {
     top: 50%;
     left: 50%;
     border: none;
-    background: white;
+    background: var(--lp-canvas);
     width: 1280px;
     height: 720px;
     transform-origin: center center;
@@ -259,8 +259,8 @@ body::before {
     font-size: 9px;
     font-weight: 700;
     letter-spacing: 0.04em;
-    background: #6366f1;
-    color: #fff;
+    background: var(--lp-info-bg);
+    color: var(--lp-on-primary);
 }
 
 .main-editor {
@@ -313,7 +313,7 @@ body::before {
     background: var(--accent-strong);
     color: var(--accent-contrast);
     border-color: var(--accent-strong);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    box-shadow: none;
 }
 
 .toolbar-btn:active {
@@ -379,18 +379,18 @@ body::before {
 }
 
 .editor-toolbar .dropdown-menu.toolbar-dropdown-menu {
-    --dropdown-shadow: 0 18px 34px rgba(15, 23, 42, 0.14), 0 4px 10px rgba(15, 23, 42, 0.08);
+    --dropdown-shadow: 0 18px 34px var(--lp-overlay), 0 4px 10px var(--lp-overlay);
     min-width: 228px;
-    border: 1px solid rgba(16, 17, 20, 0.1);
+    border: 1px solid var(--lp-overlay);
     border-radius: 11px;
-    box-shadow: var(--dropdown-shadow);
+    box-shadow: none;
     padding: 5px;
     margin-top: 0;
     top: calc(100% + 7px);
     right: 0;
     left: auto;
     background:
-        linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(247, 248, 250, 0.98));
+        linear-gradient(180deg, var(--lp-surface), var(--lp-elevated));
     overflow: hidden;
     opacity: 0;
     visibility: hidden;
@@ -411,7 +411,7 @@ body::before {
     inset: 0;
     border-radius: inherit;
     pointer-events: none;
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.82);
+    box-shadow: none;
 }
 
 .toolbar-dropdown-item {
@@ -429,7 +429,7 @@ body::before {
 
 .toolbar-dropdown-item:hover,
 .toolbar-dropdown-item:focus {
-    background: linear-gradient(135deg, rgba(17, 18, 20, 0.94), rgba(36, 38, 43, 0.96));
+    background: linear-gradient(135deg, var(--lp-primary), var(--lp-primary));
     color: var(--accent-contrast);
 }
 
@@ -437,8 +437,8 @@ body::before {
     width: 21px;
     height: 21px;
     border-radius: 6px;
-    background: linear-gradient(180deg, #f1f3f6, #e8ebef);
-    border: 1px solid rgba(16, 17, 20, 0.08);
+    background: linear-gradient(180deg, var(--lp-elevated), var(--lp-elevated));
+    border: 1px solid var(--lp-overlay);
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -453,8 +453,8 @@ body::before {
 
 .toolbar-dropdown-item:hover .toolbar-dropdown-item__icon,
 .toolbar-dropdown-item:focus .toolbar-dropdown-item__icon {
-    background: rgba(255, 255, 255, 0.14);
-    border-color: rgba(255, 255, 255, 0.18);
+    background: var(--lp-divider);
+    border-color: var(--lp-divider);
     color: var(--accent-contrast);
 }
 
@@ -498,8 +498,8 @@ body::before {
     line-height: 1.4;
     letter-spacing: 0.3px;
     color: var(--text-secondary);
-    background: rgba(17, 18, 20, 0.07);
-    border: 1px solid rgba(17, 18, 20, 0.14);
+    background: var(--lp-overlay);
+    border: 1px solid var(--lp-overlay);
     vertical-align: 1px;
     transition: inherit;
 }
@@ -507,45 +507,45 @@ body::before {
 .toolbar-dropdown-item:hover .toolbar-dropdown-item__badge,
 .toolbar-dropdown-item:focus .toolbar-dropdown-item__badge {
     color: var(--accent-contrast);
-    background: rgba(255, 255, 255, 0.16);
-    border-color: rgba(255, 255, 255, 0.22);
+    background: var(--lp-divider);
+    border-color: var(--lp-divider);
 }
 
 .toolbar-dropdown-divider {
     margin: 3px 2px;
-    border-top-color: rgba(16, 17, 20, 0.08);
+    border-top-color: var(--lp-overlay);
 }
 
 .toolbar-dropdown-item--danger {
-    color: #9b1c1c;
+    color: var(--lp-danger);
 }
 
 .toolbar-dropdown-item--danger .toolbar-dropdown-item__icon {
-    color: #b42318;
-    background: linear-gradient(180deg, #fff3f2, #ffe5e3);
-    border-color: rgba(180, 35, 24, 0.14);
+    color: var(--lp-danger);
+    background: linear-gradient(180deg, var(--lp-elevated), var(--lp-danger-bg));
+    border-color: var(--lp-divider);
 }
 
 .toolbar-dropdown-item--danger .toolbar-dropdown-item__hint {
-    color: rgba(155, 28, 28, 0.72);
+    color: var(--lp-mask);
 }
 
 .toolbar-dropdown-item--danger:hover,
 .toolbar-dropdown-item--danger:focus {
-    background: linear-gradient(135deg, #7f1d1d, #b42318);
-    color: #fff;
+    background: linear-gradient(135deg, var(--lp-danger-bg), var(--lp-danger-bg));
+    color: var(--lp-on-primary);
 }
 
 .toolbar-dropdown-item--danger:hover .toolbar-dropdown-item__icon,
 .toolbar-dropdown-item--danger:focus .toolbar-dropdown-item__icon {
-    background: rgba(255, 255, 255, 0.14);
-    border-color: rgba(255, 255, 255, 0.18);
-    color: #fff;
+    background: var(--lp-divider);
+    border-color: var(--lp-divider);
+    color: var(--lp-on-primary);
 }
 
 .toolbar-dropdown-item--danger:hover .toolbar-dropdown-item__hint,
 .toolbar-dropdown-item--danger:focus .toolbar-dropdown-item__hint {
-    color: rgba(255, 255, 255, 0.76);
+    color: var(--lp-divider);
 }
 
 .editor-content {
@@ -565,7 +565,7 @@ body::before {
 
 .edit-pane {
     flex: 1;
-    background: white;
+    background: var(--lp-surface);
     height: 100%;
     overflow: hidden;
     position: relative;
@@ -601,7 +601,7 @@ body::before {
     width: 1280px;
     height: 720px;
     border: none;
-    background: white;
+    background: var(--lp-canvas);
     border-radius: 8px;
     transform-origin: center center;
     /* 初始变换，JavaScript会动态调整缩放比例 */
@@ -611,8 +611,8 @@ body::before {
 /* 右侧iframe的响应式缩放 */
 .preview-pane {
     flex: 1;
-    background: #f8f9fa;
-    border-right: 1px solid #dee2e6;
+    background: var(--lp-elevated);
+    border-right: 1px solid var(--lp-border);
     position: relative;
     overflow: hidden;
     display: flex;
@@ -626,7 +626,7 @@ body::before {
     display: flex;
     justify-content: center;
     align-items: center;
-    background: #f8f9fa;
+    background: var(--lp-elevated);
     border-radius: 8px;
     padding: 10px;
     box-sizing: border-box;
@@ -636,9 +636,9 @@ body::before {
 .slide-frame-wrapper {
     position: relative;
     display: block;
-    background: white;
+    background: var(--lp-canvas);
     border-radius: 8px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    box-shadow: none;
     /* 固定16:9比例，自适应缩放 */
     width: 100%;
     height: 100%;
@@ -658,11 +658,11 @@ body::before {
     display: flex !important;
     align-items: center;
     justify-content: center;
-    background: rgba(0, 0, 0, 0.55);
-    color: #fff;
+    background: var(--lp-mask);
+    color: var(--lp-on-primary);
     border: none;
     border-radius: 12px;
-    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.25);
+    box-shadow: none;
     transition: opacity 0.25s ease, background-color 0.25s ease, transform 0.25s ease;
     opacity: 0;
     pointer-events: none;
@@ -677,7 +677,7 @@ body::before {
 }
 
 .preview-nav-btn:hover {
-    background: rgba(0, 0, 0, 0.8);
+    background: var(--lp-mask);
     opacity: 0.3;
     transform: translateY(-50%) scale(1.05);
 }
@@ -760,51 +760,51 @@ body::before {
 }
 
 .CodeMirror-gutters {
-    background: #2c3e50 !important;
-    border-right: 1px solid #34495e !important;
+    background: var(--lp-info-bg) !important;
+    border-right: 1px solid var(--lp-border) !important;
 }
 
 .CodeMirror-linenumber {
-    color: #7f8c8d !important;
+    color: var(--lp-secondary) !important;
     padding: 0 8px !important;
 }
 
 .CodeMirror-cursor {
-    border-left: 2px solid #e74c3c !important;
+    border-left: 2px solid var(--lp-border) !important;
 }
 
 .CodeMirror-selected {
-    background-color: rgba(52, 152, 219, 0.2) !important;
+    background-color: var(--lp-divider) !important;
 }
 
 .CodeMirror-focused .CodeMirror-selected {
-    background-color: rgba(52, 152, 219, 0.3) !important;
+    background-color: var(--lp-divider) !important;
 }
 
 /* 主题色彩调整 */
 .cm-s-material .CodeMirror {
-    background: #263238 !important;
-    color: #eeffff !important;
+    background: var(--lp-primary) !important;
+    color: var(--lp-muted) !important;
 }
 
 .cm-s-material .CodeMirror-gutters {
-    background: #2c3e50 !important;
+    background: var(--lp-info-bg) !important;
 }
 
 .cm-s-material .cm-tag {
-    color: #f07178 !important;
+    color: var(--lp-danger) !important;
 }
 
 .cm-s-material .cm-attribute {
-    color: #c792ea !important;
+    color: var(--lp-info) !important;
 }
 
 .cm-s-material .cm-string {
-    color: #c3e88d !important;
+    color: var(--lp-success) !important;
 }
 
 .cm-s-material .cm-comment {
-    color: #546e7a !important;
+    color: var(--lp-info) !important;
 }
 
 /* CodeMirror搜索对话框样式优化 */
@@ -812,20 +812,20 @@ body::before {
     position: absolute;
     left: 0;
     right: 0;
-    background: #2c3e50 !important;
-    color: white !important;
+    background: var(--lp-info-bg) !important;
+    color: var(--lp-on-primary) !important;
     z-index: 15;
     padding: 10px 15px !important;
     border: none !important;
-    border-bottom: 2px solid #3498db !important;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3) !important;
+    border-bottom: 2px solid var(--lp-border) !important;
+    box-shadow: none;
 }
 
 .CodeMirror-dialog input {
-    border: 1px solid #34495e !important;
+    border: 1px solid var(--lp-border) !important;
     outline: none !important;
-    background: #34495e !important;
-    color: white !important;
+    background: var(--lp-info-bg) !important;
+    color: var(--lp-on-primary) !important;
     padding: 8px 12px !important;
     border-radius: 4px !important;
     font-size: 14px !important;
@@ -834,13 +834,13 @@ body::before {
 }
 
 .CodeMirror-dialog input:focus {
-    border-color: #3498db !important;
-    box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.3) !important;
+    border-color: var(--lp-border) !important;
+    box-shadow: none;
 }
 
 .CodeMirror-dialog button {
-    background: #3498db !important;
-    color: white !important;
+    background: var(--lp-info-bg) !important;
+    color: var(--lp-on-primary) !important;
     border: none !important;
     padding: 8px 15px !important;
     border-radius: 4px !important;
@@ -851,32 +851,32 @@ body::before {
 }
 
 .CodeMirror-dialog button:hover {
-    background: #2980b9 !important;
+    background: var(--lp-info-bg) !important;
 }
 
 .CodeMirror-dialog span {
-    color: white !important;
+    color: var(--lp-on-primary) !important;
     font-size: 14px !important;
     margin: 0 5px !important;
 }
 
 /* 搜索高亮样式 */
 .CodeMirror-searching {
-    background-color: rgba(255, 255, 0, 0.4) !important;
-    border: 1px solid rgba(255, 193, 7, 0.8) !important;
+    background-color: var(--lp-divider) !important;
+    border: 1px solid var(--lp-divider) !important;
     border-radius: 2px !important;
 }
 
 .cm-searching {
-    background-color: rgba(255, 255, 0, 0.4) !important;
-    border: 1px solid rgba(255, 193, 7, 0.8) !important;
+    background-color: var(--lp-divider) !important;
+    border: 1px solid var(--lp-divider) !important;
     border-radius: 2px !important;
 }
 
 /* 当前搜索结果高亮 */
 .CodeMirror-search-match {
-    background-color: rgba(255, 165, 0, 0.6) !important;
-    border: 2px solid #ff6b35 !important;
+    background-color: var(--lp-divider) !important;
+    border: 2px solid var(--lp-border) !important;
     border-radius: 3px !important;
 }
 
@@ -886,8 +886,8 @@ body::before {
     right: 10px !important;
     top: 50% !important;
     transform: translateY(-50%) !important;
-    background: #e74c3c !important;
-    color: white !important;
+    background: var(--lp-danger-bg) !important;
+    color: var(--lp-on-primary) !important;
     border: none !important;
     border-radius: 50% !important;
     width: 24px !important;
@@ -900,14 +900,14 @@ body::before {
 }
 
 .CodeMirror-dialog .CodeMirror-search-close:hover {
-    background: #c0392b !important;
+    background: var(--lp-danger-bg) !important;
 }
 
 /* 返回按钮样式 */
 .btn-outline-light {
     background: transparent;
     color: var(--accent-contrast);
-    border: 1px solid rgba(255, 255, 255, 0.3);
+    border: 1px solid var(--lp-divider);
     padding: var(--spacing-sm) var(--spacing-lg);
     border-radius: var(--border-radius-md);
     font-weight: 600;
@@ -923,7 +923,7 @@ body::before {
 
 .btn-outline-light:hover {
     transform: translateY(-1px);
-    box-shadow: 0 20px 35px rgba(255, 255, 255, 0.08);
+    box-shadow: none;
     text-decoration: none;
 }
 
@@ -942,7 +942,7 @@ body::before {
     left: 0;
     width: 100%;
     height: 100%;
-    background: black;
+    background: var(--lp-primary);
     z-index: 9999;
     display: none;
     justify-content: center;
@@ -976,7 +976,7 @@ body::before {
 
 .slideshow-slide iframe {
     border: none;
-    background: white;
+    background: var(--lp-surface);
     /* 硬件加速 */
     will-change: opacity;
     /* 确保iframe始终可见 */
@@ -1033,7 +1033,7 @@ body::before {
     display: flex;
     align-items: center;
     gap: 10px;
-    background: rgba(0, 0, 0, 0.65);
+    background: var(--lp-mask);
     border-radius: 30px;
     padding: 10px 16px;
     z-index: 100;
@@ -1057,9 +1057,9 @@ body::before {
 }
 
 .slideshow-btn {
-    background: rgba(255, 255, 255, 0.14);
-    color: white;
-    border: 1px solid rgba(255, 255, 255, 0.25);
+    background: var(--lp-divider);
+    color: var(--lp-on-primary);
+    border: 1px solid var(--lp-divider);
     padding: 8px 16px;
     border-radius: 20px;
     cursor: pointer;
@@ -1068,11 +1068,11 @@ body::before {
 }
 
 .slideshow-btn:hover {
-    background: rgba(255, 255, 255, 0.3);
+    background: var(--lp-divider);
 }
 
 .slideshow-info {
-    color: white;
+    color: var(--lp-on-primary);
     font-size: 14px;
     min-width: 64px;
     text-align: center;

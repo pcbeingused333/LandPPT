@@ -844,7 +844,7 @@ function stopSidebarResize() {
 }
 
 // AI编辑侧栏控制函数
-function openAIEditSidebar() {
+function openAIEditSidebar(options = {}) {
     const sidebar = document.getElementById('aiEditSidebar');
     const overlay = document.getElementById('aiSidebarOverlay');
 
@@ -855,8 +855,8 @@ function openAIEditSidebar() {
     updateAICurrentSlideInfo();
 
     // 聚焦到输入框
-    setTimeout(() => {
-        document.getElementById('aiInputBox').focus();
+    if (options.focus !== false) setTimeout(() => {
+        if (sidebar.classList.contains('open')) document.getElementById('aiInputBox')?.focus();
     }, 300);
 }
 

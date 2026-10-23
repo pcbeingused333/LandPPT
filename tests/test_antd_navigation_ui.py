@@ -145,7 +145,7 @@ def test_project_detail_navigation_keeps_shell_and_reads_fresh_metadata(ui_page,
     expect(page.get_by_role("heading", name=detail_project["title"], exact=True)).to_be_visible()
     expect(page.locator("#appMain")).to_have_attribute("aria-busy", "false")
     assert page.evaluate("window.navHeader===document.querySelector('.app-header')")
-    assert page.locator('.desktop-navigation a[href="/projects"]').get_attribute("aria-current") == "page"
+    assert page.locator('.app-sidebar a[href="/projects"]').get_attribute("aria-current") == "page"
     assert page.evaluate("document.documentElement.scrollWidth <= innerWidth+1")
     page.get_by_role("link", name="返回项目列表", exact=True).click()
     expect(page.get_by_role("heading", name="项目列表", exact=True)).to_be_visible()
@@ -199,18 +199,18 @@ def test_navigation_refreshes_sponsor_entry_after_settings_change(ui_page):
     state["values"]["user"] = dict(username="sponsor-reader", is_admin=False)
     page.goto("http://ui.test/dashboard", wait_until="networkidle")
     expect(page.get_by_role("heading", name="项目仪表板", exact=True)).to_be_visible()
-    expect(page.locator("#footerSponsorLink")).to_have_count(0)
+    expect(page.locator("#navSponsorLink")).to_have_count(0)
     page.evaluate("window.sponsorHeader = document.querySelector('.app-header')")
     public["sponsor_page_enabled"] = True
     open_navigation(page, "/projects")
-    expect(page.locator("#footerSponsorLink")).to_have_text("赞助感谢")
+    expect(page.locator("#navSponsorLink")).to_have_text("赞助感谢")
     public["sponsor_page_enabled"] = False
     open_navigation(page, "/create")
-    expect(page.locator("#footerSponsorLink")).to_have_count(0)
+    expect(page.locator("#navSponsorLink")).to_have_count(0)
     public["sponsor_page_enabled"] = True
     page.evaluate("document.dispatchEvent(new CustomEvent('landppt:navigate', {detail: '/create', cancelable: true}))")
     expect(page).to_have_url("http://ui.test/create")
-    expect(page.locator("#footerSponsorLink")).to_have_text("赞助感谢")
+    expect(page.locator("#navSponsorLink")).to_have_text("赞助感谢")
     assert page.evaluate("window.sponsorHeader === document.querySelector('.app-header')")
     assert not state["errors"]
 
@@ -239,8 +239,8 @@ def test_navigation_reuses_shell_across_all_main_pages(ui_page, width, height):
     page.evaluate(
         "() => {window.navHeader=document.querySelector('.app-header');window.navMarker='same-document';}"
     )
-    expect(page.locator(".app-brand")).to_have_text("LandPPT")
-    assert page.locator(".app-brand span").count() == 0
+    expect(page.locator(".app-brand:visible")).to_have_text("LandPPT")
+    expect(page.locator(".sidebar-wordmark")).to_have_text("LandPPT")
     for path in PATHS:
         open_navigation(page, path)
         assert page.evaluate(
@@ -293,7 +293,7 @@ def test_navigation_last_click_wins_and_current_link_cancels_pending(ui_page):
         ? new Promise(resolve=>window.pendingPages.push(resolve)) : original(...args);
     }"""
     )
-    page.locator('.desktop-navigation a[href="/projects"]').click()
+    page.locator('.app-sidebar a[href="/projects"]').click()
     expect(page.locator("#appMain")).to_have_attribute("aria-busy", "true")
     open_navigation(page, "/global-master-templates")
     page.evaluate(
@@ -302,8 +302,8 @@ def test_navigation_last_click_wins_and_current_link_cancels_pending(ui_page):
     )
     expect(page.get_by_role("heading", name="模板管理", exact=True)).to_be_visible()
     assert urlsplit(page.url).path == "/global-master-templates"
-    page.locator('.desktop-navigation a[href="/projects"]').click()
-    page.locator('.desktop-navigation a[href="/global-master-templates"]').click()
+    page.locator('.app-sidebar a[href="/projects"]').click()
+    page.locator('.app-sidebar a[href="/global-master-templates"]').click()
     page.evaluate(
         "html => window.pendingPages[1](new Response(html))",
         state["render"]("/projects"),
@@ -354,7 +354,7 @@ def test_navigation_uses_native_server_response_when_required(ui_page, reason):
             body="<h1>服务器错误</h1>",
             content_type="text/html; charset=utf-8",
         )
-    page.locator('.desktop-navigation a[href="/projects"]').click()
+    page.locator('.app-sidebar a[href="/projects"]').click()
     expected = (
         "登录"
         if reason == "auth"
@@ -379,7 +379,7 @@ def test_navigation_does_not_execute_page_scripts_or_prefetch_data(ui_page):
     )
     page.goto("http://ui.test/dashboard", wait_until="networkidle")
     reads_before_hover = list(state["reads"])
-    page.locator('.desktop-navigation a[href="/projects"]').hover()
+    page.locator('.app-sidebar a[href="/projects"]').hover()
     page.wait_for_timeout(1200)
     assert state["reads"] == reads_before_hover
     assert [read["path"] for read in state["reads"]] == ["/dashboard", "/create"]
@@ -401,7 +401,7 @@ def test_navigation_keeps_notification_poller_and_same_page_link_stable(ui_page)
     page.goto("http://ui.test/dashboard", wait_until="networkidle")
     page.evaluate("window.navMarker='same-document'")
     initial_reads = list(state["reads"])
-    page.locator('.desktop-navigation a[href="/dashboard"]').click()
+    page.locator('.app-sidebar a[href="/dashboard"]').click()
     assert state["reads"] == initial_reads
     for path in ["/projects", "/create", "/ai-config", "/dashboard"]:
         open_navigation(page, path)
@@ -415,7 +415,7 @@ def test_navigation_keeps_modified_click_and_new_tab_native(ui_page):
     navigation_app(page)
     page.goto("http://ui.test/dashboard", wait_until="networkidle")
     with page.context.expect_page() as opening:
-        page.locator('.desktop-navigation a[href="/projects"]').click(
+        page.locator('.app-sidebar a[href="/projects"]').click(
             modifiers=["Control"]
         )
     popup = opening.value

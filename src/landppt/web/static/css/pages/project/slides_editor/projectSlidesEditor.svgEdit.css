@@ -9,13 +9,13 @@
     border: 0;
     border-radius: var(--border-radius-lg, 20px);
     overflow: hidden;
-    background: var(--surface-elevated, #fff);
-    color: var(--text-primary, #15171c);
-    box-shadow: 0 40px 100px rgba(0, 0, 0, 0.35);
+    background: var(--surface-elevated, var(--lp-surface));
+    color: var(--text-primary, var(--lp-text));
+    box-shadow: none;
 }
 
 .svg-editor::backdrop {
-    background: rgba(15, 15, 16, 0.55);
+    background: var(--lp-mask);
     backdrop-filter: blur(2px);
 }
 
@@ -37,8 +37,8 @@
     align-items: center;
     gap: 16px;
     padding: 12px 18px;
-    border-bottom: 1px solid var(--border-color, #d2d5da);
-    background: var(--surface-elevated, #fff);
+    border-bottom: 1px solid var(--border-color, var(--lp-border));
+    background: var(--surface-elevated, var(--lp-surface));
 }
 
 .svg-editor__heading {
@@ -56,9 +56,9 @@
 
 .svg-editor__page {
     font-size: 0.75rem;
-    color: var(--text-muted, #6b7078);
+    color: var(--text-muted, var(--lp-secondary));
     padding: 2px 8px;
-    border: 1px solid var(--border-color, #d2d5da);
+    border: 1px solid var(--border-color, var(--lp-border));
     border-radius: 999px;
     white-space: nowrap;
 }
@@ -81,16 +81,16 @@
     height: 32px;
     padding: 0 12px;
     font-size: 0.8125rem;
-    color: var(--text-primary, #15171c);
-    background: #fff;
-    border: 1px solid var(--border-color, #d2d5da);
+    color: var(--text-primary, var(--lp-text));
+    background: var(--lp-surface);
+    border: 1px solid var(--border-color, var(--lp-border));
     border-radius: 8px;
     cursor: pointer;
     transition: background 0.15s ease, border-color 0.15s ease;
 }
 
 .svg-btn:hover:not(:disabled) {
-    background: var(--surface-muted, #f4f5f7);
+    background: var(--surface-muted, var(--lp-elevated));
 }
 
 .svg-btn:disabled {
@@ -99,19 +99,19 @@
 }
 
 .svg-btn--primary {
-    color: var(--accent-contrast, #fff);
-    background: var(--accent-color, #111214);
-    border-color: var(--accent-color, #111214);
+    color: var(--accent-contrast, var(--lp-on-primary));
+    background: var(--accent-color, var(--lp-primary));
+    border-color: var(--accent-color, var(--lp-border-strong));
 }
 
 .svg-btn--primary:hover:not(:disabled) {
-    background: var(--accent-strong, #000);
+    background: var(--accent-strong, var(--lp-primary));
 }
 
 .svg-btn--danger:hover:not(:disabled) {
-    color: #b91c1c;
-    border-color: #fca5a5;
-    background: #fef2f2;
+    color: var(--lp-danger);
+    border-color: var(--lp-border);
+    background: var(--lp-elevated);
 }
 
 .svg-btn--icon {
@@ -126,7 +126,7 @@
 .svg-textarea:focus-visible,
 .svg-layer:focus-visible,
 .svg-swatch:focus-visible {
-    outline: 2px solid rgba(14, 165, 233, 0.45);
+    outline: 2px solid var(--lp-divider);
     outline-offset: 1px;
 }
 
@@ -135,7 +135,7 @@
     align-items: center;
     gap: 4px;
     padding: 2px;
-    border: 1px solid var(--border-color, #d2d5da);
+    border: 1px solid var(--border-color, var(--lp-border));
     border-radius: 8px;
 }
 
@@ -143,7 +143,7 @@
     min-width: 58px;
     text-align: center;
     font-size: 0.75rem;
-    color: var(--text-secondary, #3b3f45);
+    color: var(--text-secondary, var(--lp-text));
 }
 
 /* ---------- 主区域 ---------- */
@@ -151,7 +151,7 @@
     display: grid;
     grid-template-columns: minmax(0, 1fr) 336px;
     min-height: 0;
-    background: var(--bg-tertiary, #eceff2);
+    background: var(--bg-tertiary, var(--lp-elevated));
 }
 
 .svg-editor__stage {
@@ -166,9 +166,9 @@
     flex: none;
     /* margin:auto 居中；超出视口时可完整滚动，不会裁掉起始侧 */
     margin: auto;
-    background: #fff;
-    box-shadow: 0 18px 40px rgba(15, 15, 16, 0.18);
-    outline: 1px solid rgba(15, 15, 16, 0.08);
+    background: var(--lp-surface);
+    box-shadow: none;
+    outline: 1px solid var(--lp-overlay);
 }
 
 .svg-editor__frame {
@@ -185,8 +185,8 @@
     padding: 4px 8px;
     font-size: 0.6875rem;
     font-variant-numeric: tabular-nums;
-    color: #fff;
-    background: rgba(15, 23, 42, 0.86);
+    color: var(--lp-on-primary);
+    background: var(--lp-mask);
     border-radius: 6px;
     pointer-events: none;
     white-space: nowrap;
@@ -197,8 +197,8 @@
     display: grid;
     grid-template-rows: minmax(150px, 32%) minmax(0, 1fr);
     min-height: 0;
-    background: var(--surface-elevated, #fff);
-    border-left: 1px solid var(--border-color, #d2d5da);
+    background: var(--surface-elevated, var(--lp-surface));
+    border-left: 1px solid var(--border-color, var(--lp-border));
 }
 
 .svg-panel__group {
@@ -208,7 +208,7 @@
 }
 
 .svg-panel__group + .svg-panel__group {
-    border-top: 1px solid var(--border-color, #d2d5da);
+    border-top: 1px solid var(--border-color, var(--lp-border));
 }
 
 .svg-panel__head {
@@ -219,7 +219,7 @@
     font-size: 0.6875rem;
     font-weight: 600;
     letter-spacing: 0.08em;
-    color: var(--text-muted, #6b7078);
+    color: var(--text-muted, var(--lp-secondary));
     text-transform: uppercase;
 }
 
@@ -252,7 +252,7 @@
     width: 100%;
     padding: 5px 8px;
     font-size: 0.8125rem;
-    color: var(--text-primary, #15171c);
+    color: var(--text-primary, var(--lp-text));
     text-align: left;
     background: none;
     border: 0;
@@ -261,12 +261,12 @@
 }
 
 .svg-layer:hover {
-    background: var(--surface-muted, #f4f5f7);
+    background: var(--surface-muted, var(--lp-elevated));
 }
 
 .svg-layer.is-active {
-    background: #e0f2fe;
-    box-shadow: inset 0 0 0 1px #7dd3fc;
+    background: var(--lp-info-bg);
+    box-shadow: none;
 }
 
 .svg-layer--role {
@@ -274,7 +274,7 @@
 }
 
 .svg-layer--locked {
-    color: var(--text-muted, #6b7078);
+    color: var(--text-muted, var(--lp-secondary));
 }
 
 .svg-layer__tag {
@@ -282,14 +282,14 @@
     min-width: 44px;
     padding: 1px 5px;
     font-size: 0.6875rem;
-    color: var(--text-secondary, #3b3f45);
+    color: var(--text-secondary, var(--lp-text));
     text-align: center;
-    background: var(--bg-tertiary, #eceff2);
+    background: var(--bg-tertiary, var(--lp-elevated));
     border-radius: 4px;
 }
 
 .svg-layer.is-active .svg-layer__tag {
-    background: #bae6fd;
+    background: var(--lp-info-bg);
 }
 
 .svg-layer__label {
@@ -303,7 +303,7 @@
 .svg-layer__lock {
     flex: none;
     font-size: 0.6875rem;
-    color: var(--text-muted, #6b7078);
+    color: var(--text-muted, var(--lp-secondary));
 }
 
 /* 缩进用 padding 而不是 margin：行宽留在面板内，不产生横向溢出 */
@@ -324,7 +324,7 @@
     padding: 10px 2px;
     font-size: 0.8125rem;
     line-height: 1.6;
-    color: var(--text-muted, #6b7078);
+    color: var(--text-muted, var(--lp-secondary));
 }
 
 .svg-elementbar {
@@ -332,7 +332,7 @@
     align-items: center;
     gap: 8px;
     padding: 2px 0 10px;
-    border-bottom: 1px dashed var(--border-color, #d2d5da);
+    border-bottom: 1px dashed var(--border-color, var(--lp-border));
     margin-bottom: 10px;
 }
 
@@ -362,7 +362,7 @@
     font-size: 0.6875rem;
     font-weight: 600;
     letter-spacing: 0.08em;
-    color: var(--text-muted, #6b7078);
+    color: var(--text-muted, var(--lp-secondary));
     text-transform: uppercase;
 }
 
@@ -385,13 +385,13 @@
 
 .svg-field__label {
     font-size: 0.6875rem;
-    color: var(--text-muted, #6b7078);
+    color: var(--text-muted, var(--lp-secondary));
 }
 
 .svg-field__hint {
     font-size: 0.6875rem;
     line-height: 1.5;
-    color: var(--text-muted, #6b7078);
+    color: var(--text-muted, var(--lp-secondary));
 }
 
 .svg-input,
@@ -403,9 +403,9 @@
     padding: 0 8px;
     font-size: 0.8125rem;
     font-family: inherit;
-    color: var(--text-primary, #15171c);
-    background: #fff;
-    border: 1px solid var(--border-color, #d2d5da);
+    color: var(--text-primary, var(--lp-text));
+    background: var(--lp-surface);
+    border: 1px solid var(--border-color, var(--lp-border));
     border-radius: 6px;
 }
 
@@ -428,7 +428,7 @@
 
 .svg-range {
     width: 100%;
-    accent-color: var(--accent-color, #111214);
+    accent-color: var(--accent-color, var(--lp-text));
 }
 
 /* 两行对齐控件：每行一个轴，避免 6 个按钮挤成 ~49px 后折行溢出 */
@@ -446,7 +446,7 @@
 
 .svg-align__axis {
     font-size: 0.6875rem;
-    color: var(--text-muted, #6b7078);
+    color: var(--text-muted, var(--lp-secondary));
 }
 
 .svg-seg {
@@ -455,7 +455,7 @@
     grid-auto-columns: minmax(0, 1fr);
     padding: 2px;
     gap: 2px;
-    background: var(--bg-tertiary, #eceff2);
+    background: var(--bg-tertiary, var(--lp-elevated));
     border-radius: 7px;
 }
 
@@ -471,7 +471,7 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    color: var(--text-secondary, #3b3f45);
+    color: var(--text-secondary, var(--lp-text));
     background: none;
     border: 0;
     border-radius: 5px;
@@ -479,14 +479,14 @@
 }
 
 .svg-seg__btn:hover {
-    color: var(--text-primary, #15171c);
-    background: rgba(255, 255, 255, 0.7);
+    color: var(--text-primary, var(--lp-text));
+    background: var(--lp-divider);
 }
 
 .svg-seg__btn[aria-pressed="true"] {
-    color: var(--text-primary, #15171c);
-    background: #fff;
-    box-shadow: 0 1px 2px rgba(15, 15, 16, 0.14);
+    color: var(--text-primary, var(--lp-text));
+    background: var(--lp-surface);
+    box-shadow: none;
 }
 
 .svg-swatches {
@@ -499,7 +499,7 @@
     width: 20px;
     height: 20px;
     padding: 0;
-    border: 1px solid rgba(15, 15, 16, 0.18);
+    border: 1px solid var(--lp-overlay);
     border-radius: 5px;
     cursor: pointer;
 }
@@ -509,7 +509,7 @@
     align-items: center;
     gap: 6px;
     font-size: 0.75rem;
-    color: var(--text-secondary, #3b3f45);
+    color: var(--text-secondary, var(--lp-text));
     cursor: pointer;
 }
 
@@ -520,9 +520,9 @@
     gap: 12px;
     padding: 8px 18px;
     font-size: 0.75rem;
-    color: var(--text-secondary, #3b3f45);
-    background: var(--bg-secondary, #f6f7f9);
-    border-top: 1px solid var(--border-color, #d2d5da);
+    color: var(--text-secondary, var(--lp-text));
+    background: var(--bg-secondary, var(--lp-elevated));
+    border-top: 1px solid var(--border-color, var(--lp-border));
 }
 
 .svg-crumbs {
@@ -536,7 +536,7 @@
 
 .svg-crumb {
     padding: 2px 6px;
-    color: var(--text-secondary, #3b3f45);
+    color: var(--text-secondary, var(--lp-text));
     background: none;
     border: 0;
     border-radius: 5px;
@@ -544,16 +544,16 @@
 }
 
 .svg-crumb:hover {
-    background: var(--surface-muted, #f4f5f7);
+    background: var(--surface-muted, var(--lp-elevated));
 }
 
 .svg-crumb:last-child {
-    color: var(--text-primary, #15171c);
+    color: var(--text-primary, var(--lp-text));
     font-weight: 600;
 }
 
 .svg-crumbs__sep {
-    color: var(--text-muted, #6b7078);
+    color: var(--text-muted, var(--lp-secondary));
 }
 
 .svg-status {
@@ -574,33 +574,33 @@
     font-size: 0.6875rem;
     text-overflow: ellipsis;
     white-space: nowrap;
-    background: var(--surface-elevated, #fff);
-    border: 1px solid var(--border-color, #d2d5da);
+    background: var(--surface-elevated, var(--lp-surface));
+    border: 1px solid var(--border-color, var(--lp-border));
     border-radius: 999px;
 }
 
 .svg-chip--warn {
-    color: #92400e;
-    background: #fffbeb;
-    border-color: #fcd34d;
+    color: var(--lp-accent);
+    background: var(--lp-elevated);
+    border-color: var(--lp-border);
 }
 
 .svg-chip--dirty {
-    color: #1e3a8a;
-    background: #eff6ff;
-    border-color: #93c5fd;
+    color: var(--lp-info);
+    background: var(--lp-elevated);
+    border-color: var(--lp-border);
 }
 
 .svg-chip--saved {
-    color: #166534;
-    background: #f0fdf4;
-    border-color: #86efac;
+    color: var(--lp-success);
+    background: var(--lp-elevated);
+    border-color: var(--lp-border);
 }
 
 .svg-chip--error {
-    color: #b91c1c;
-    background: #fef2f2;
-    border-color: #fca5a5;
+    color: var(--lp-danger);
+    background: var(--lp-elevated);
+    border-color: var(--lp-border);
     max-width: 60ch;
 }
 
@@ -609,9 +609,9 @@
     align-items: center;
     gap: 8px;
     padding: 2px 8px;
-    color: #92400e;
-    background: #fffbeb;
-    border: 1px solid #fcd34d;
+    color: var(--lp-accent);
+    background: var(--lp-elevated);
+    border: 1px solid var(--lp-border);
     border-radius: 999px;
 }
 
@@ -637,7 +637,7 @@
     .svg-editor__panel {
         grid-template-rows: minmax(110px, 26vh) minmax(0, 34vh);
         border-left: 0;
-        border-top: 1px solid var(--border-color, #d2d5da);
+        border-top: 1px solid var(--border-color, var(--lp-border));
     }
 
     .svg-editor__statusbar {

@@ -7,11 +7,11 @@
 .native-ant-input:not(:has(.ant-checkbox-wrapper)), .native-ant-select, .native-ant-textarea { width: 100%; }
 .native-ant-input.native-ant-checkbox { width: auto !important; }
 .native-ant-control > .ant-select, .native-ant-control > .ant-input { width: 100%; }
-.native-ant-validation { display: block; font-size: 12px; color: #b91c1c; }
+.native-ant-validation { display: block; font-size: 12px; color: var(--lp-danger); }
 .native-ant-control:has(.native-ant-validation) { flex-wrap: wrap; }
 .native-ant-file { display: flex; align-items: center; gap: 8px; width: 100%; min-width: 0; }
-.native-ant-file > span:last-child { min-width: 0; color: #6b7280; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.native-ant-control .ant-input-input { border: 0 !important; background: transparent !important; padding: 0 !important; border-radius: 0; box-shadow: none !important; }
+.native-ant-file > span:last-child { min-width: 0; color: var(--lp-secondary); font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.native-ant-control .ant-input-input { border: 0 !important; background: transparent !important; padding: 0 !important; border-radius: 0; box-shadow: none; }
 .package-ant-modal { top: 16px; padding-bottom: 0; max-width: calc(100vw - 32px); }
 .package-ant-modal .ant-modal-container { display: flex; flex-direction: column; max-height: calc(100dvh - 32px); }
 .package-ant-modal .ant-modal-header, .package-ant-modal .ant-modal-footer { flex: 0 0 auto; }
@@ -22,11 +22,11 @@
 .package-ant-modal .native-ant-content { min-width: 0; }
 .package-ant-modal .pw-title { flex-wrap: wrap; gap: 4px 12px; padding-right: 24px; }
 .package-ant-modal .pw-title h2 { margin: 0; font-size: 16px; }
-.package-ant-modal .pw-meta { color: #6b7280; font-size: 12px; }
+.package-ant-modal .pw-meta { color: var(--lp-secondary); font-size: 12px; }
 .package-ant-modal :is(label,input,textarea,select) { font-size: 14px; }
 .package-ant-modal .ant-btn { min-height: 32px; padding: 4px 12px; font-size: 14px; font-weight: 400; border-radius: 6px; line-height: 1.5; }
-.package-ant-modal .ant-btn-primary { background: #111; border-color: #111; color: #fff; }
-.package-ant-modal .ant-btn-primary:not(:disabled):hover { background: #333; border-color: #333; color: #fff; }
+.package-ant-modal .ant-btn-primary { background: var(--lp-primary); border-color: var(--lp-border-strong); color: var(--lp-on-primary); }
+.package-ant-modal .ant-btn-primary:not(:disabled):hover { background: var(--lp-primary); border-color: var(--lp-border-strong); color: var(--lp-on-primary); }
 .package-ant-modal .ant-btn-text { background: transparent; border-color: transparent; }
 .package-ant-modal :is(.ant-input,.ant-select) { border-radius: 6px; }
 .package-ant-modal .ant-select { padding: 0; height: 32px; }
@@ -35,25 +35,25 @@
 .package-ant-modal .ant-input { min-height: 32px; padding: 4px 11px; }
 .package-ant-modal textarea.ant-input { resize: vertical; line-height: 1.6; }
 .package-ant-modal .ant-modal-footer footer { margin: 0; padding: 0; border: 0; box-shadow: none; position: static; display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 8px; text-align: left; }
-.package-ant-modal .ant-modal-footer .package-status { margin: 0; color: #6b7280; font-size: 12px; overflow-wrap: anywhere; max-height: 3.2em; overflow: auto; }
-.package-ant-modal .ant-modal-footer .package-status.error { color: #b91c1c; }
+.package-ant-modal .ant-modal-footer .package-status { margin: 0; color: var(--lp-secondary); font-size: 12px; overflow-wrap: anywhere; max-height: 3.2em; overflow: auto; }
+.package-ant-modal .ant-modal-footer .package-status.error { color: var(--lp-danger); }
 .package-ant-modal .ant-modal-footer .package-progress { margin: 4px 0 0; }
 .package-ant-modal .package-status { overflow-wrap: anywhere; }
-.package-ant-modal .pptx-intro { margin: 0 0 16px; color: #6b7280; font-size: 14px; }
+.package-ant-modal .pptx-intro { margin: 0 0 16px; color: var(--lp-secondary); font-size: 14px; }
 .package-ant-modal .pptx-controls { gap: 12px; margin-bottom: 16px; }
 .package-ant-modal .pptx-controls input[type=file] { width: 100%; font-size: 12px; padding: 6px; border-radius: 6px; }
-.package-ant-modal .pptx-controls input[type=file]::file-selector-button { background: #fff; border: 1px solid #d9d9d9; border-radius: 4px; padding: 4px 8px; margin-right: 8px; color: #111; cursor: pointer; }
-.package-ant-modal .pptx-stages, .package-ant-modal .pptx-binding { background: #fafafa; border: 1px solid #eee; border-radius: 6px; color: #6b7280; }
+.package-ant-modal .pptx-controls input[type=file]::file-selector-button { background: var(--lp-surface); border: 1px solid var(--lp-border); border-radius: 4px; padding: 4px 8px; margin-right: 8px; color: var(--lp-text); cursor: pointer; }
+.package-ant-modal .pptx-stages, .package-ant-modal .pptx-binding { background: var(--lp-elevated); border: 1px solid var(--lp-border); border-radius: 6px; color: var(--lp-secondary); }
 .package-ant-modal .pptx-binding { gap: 8px 12px; }
 .package-ant-modal .pptx-binding > .native-ant-input { grid-column: 2; }
-.package-ant-modal .pptx-page { border-color: #e8e8eb; border-radius: 6px; padding: 12px; }
+.package-ant-modal .pptx-page { border-color: var(--lp-border); border-radius: 6px; padding: 12px; }
 .package-ant-modal .pptx-page summary { gap: 12px; font-size: 14px; }
 .package-ant-modal .pptx-page summary img { width: 120px; border-radius: 4px; }
 .package-ant-modal .pptx-page summary strong { min-width: 0; }
 .package-ant-modal .pptx-page[open] > label { display: grid; grid-template-columns: 80px minmax(0,1fr); gap: 12px; }
 .package-ant-modal .pptx-import-footer .package-status { flex-basis: 100%; }
 .package-ant-modal .pptx-import-footer .pptx-activity { width: 100%; }
-.package-ant-modal .pptx-warnings { background: #fffbe6; border-radius: 6px; font-size: 13px; }
+.package-ant-modal .pptx-warnings { background: var(--lp-accent-bg); border-radius: 6px; font-size: 13px; }
 .package-ant-workspace .ant-modal-container { height: min(860px, calc(100dvh - 32px)); }
 .package-ant-workspace .ant-modal-body { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
 .package-ant-workspace .package-ant-surface, .package-ant-workspace .package-ant-surface > .native-ant-content { display: flex; flex-direction: column; flex: 1; height: 100%; min-height: 0; }
@@ -110,6 +110,6 @@
 }
 @media (max-height: 500px) { .package-ant-workspace .pw-banner { padding-block: 4px; } .package-ant-workspace .pw-chat-form textarea.ant-input { height: 48px; min-height: 48px; } }
 
-.package-ant-modal .ant-btn-dangerous:not(:disabled) { color:#cf1322; border-color:#ffccc7; background:#fff; }
-.package-ant-modal .ant-select-input { min-height:0; padding:0; border:0; background:transparent; box-shadow:none; }
+.package-ant-modal .ant-btn-dangerous:not(:disabled) { color:var(--lp-danger); border-color:var(--lp-border); background:var(--lp-surface); }
+.package-ant-modal .ant-select-input { min-height:0; padding:0; border:0; background:transparent; box-shadow: none; }
 .package-ant-modal :is(.ant-input,.ant-select-input):focus-visible { outline: none; }

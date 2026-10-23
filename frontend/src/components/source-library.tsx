@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Alert, Button, Card, Collapse, Empty, Flex, Input, Pagination, Select, Space, Spin, Tag, Typography } from 'antd';
 import { FileTextOutlined, LinkOutlined, ReloadOutlined, SearchOutlined } from '@ant-design/icons';
 import { request, type ApiData } from '../api';
-import { ProjectSources } from './project-sources';
+import { ProjectSources, type SourceSummary } from './project-sources';
 
 const labels: Record<string, string> = { file: '文件资料', url: '网页链接', mixed: '混合资料', manual: '仅文字' };
 
@@ -25,16 +25,16 @@ function SourceItems({ project, expanded }: { project: ApiData; expanded?: boole
   </Space>;
 }
 
-export function SourceLibrary({ active }: { active: boolean }) {
+export function SourceLibrary({ active, projectId: fixedProjectId, onSourcesSaved }: { active: boolean; projectId?: string; onSourcesSaved?: (projectId: string, summary: SourceSummary) => void }) {
   const [projects, setProjects] = useState<ApiData[]>([]), [page, setPage] = useState(1), [total, setTotal] = useState(0);
   const [search, setSearch] = useState(''), [query, setQuery] = useState(''), [kind, setKind] = useState(''), [sort, setSort] = useState('newest');
-  const [projectId, setProjectId] = useState(() => new URLSearchParams(location.search).get('project') || ''), [scope, setScope] = useState<ApiData | null>(null);
+  const [projectId, setProjectId] = useState(() => fixedProjectId ?? (new URLSearchParams(location.search).get('project') || '')), [scope, setScope] = useState<ApiData | null>(null);
   const [loading, setLoading] = useState(false), [error, setError] = useState(''), [reload, setReload] = useState(0), [editing, setEditing] = useState<string | null>(null);
   const heading = useRef<HTMLHeadingElement>(null), region = useRef<HTMLElement>(null), returnProject = useRef<string | null>(null);
-  useEffect(() => { if (active) { const id = new URLSearchParams(location.search).get('project') || ''; if (id !== projectId) { setProjectId(id); setScope(null); setPage(1); } } }, [active]);
+  useEffect(() => { if (active) { const id = fixedProjectId ?? (new URLSearchParams(location.search).get('project') || ''); if (id !== projectId) { setProjectId(id); setScope(null); setPage(1); } } }, [active, fixedProjectId]);
   useEffect(() => { const timer = setTimeout(() => setQuery(search), 200); return () => clearTimeout(timer); }, [search]);
   useEffect(() => {
-    if (!active || editing || projectId !== (new URLSearchParams(location.search).get('project') || '')) return;
+    if (!active || editing || projectId !== (fixedProjectId ?? (new URLSearchParams(location.search).get('project') || ''))) return;
     const controller = new AbortController();
     setLoading(true); setError('');
     const params = new URLSearchParams({ page: String(page), per_page: '6', search: query, kind, sort });
@@ -62,7 +62,7 @@ export function SourceLibrary({ active }: { active: boolean }) {
   return <div className="source-library settings-stack">
     <div className="page-heading"><div><h1 ref={heading} tabIndex={-1}>项目资料</h1><p>按项目整理附件和网页链接</p></div><Button href="/projects">打开项目</Button></div>
     <Typography.Text type="secondary">修改资料后，需重新生成大纲才会应用到内容。</Typography.Text>
-    {projectId && <Flex align="center" gap={8} className="source-library-scope"><Tag><Typography.Text ellipsis={{ tooltip: scope?.title }}>项目：{scope?.title || '当前项目'}</Typography.Text></Tag><Button type="link" size="small" disabled={!!editing} aria-label="查看所有项目资料" onClick={clearScope}>所有项目</Button></Flex>}
+    {projectId && <Flex align="center" gap={8} className="source-library-scope"><Tag><Typography.Text ellipsis={{ tooltip: scope?.title }}>项目：{scope?.title || '当前项目'}</Typography.Text></Tag>{!fixedProjectId && <Button type="link" size="small" disabled={!!editing} aria-label="查看所有项目资料" onClick={clearScope}>所有项目</Button>}</Flex>}
     <Card size="small"><div className="source-library-toolbar">
       <Input.Search aria-label="搜索资料项目" placeholder="搜索项目名称或主题" maxLength={200} allowClear disabled={!!editing} value={search} enterButton={<Button className="source-library-search-submit" aria-label="搜索资料项目" icon={<SearchOutlined aria-hidden />} />} onChange={event => { setSearch(event.target.value); setPage(1); }} onSearch={value => { setQuery(value); setPage(1); }} />
       <Select aria-label="项目资料类型" disabled={!!editing} value={kind} options={[{ value: '', label: '全部资料' }, { value: 'file', label: '文件资料' }, { value: 'url', label: '网页链接' }]} onChange={value => { setKind(value); setPage(1); }} />
@@ -73,7 +73,7 @@ export function SourceLibrary({ active }: { active: boolean }) {
     {loading && !editing && <div role="status"><Spin size="small" /> 正在读取项目资料…</div>}
     <section ref={region} aria-label="资料项目列表" aria-busy={loading && !editing} className="source-library-projects">{projects.map(project => <Card key={project.id} size="small" data-source-project={project.id}>
       <Flex justify="space-between" align="flex-start" gap={12} className="source-library-project-heading"><Space orientation="vertical" size={8}><Typography.Link strong ellipsis href={`/projects/${encodeURIComponent(project.id)}`} title={project.title}>{project.title}</Typography.Link><Flex gap={8} align="center" wrap><Tag>{labels[project.source_kind] || '项目资料'}</Tag><Typography.Text type="secondary">更新于 {new Date(project.updated_at * 1000).toLocaleString('zh-CN', { hour12: false })}</Typography.Text></Flex></Space>
-        <ProjectSources projectId={project.id} disabled={editing ? editing !== project.id : loading} onSaved={() => {}} onOpenChange={open => { if (open) setEditing(project.id); }} onAfterClose={() => { returnProject.current = project.id; setEditing(null); }} />
+        <ProjectSources projectId={project.id} disabled={editing ? editing !== project.id : loading} onSaved={summary => onSourcesSaved?.(project.id, summary)} onOpenChange={open => { if (open) setEditing(project.id); }} onAfterClose={() => { returnProject.current = project.id; setEditing(null); }} />
       </Flex>
       {project.files.length > 3 || project.urls.length > 2 ? <Collapse ghost size="small" items={[{ key: 'sources', label: `查看资料 · ${project.file_count} 个附件 · ${project.url_count} 个链接`, children: <SourceItems project={project} expanded /> }]} /> : <SourceItems project={project} />}
     </Card>)}</section>

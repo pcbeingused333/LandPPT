@@ -20,7 +20,7 @@ function parseUrls(raw: string) {
   return [...unique].slice(0, 50);
 }
 
-export default function Todo({ data }: { data: ApiData }) {
+export default function Todo({ data, active = true }: { data: ApiData; active?: boolean }) {
   useNativeFeedback();
   const [form] = Form.useForm();
   const initial = { topic: String(data.title || '').split(' - ')[0], audience_type: '', custom_audience: '', page_count_mode: 'ai_decide', min_pages: 8, max_pages: 15, ppt_style: 'general', custom_style_prompt: '', render_mode: data.renderMode || 'html', generation_mode: 'freeform', package_version_id: '', include_transition_pages: false, include_page_numbers: true, file_processing_mode: 'markitdown', content_analysis_depth: 'fast', content_urls: '' };
@@ -37,6 +37,8 @@ export default function Todo({ data }: { data: ApiData }) {
   const locked = useRef(false);
   const readOnly = !!data.workspace?.generating || !!data.workspace?.outlineRunning && !!data.hasOutline;
   const outlineController = useMemo(() => createOutlineController({ projectId: data.projectId, ...data.outlineInitial, hasOutput: !!data.hasOutput, unattended: !!data.unattendedActive, readOnly }), [data, readOnly]);
+  const activeRef = useRef(active); activeRef.current = active;
+  useEffect(() => { outlineController.setVisible(active && !document.hidden); }, [active, outlineController]);
   const reloading = useRef(false);
   const reloadTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const fast = fields.generation_mode === 'package';
@@ -46,16 +48,24 @@ export default function Todo({ data }: { data: ApiData }) {
   }) as string[];
   const base = `/projects/${encodeURIComponent(data.projectId)}`;
   const [sourceSummary, setSourceSummary] = useState<SourceSummary | null>(null);
+  useEffect(() => {
+    const saved = (event: Event) => {
+      const value = (event as CustomEvent<{ projectId: string; summary: SourceSummary }>).detail;
+      if (value?.projectId === data.projectId && value.summary) setSourceSummary(value.summary);
+    };
+    window.addEventListener('landppt:project-sources-saved', saved);
+    return () => window.removeEventListener('landppt:project-sources-saved', saved);
+  }, [data.projectId]);
   const [sourceOpen, setSourceOpen] = useState(false);
   const [outlineBusy, setOutlineBusy] = useState(outlineController.snapshot().loading);
   useEffect(() => outlineController.subscribe(state => setOutlineBusy(state.loading)), [outlineController]);
   const displayFiles = sourceSummary?.files ?? savedFiles;
   const displayLinks = sourceSummary?.urls ?? savedLinks;
   useEffect(() => {
-    const visibility = () => outlineController.setVisible(!document.hidden);
+    const visibility = () => outlineController.setVisible(activeRef.current && !document.hidden);
     const hide = () => outlineController.suspend();
     const show = (event: PageTransitionEvent) => { if (event.persisted) outlineController.resume(); };
-    outlineController.setVisible(!document.hidden); outlineController.mount();
+    outlineController.setVisible(activeRef.current && !document.hidden); outlineController.mount();
     document.addEventListener('visibilitychange', visibility);
     window.addEventListener('pagehide', hide); window.addEventListener('pageshow', show);
     return () => {
@@ -115,7 +125,7 @@ export default function Todo({ data }: { data: ApiData }) {
       actions={(data.hasOutline || data.hasOutput) && <Space wrap>{data.hasOutline && <Button href={`${base}/template-selection?mode=package`}>快速模式设置</Button>}{data.hasOutput && <Button href={`${base}/preview`} target="_blank" rel="noopener" icon={<EyeOutlined aria-hidden />}>预览 PPT</Button>}</Space>}
       stages={<ProjectStages projectId={data.projectId} state={data.workspace} current="planning" />} />
     {(readOnly || data.hasOutput) && <Alert showIcon type="info" className="page-error" title={readOnly ? '生成任务进行中，可查看大纲，完成后再编辑。' : '大纲修改不会自动更新已生成页面，请在编辑器中调整页面。'} />}
-    <div id="unattendedMonitor"><UnattendedPanel projectId={data.projectId} initiallyActive={!!data.unattendedActive} onUpdate={run => { if (!data.hasOutline && run.stages?.some((stage: ApiData) => stage.id === 'outline' && stage.status === 'completed')) reloadSoon(600); }} onComplete={run => reloadSoon(run.task_status === 'completed' ? 1500 : 6000)} /></div>
+    <div id={active ? "unattendedMonitor" : undefined}>{active && <UnattendedPanel projectId={data.projectId} initiallyActive={!!data.unattendedActive} onUpdate={run => { if (!data.hasOutline && run.stages?.some((stage: ApiData) => stage.id === 'outline' && stage.status === 'completed')) reloadSoon(600); }} onComplete={run => reloadSoon(run.task_status === 'completed' ? 1500 : 6000)} />}</div>
     {confirmed && <div className="todo-source-controls"><Typography.Text type="secondary">项目资料</Typography.Text><ProjectSources projectId={data.projectId} disabled={readOnly || outlineBusy || !!data.unattendedActive} onOpenChange={setSourceOpen} onSaved={setSourceSummary} /></div>}
     {sourceSummary && <Alert type="info" showIcon className="page-error" title="资料已更新，请重新生成大纲以应用修改。现有页面不会自动更新。" />}
     {confirmed && (displayFiles.length > 0 || displayLinks.length > 0) && <Collapse size="small" className="todo-source-summary" items={[{ key: 'sources', label: `参考资料 · ${displayFiles.length} 个附件 · ${displayLinks.length} 个链接`, children: <Space direction="vertical" className="todo-source-list">{displayFiles.map((name, index) => <Tag key={index}>{name}</Tag>)}{displayLinks.map((url, index) => <a key={index} href={url} target="_blank" rel="noopener noreferrer">{url}</a>)}</Space> }]} />}

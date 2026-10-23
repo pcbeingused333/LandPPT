@@ -1,10 +1,10 @@
 /* 右键菜单样式 */
 .context-menu {
     position: fixed;
-    background: white;
-    border: 1px solid #ddd;
+    background: var(--lp-surface);
+    border: 1px solid var(--lp-border);
     border-radius: 8px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    box-shadow: none;
     z-index: 2000;
     min-width: 180px;
     display: none;
@@ -14,12 +14,12 @@
 .context-menu-item {
     padding: 12px 16px;
     cursor: pointer;
-    border-bottom: 1px solid #f0f0f0;
+    border-bottom: 1px solid var(--lp-border);
     display: flex;
     align-items: center;
     gap: 10px;
     font-size: 14px;
-    color: #333;
+    color: var(--lp-text);
     transition: background-color 0.2s ease;
 }
 
@@ -28,16 +28,16 @@
 }
 
 .context-menu-item:hover {
-    background: #f8f9fa;
+    background: var(--lp-elevated);
 }
 
 .context-menu-item.disabled {
-    color: #999;
+    color: var(--lp-secondary);
     cursor: not-allowed;
 }
 
 .context-menu-item.disabled:hover {
-    background: white;
+    background: var(--lp-surface);
 }
 
 .context-menu-item i {
@@ -52,29 +52,29 @@
     right: 20px;
     padding: 15px 20px;
     border-radius: 8px;
-    color: white;
+    color: var(--lp-on-primary);
     font-weight: bold;
     z-index: 10000;
     max-width: 300px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    box-shadow: none;
     animation: slideInRight 0.3s ease;
 }
 
 .notification-info {
-    background: #17a2b8;
+    background: var(--lp-info-bg);
 }
 
 .notification-success {
-    background: #28a745;
+    background: var(--lp-success-bg);
 }
 
 .notification-warning {
-    background: #ffc107;
-    color: #212529;
+    background: var(--lp-accent-bg);
+    color: var(--lp-text);
 }
 
 .notification-error {
-    background: #dc3545;
+    background: var(--lp-danger-bg);
 }
 
 @keyframes slideInRight {
@@ -95,7 +95,7 @@
     left: 5px;
     right: 5px;
     height: 3px;
-    background: #ffc107;
+    background: var(--lp-accent-bg);
     border-radius: 2px;
     display: none;
     z-index: 100;
@@ -126,7 +126,7 @@
     border: 1px solid var(--border-color);
     border-right: none;
     border-radius: var(--border-radius-xl) 0 0 var(--border-radius-xl);
-    box-shadow: var(--shadow-soft);
+    box-shadow: none;
     z-index: 2000;
     transition: right 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     display: flex;
@@ -204,7 +204,7 @@
     color: var(--accent-contrast);
     border-color: var(--accent-strong);
     transform: translateY(-1px);
-    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.12);
+    box-shadow: none;
 }
 
 .ai-sidebar-resize-handle {
@@ -226,7 +226,7 @@
 
 .ai-edit-sidebar-close {
     background: transparent;
-    border: 1px solid rgba(255, 255, 255, 0.3);
+    border: 1px solid var(--lp-divider);
     color: var(--accent-contrast);
     font-size: 1.125rem;
     cursor: pointer;
@@ -243,10 +243,10 @@
 }
 
 .ai-edit-sidebar-close:hover {
-    background: rgba(255, 255, 255, 0.1);
-    border-color: rgba(255, 255, 255, 0.4);
+    background: var(--lp-divider);
+    border-color: var(--lp-divider);
     transform: translateY(-1px);
-    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.18);
+    box-shadow: none;
 }
 
 .ai-edit-content {
@@ -276,7 +276,7 @@
     background: var(--surface-muted);
     border: 1px solid var(--border-color);
     border-radius: var(--border-radius-md);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35);
+    box-shadow: none;
     position: relative;
 }
 
@@ -323,7 +323,7 @@
     color: var(--accent-contrast);
     margin-left: auto;
     margin-right: var(--spacing-md);
-    box-shadow: 0 14px 28px rgba(0, 0, 0, 0.15);
+    box-shadow: none;
     border: 1px solid var(--accent-strong);
 }
 
@@ -333,7 +333,7 @@
     border: 1px solid var(--border-color);
     margin-right: auto;
     margin-left: var(--spacing-md);
-    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.08);
+    box-shadow: none;
 }
 
 .ai-message.assistant[data-complete="true"]:not(.ai-waiting) {
@@ -348,7 +348,7 @@
     height: 28px;
     border-radius: 8px;
     border: 1px solid var(--border-color);
-    background: rgba(255, 255, 255, 0.85);
+    background: var(--lp-divider);
     color: var(--text-secondary);
     display: inline-flex;
     align-items: center;
@@ -370,7 +370,7 @@
 }
 
 .ai-answer-regenerate-btn:hover {
-    background: rgba(255, 255, 255, 1);
+    background: var(--lp-surface);
     color: var(--text-primary);
 }
 
@@ -420,7 +420,7 @@
 
 .ai-message:hover {
     transform: translateY(-1px);
-    box-shadow: 0 20px 35px rgba(0, 0, 0, 0.12);
+    box-shadow: none;
 }
 
 .ai-input-container {
@@ -436,10 +436,10 @@
 }
 
 .ai-input-container.drag-over {
-    background-color: rgba(0, 0, 0, 0.04) !important;
+    background-color: var(--lp-overlay) !important;
     border-color: var(--accent-strong) !important;
     transform: scale(1.02) !important;
-    box-shadow: 0 16px 32px rgba(0, 0, 0, 0.16) !important;
+    box-shadow: none;
 }
 
 .ai-input-container.drag-over::before {
@@ -455,7 +455,7 @@
     font-size: 0.875rem;
     font-weight: 600;
     z-index: 1000;
-    box-shadow: 0 14px 28px rgba(0, 0, 0, 0.2);
+    box-shadow: none;
 }
 
 /* 选中图像信息容器样式 */
@@ -466,12 +466,12 @@
     margin-bottom: var(--spacing-md);
     overflow: hidden;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+    box-shadow: none;
 }
 
 .ai-selected-image-header {
     background: var(--accent-strong);
-    color: white;
+    color: var(--lp-on-primary);
     padding: var(--spacing-sm) var(--spacing-md);
     display: flex;
     justify-content: space-between;
@@ -482,9 +482,9 @@
 }
 
 .ai-clear-selection-btn {
-    background: rgba(255, 255, 255, 0.2);
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    color: white;
+    background: var(--lp-divider);
+    border: 1px solid var(--lp-divider);
+    color: var(--lp-on-primary);
     border-radius: var(--border-radius-sm);
     padding: 4px 8px;
     cursor: pointer;
@@ -493,8 +493,8 @@
 }
 
 .ai-clear-selection-btn:hover {
-    background: rgba(255, 255, 255, 0.3);
-    border-color: rgba(255, 255, 255, 0.5);
+    background: var(--lp-divider);
+    border-color: var(--lp-divider);
     transform: scale(1.05);
 }
 
@@ -572,7 +572,7 @@
 .ai-delete-image-btn {
     flex: 1;
     border: none;
-    color: white;
+    color: var(--lp-on-primary);
     padding: var(--spacing-sm) var(--spacing-md);
     border-radius: var(--border-radius-sm);
     cursor: pointer;
@@ -591,7 +591,7 @@
 
 .ai-regenerate-image-btn:hover {
     transform: translateY(-1px);
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    box-shadow: none;
 }
 
 .ai-replace-image-btn {
@@ -601,18 +601,18 @@
 
 .ai-replace-image-btn:hover {
     transform: translateY(-1px);
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    box-shadow: none;
     border-color: var(--border-color-strong);
 }
 
 .ai-delete-image-btn {
-    background: linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%);
+    background: linear-gradient(135deg, var(--lp-danger-bg) 0%, var(--lp-danger-bg) 100%);
     width: 100%;
 }
 
 .ai-delete-image-btn:hover {
     transform: translateY(-1px);
-    box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3);
+    box-shadow: none;
 }
 
 .ai-upload-local-image-btn {
@@ -621,7 +621,7 @@
 
 .ai-upload-local-image-btn:hover {
     transform: translateY(-1px);
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    box-shadow: none;
 }
 
 .ai-regenerate-image-btn:active,
@@ -646,12 +646,12 @@
     color: var(--text-primary);
     outline: none;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: 0 2px 10px rgba(31, 38, 135, 0.1);
+    box-shadow: none;
 }
 
 .ai-input-box:focus {
     border-color: var(--border-color-strong);
-    box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.08), 0 4px 15px rgba(0, 0, 0, 0.1);
+    box-shadow: none;
     transform: translateY(-1px);
 }
 
@@ -679,7 +679,7 @@
     transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     position: relative;
     overflow: hidden;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    box-shadow: none;
     display: flex;
     align-items: center;
     gap: var(--spacing-xs);
@@ -692,13 +692,13 @@
     left: -100%;
     width: 100%;
     height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    background: linear-gradient(90deg, transparent, var(--lp-divider), transparent);
     transition: left 0.6s;
 }
 
 .ai-send-btn:hover {
     transform: translateY(-2px) scale(1.02);
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+    box-shadow: none;
 }
 
 .ai-send-btn:hover::before {
@@ -709,7 +709,7 @@
     background: var(--text-muted);
     cursor: not-allowed;
     transform: none;
-    box-shadow: 0 2px 8px rgba(113, 128, 150, 0.2);
+    box-shadow: none;
 }
 
 .ai-send-btn:disabled::before {
@@ -733,7 +733,7 @@
     justify-content: center;
     position: relative;
     overflow: hidden;
-    box-shadow: 0 2px 10px rgba(31, 38, 135, 0.1);
+    box-shadow: none;
 }
 
 .ai-clear-context-btn::before {
@@ -743,16 +743,16 @@
     left: -100%;
     width: 100%;
     height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    background: linear-gradient(90deg, transparent, var(--lp-divider), transparent);
     transition: left 0.6s;
 }
 
 .ai-clear-context-btn:hover {
-    background: rgba(220, 53, 69, 0.1);
-    border-color: rgba(220, 53, 69, 0.3);
-    color: #dc3545;
+    background: var(--lp-divider);
+    border-color: var(--lp-divider);
+    color: var(--lp-danger);
     transform: translateY(-2px) scale(1.05);
-    box-shadow: 0 4px 15px rgba(220, 53, 69, 0.2);
+    box-shadow: none;
 }
 
 .ai-clear-context-btn:hover::before {
@@ -770,7 +770,7 @@
     border: 1px solid var(--glass-border);
     border-radius: var(--border-radius-md);
     margin: var(--spacing-sm) var(--spacing-md);
-    box-shadow: 0 2px 10px rgba(31, 38, 135, 0.1);
+    box-shadow: none;
 }
 
 .ai-typing-indicator {
@@ -785,7 +785,7 @@
     border-radius: 50%;
     background: var(--accent-strong);
     animation: typing 1.4s infinite ease-in-out;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    box-shadow: none;
 }
 
 .ai-typing-indicator span:nth-child(1) {
@@ -822,7 +822,7 @@
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.4);
+    background: var(--lp-overlay);
     backdrop-filter: blur(8px);
     z-index: 1999;
     opacity: 0;
@@ -853,7 +853,7 @@
     justify-content: center;
     position: relative;
     overflow: hidden;
-    box-shadow: 0 2px 10px rgba(31, 38, 135, 0.1);
+    box-shadow: none;
 }
 
 .ai-image-upload-btn::before {
@@ -863,7 +863,7 @@
     left: -100%;
     width: 100%;
     height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    background: linear-gradient(90deg, transparent, var(--lp-divider), transparent);
     transition: left 0.6s;
 }
 
@@ -872,7 +872,7 @@
     border-color: var(--border-color-strong);
     color: var(--text-primary);
     transform: translateY(-2px) scale(1.05);
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.12);
+    box-shadow: none;
 }
 
 .ai-image-upload-btn:hover::before {
@@ -891,7 +891,7 @@
     top: -6px;
     right: -6px;
     background: var(--accent-strong);
-    color: white;
+    color: var(--lp-on-primary);
     border-radius: 50%;
     width: 18px;
     height: 18px;
@@ -900,7 +900,7 @@
     align-items: center;
     justify-content: center;
     font-weight: bold;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    box-shadow: none;
 }
 
 /* AI视觉模式切换按钮样式 */
@@ -922,7 +922,7 @@
     justify-content: center;
     position: relative;
     overflow: hidden;
-    box-shadow: 0 2px 10px rgba(31, 38, 135, 0.1);
+    box-shadow: none;
 }
 
 .ai-vision-toggle-btn::before {
@@ -932,7 +932,7 @@
     left: -100%;
     width: 100%;
     height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    background: linear-gradient(90deg, transparent, var(--lp-divider), transparent);
     transition: left 0.6s;
 }
 
@@ -941,7 +941,7 @@
     border-color: var(--border-color-strong);
     color: var(--text-primary);
     transform: translateY(-2px) scale(1.05);
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.12);
+    box-shadow: none;
 }
 
 .ai-vision-toggle-btn:hover::before {
@@ -952,7 +952,7 @@
     background: var(--accent-strong);
     border-color: var(--accent-strong);
     color: var(--accent-contrast);
-    box-shadow: 0 0 20px rgba(0, 0, 0, 0.2);
+    box-shadow: none;
 }
 
 .ai-vision-toggle-btn.active::after {
@@ -970,17 +970,17 @@
 @keyframes pulse {
     0% {
         transform: scale(0.95);
-        box-shadow: 0 0 0 0 rgba(0, 0, 0, 0.4);
+        box-shadow: none;
     }
 
     70% {
         transform: scale(1);
-        box-shadow: 0 0 0 10px rgba(0, 0, 0, 0);
+        box-shadow: none;
     }
 
     100% {
         transform: scale(0.95);
-        box-shadow: 0 0 0 0 rgba(0, 0, 0, 0);
+        box-shadow: none;
     }
 }
 
@@ -1002,7 +1002,7 @@
     justify-content: center;
     position: relative;
     overflow: hidden;
-    box-shadow: 0 2px 10px rgba(31, 38, 135, 0.1);
+    box-shadow: none;
 }
 
 .ai-regenerate-btn::before {
@@ -1012,16 +1012,16 @@
     left: -100%;
     width: 100%;
     height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    background: linear-gradient(90deg, transparent, var(--lp-divider), transparent);
     transition: left 0.6s;
 }
 
 .ai-regenerate-btn:hover {
-    background: rgba(255, 193, 7, 0.1);
-    border-color: rgba(255, 193, 7, 0.3);
-    color: rgba(255, 193, 7, 0.8);
+    background: var(--lp-divider);
+    border-color: var(--lp-divider);
+    color: var(--lp-divider);
     transform: translateY(-2px) scale(1.05);
-    box-shadow: 0 4px 15px rgba(255, 193, 7, 0.2);
+    box-shadow: none;
 }
 
 .ai-regenerate-btn:hover::before {
@@ -1063,23 +1063,23 @@
 }
 
 .agent-run-status.is-done {
-    border-color: rgba(22, 132, 74, 0.3);
-    background: rgba(22, 132, 74, 0.07);
-    color: #16844a;
+    border-color: var(--lp-overlay);
+    background: var(--lp-overlay);
+    color: var(--lp-success);
 }
 
 .agent-run-status.is-done .agent-run-status-icon {
-    color: #16844a;
+    color: var(--lp-success);
 }
 
 .agent-run-status.is-failed {
-    border-color: rgba(191, 46, 46, 0.3);
-    background: rgba(191, 46, 46, 0.07);
-    color: #bf2e2e;
+    border-color: var(--lp-divider);
+    background: var(--lp-divider);
+    color: var(--lp-danger);
 }
 
 .agent-run-status.is-failed .agent-run-status-icon {
-    color: #bf2e2e;
+    color: var(--lp-danger);
 }
 
 .agent-run-status-text {
@@ -1104,8 +1104,8 @@
 }
 
 .agent-run-stop:hover:not(:disabled) {
-    border-color: rgba(191, 46, 46, 0.45);
-    color: #bf2e2e;
+    border-color: var(--lp-divider);
+    color: var(--lp-danger);
 }
 
 .agent-run-stop:disabled {
@@ -1141,8 +1141,8 @@
 }
 
 .agent-step.is-failed {
-    border-color: rgba(191, 46, 46, 0.35);
-    background: rgba(191, 46, 46, 0.04);
+    border-color: var(--lp-divider);
+    background: var(--lp-divider);
 }
 
 .agent-step-head {
@@ -1161,7 +1161,7 @@
 }
 
 .agent-step-head:focus-visible {
-    outline: 2px solid rgba(17, 18, 20, 0.3);
+    outline: 2px solid var(--lp-overlay);
     outline-offset: -2px;
 }
 
@@ -1171,7 +1171,7 @@
 }
 
 .agent-step.is-failed .agent-step-icon {
-    color: #bf2e2e;
+    color: var(--lp-danger);
 }
 
 .agent-step-label {
@@ -1275,7 +1275,7 @@
 }
 
 .agent-action-hint.is-error {
-    color: #bf2e2e;
+    color: var(--lp-danger);
 }
 
 /* ---- diff 查看器 ---- */
@@ -1284,7 +1284,7 @@
     position: fixed;
     inset: 0;
     z-index: 10050;
-    background: rgba(8, 9, 11, 0.62);
+    background: var(--lp-mask);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1298,7 +1298,7 @@
     max-height: 100%;
     background: var(--surface-elevated);
     border-radius: var(--border-radius-md);
-    box-shadow: var(--shadow-soft);
+    box-shadow: none;
     overflow: hidden;
 }
 
@@ -1345,13 +1345,13 @@
 }
 
 .agent-diff-line.is-add {
-    background: rgba(22, 132, 74, 0.12);
-    color: #14683c;
+    background: var(--lp-overlay);
+    color: var(--lp-success);
 }
 
 .agent-diff-line.is-del {
-    background: rgba(191, 46, 46, 0.12);
-    color: #a52626;
+    background: var(--lp-divider);
+    color: var(--lp-danger);
 }
 
 .agent-diff-line.is-hunk {
