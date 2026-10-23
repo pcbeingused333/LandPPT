@@ -49,6 +49,22 @@ def _script_payload(script):
     }
 
 
+def _outline_block(blocks, legacy_slides, slide, index):
+    block = blocks[index] if index < len(blocks) else {}
+    if block:
+        return block
+    legacy = legacy_slides[index] if index < len(legacy_slides) else {}
+    metadata = (slide.slide_metadata or {}) if slide else legacy
+    return {
+        "title": slide.title if slide else legacy.get("title", f"第{index + 1}页"),
+        "slide_type": (
+            slide.content_type if slide else legacy.get("slide_type", "content")
+        ),
+        "content_points": metadata.get("content_points", []),
+        "description": metadata.get("description", ""),
+    }
+
+
 class EditorDocumentService:
     def __init__(self, session: AsyncSession):
         self.session = session
@@ -110,20 +126,7 @@ class EditorDocumentService:
         )
         if slide_id and slide_id != identity:
             raise HTTPException(409, "页面顺序已改变，请刷新后重试；草稿已保留")
-        block = blocks[index] if index < len(blocks) else {}
-        if not block:
-            legacy = legacy_slides[index] if index < len(legacy_slides) else {}
-            metadata = slide.slide_metadata or {} if slide else legacy
-            block = {
-                "title": (
-                    slide.title if slide else legacy.get("title", f"第{index + 1}页")
-                ),
-                "slide_type": (
-                    slide.content_type if slide else legacy.get("slide_type", "content")
-                ),
-                "content_points": metadata.get("content_points", []),
-                "description": metadata.get("description", ""),
-            }
+        block = _outline_block(blocks, legacy_slides, slide, index)
         script = await self.session.scalar(
             select(SpeechScript)
             .where(

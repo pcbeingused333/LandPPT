@@ -3,7 +3,7 @@ LandPPT specific API endpoints
 """
 
 from fastapi import APIRouter, HTTPException, UploadFile, File, Form, Request, Depends
-from typing import List, Optional
+from typing import List, Optional, Literal
 
 from .. import __version__
 from ..auth.middleware import get_current_user_required
@@ -16,7 +16,7 @@ import re
 from .models import (
     PPTScenario, PPTGenerationRequest, PPTGenerationResponse,
     PPTOutline, PPTProject, TodoBoard, ProjectListResponse,
-    ProjectRenameRequest,
+    ProjectRenameRequest, ProjectLibraryPreferenceRequest,
     FileUploadResponse, SlideContent, FileOutlineGenerationRequest,
     FileOutlineGenerationResponse, TemplateSelectionRequest, TemplateSelectionResponse
 )
@@ -403,17 +403,39 @@ async def list_projects(
     page: int = 1,
     page_size: int = 10,
     status: Optional[str] = None,
-    user: User = Depends(get_current_user_required)
+    user: User = Depends(get_current_user_required),
+    search: Optional[str] = None,
+    favorite: bool = False,
+    sort: Literal["updated", "pinned"] = "updated",
 ):
     """List projects with pagination - only returns projects owned by current user"""
     try:
         user_ppt_service = get_ppt_service_for_user(user.id)
         return await user_ppt_service.project_manager.list_projects(
-            page=page, page_size=page_size, status=status, user_id=user.id
+            page=page, page_size=page_size, status=status, user_id=user.id,
+            **({"search": search.strip()} if search and search.strip() else {}),
+            **({"favorite": True} if favorite else {}),
+            **({"sort": sort} if sort != "updated" else {}),
         )
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error listing projects: {str(e)}")
+
+@router.patch("/projects/{project_id}/library-preferences")
+async def set_project_library_preferences(
+    project_id: str,
+    request: ProjectLibraryPreferenceRequest,
+    user: User = Depends(get_current_user_required),
+):
+    """Update only the authenticated owner's personal project flags."""
+    service = get_ppt_service_for_user(user.id)
+    result = await service.project_manager.set_project_library_preferences(
+        project_id, user.id, request.model_dump(exclude_unset=True)
+    )
+    if result is None:
+        raise HTTPException(status_code=404, detail="Project not found")
+    return {"status": "success", "project_id": project_id, **result}
+
 
 @router.get("/projects/{project_id}", response_model=PPTProject)
 async def get_project(

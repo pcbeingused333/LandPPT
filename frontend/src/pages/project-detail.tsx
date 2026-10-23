@@ -7,6 +7,7 @@ import { activeStage as workspaceActiveStage, ProjectStages } from '../component
 import { projectPath, projectStates } from '../components/projects';
 import { navigatePage } from '../navigation';
 import { progressPercent } from '../progress';
+import { ProjectAgent } from '../components/project-agent';
 
 type Confirmation = { kind: 'archive' | 'delete' | 'restore' | 'slide-delete'; version?: number; index?: number; final?: boolean };
 const text = (value: unknown) => typeof value === 'string' ? value : value == null ? '' : JSON.stringify(value, null, 2);
@@ -160,15 +161,18 @@ export default function ProjectDetail({ data }: { data: ApiData }) {
     <div className="page-heading project-detail-hero"><div className="detail-title-group">
       <Tooltip title="返回项目列表"><Button href="/projects" aria-label="返回项目列表" icon={<ArrowLeftOutlined aria-hidden />} /></Tooltip>
       <div><h1>{project.title}</h1><p><Tag color={state[1]} icon={project.status === 'completed' ? <CheckCircleOutlined aria-hidden /> : <ClockCircleOutlined aria-hidden />}>{state[0]}</Tag><span>项目 ID：<code>{project.project_id}</code></span></p></div>
-    </div><Space className="detail-project-actions" size={8}>
+    </div><Space className="detail-project-actions" size={8} wrap>
+      <ProjectAgent projectId={project.project_id} disabled={pending || edit !== null || optimizing} />
       {project.status === 'in_progress' && data.board && <Button type="primary" icon={<UnorderedListOutlined aria-hidden />} href={`${base}/todo`}>查看 TODO 看板</Button>}
       {project.status === 'completed' && project.hasSlides && <><Button type="primary" icon={<EyeOutlined aria-hidden />} href={`${base}/fullscreen`} target="_blank" rel="noopener">预览 PPT</Button><Tooltip title="打开编辑器"><Button href={`${base}/edit`} aria-label="打开编辑器" icon={<EditOutlined aria-hidden />} /></Tooltip></>}
       <Dropdown trigger={['click']} placement="bottomRight" menu={{ items: [
+        { key: 'files', label: <a href={`/image-gallery?tab=exports&project=${encodeURIComponent(project.project_id)}`}>查看导出文件</a>, icon: <DownloadOutlined aria-hidden /> },
+        { key: 'sources', label: <a href={`/image-gallery?tab=sources&project=${encodeURIComponent(project.project_id)}`}>查看项目资料</a>, icon: <FileTextOutlined aria-hidden /> },
         { key: 'archive', label: '归档项目', icon: <InboxOutlined aria-hidden /> }, { key: 'copy', label: '复制项目', icon: <CopyOutlined aria-hidden /> },
         { type: 'divider' }, { key: 'delete', label: '删除项目', icon: <DeleteOutlined aria-hidden />, danger: true },
       ], onClick: ({ key }) => {
         if (key === 'copy') run(async () => { const result = await request(`/api${base}/duplicate`, 'POST'); if (result.status !== 'success' || !result.project_id) throw new Error('复制失败'); navigatePage(`/projects/${encodeURIComponent(result.project_id)}`); });
-        else { confirmationTrigger.current = projectMenuTrigger.current; setConfirmation({ kind: key === 'archive' ? 'archive' : 'delete' }); }
+        else if (key !== 'files' && key !== 'sources') { confirmationTrigger.current = projectMenuTrigger.current; setConfirmation({ kind: key === 'archive' ? 'archive' : 'delete' }); }
       } }} disabled={pending}><Button ref={projectMenuTrigger} disabled={pending} aria-label="项目更多操作" icon={<MoreOutlined aria-hidden />} /></Dropdown>
     </Space></div>
     <ProjectStages projectId={project.project_id} state={data.workspace} current={workspaceActiveStage(data.workspace)} hub />

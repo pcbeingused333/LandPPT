@@ -194,6 +194,26 @@ class DatabaseMigration:
             "down": self._migration_019_down,
         })
 
+        self.migrations.append({
+            "version": "020",
+            "name": "add_project_library_preferences",
+            "description": "Persist per-user project favorites and pins without editing content",
+            "up": self._migration_020_up,
+            "down": self._migration_020_down,
+        })
+
+    async def _migration_020_up(self, session: AsyncSession):
+        from .models import ProjectLibraryPreference
+
+        connection = await session.connection()
+        await connection.run_sync(
+            lambda conn: ProjectLibraryPreference.__table__.create(conn, checkfirst=True)
+        )
+
+    async def _migration_020_down(self, session: AsyncSession):
+        # Retain personal organization state when rolling back application code.
+        raise RuntimeError("Migration 020 contains user preferences; automatic rollback is disabled")
+
     async def _migration_019_up(self, session: AsyncSession):
         from .models import TemplatePackageVersion, PackageProjectState, PackagePageState, SlideContentRevision
         if not await self._column_exists(session, "global_master_templates", "template_kind"):

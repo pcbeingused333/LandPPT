@@ -11,6 +11,12 @@
 .editor-ant-toolbar { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px 16px; padding: 8px 12px; border-bottom: 1px solid #e8e8eb; background: #fff; }
 .editor-ant-view { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .editor-ant-actions { margin-left: auto; }
+.editor-export-chooser-body, .editor-export-methods { width: 100%; }
+.editor-export-goals { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.editor-export-methods .ant-radio-wrapper { align-items: flex-start; margin: 0; }
+.editor-export-methods .ant-radio { margin-top: 3px; }
+.editor-export-methods .ant-space, .editor-export-methods .ant-space-item { min-width: 0; }
+@media (max-width: 700px) { .editor-export-chooser .ant-btn { min-height: 44px; } }
 .landppt-editor .workspace-body .slides-sidebar { background: #fafafa; border-right-color: #e8e8eb; }
 .landppt-editor .slides-sidebar .small { font-size: 11px; }
 .landppt-editor .slide-title { font-size: 12px; padding: 6px 8px; height: auto; min-height: 32px; }

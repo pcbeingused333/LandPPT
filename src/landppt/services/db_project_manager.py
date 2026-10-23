@@ -100,17 +100,30 @@ class DatabaseProjectManager:
     async def list_projects(self, page: int = 1, page_size: int = 10,
                           status: Optional[str] = None,
                           user_id: Optional[int] = None,
-                          search: Optional[str] = None) -> ProjectListResponse:
+                          search: Optional[str] = None,
+                          favorite: bool = False,
+                          sort: str = "updated") -> ProjectListResponse:
         """List projects with pagination. If user_id is provided, filters by owner."""
         db_service = await self._get_db_service()
         try:
             return await db_service.list_projects(
                 page, page_size, status, user_id=user_id,
                 **({"search": search} if search else {}),
+                **({"favorite": True} if favorite else {}),
+                **({"sort": sort} if sort != "updated" else {}),
             )
         finally:
             await db_service.session.close()
     
+    async def set_project_library_preferences(
+        self, project_id: str, user_id: int, changes: Dict[str, bool]
+    ) -> Optional[Dict[str, bool]]:
+        db_service = await self._get_db_service()
+        try:
+            return await db_service.set_project_library_preferences(project_id, user_id, changes)
+        finally:
+            await db_service.session.close()
+
     async def update_project_status(self, project_id: str, status: str, user_id: Optional[int] = None) -> bool:
         """Update project status. If user_id is provided, enforces ownership."""
         db_service = await self._get_db_service()

@@ -16,9 +16,10 @@
     function pages() {
         const counts = new Map();
         slidesData.forEach(slide => { if (slide.slide_id) counts.set(slide.slide_id, (counts.get(slide.slide_id) || 0) + 1); });
-        const result = slidesData.map(slide => {
+        const result = slidesData.map((slide, index) => {
             if (!documentKeys.has(slide)) documentKeys.set(slide, counts.get(slide.slide_id) === 1 && stableKeys.get(slide.slide_id) || `editor-page-${++sequence}`);
-            return { key: documentKeys.get(slide), slideId: slide.slide_id || null, title: slide.title || '' };
+            const outline = projectOutline?.slides?.[index];
+            return { key: documentKeys.get(slide), slideId: slide.slide_id || null, title: slide.title || '', slideType: outline?.slide_type || outline?.type || slide.slide_type || slide.type || 'content' };
         });
         stableKeys.clear();
         result.forEach(page => { if (counts.get(page.slideId) === 1) stableKeys.set(page.slideId, page.key); });

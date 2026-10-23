@@ -71,7 +71,7 @@ function nativeEngine() {
   const context = vm.createContext({ queueMicrotask });
   vm.runInContext(`window = globalThis;
     let slidesData = [{title:'First',slide_id:'one'},{title:'Second',slide_id:'two'}], currentSlideIndex=0, currentMode='preview', selectedSlideIndices=new Set();
-    let saves = 0, finishSave;
+    let saves = 0, finishSave, projectOutline = null;
     function editorExportTargetsAllSvg(){return false} function currentSlideIsSvg(){return false}
     function selectSlide(index){currentSlideIndex=index} function setMode(mode){currentMode=mode}
     function updateSelectedSlidesUI(){} function refreshSidebar(){} function updateFunctionButtonsState(){}
@@ -96,6 +96,15 @@ test('stable slide identifiers preserve document keys after snapshot replacement
   const context = nativeEngine(), engine = context.LandPPTEditorEngine, first = engine.read().documentPages[0].key;
   vm.runInContext("slidesData = [{title:'Changed',slide_id:'one'}]", context);
   assert.equal(engine.read().documentPages[0].key, first);
+});
+
+test('outline metadata provides chapter types without exposing document bodies', () => {
+  const context = nativeEngine(), engine = context.LandPPTEditorEngine;
+  vm.runInContext("projectOutline = { slides: [{slide_type:'transition', content_points:['private body']}] }; slidesData[1].slide_type='section'", context);
+  const pages = engine.read().documentPages;
+  assert.equal(pages[0].slideType, 'transition'); assert.equal(pages[1].slideType, 'section');
+  assert.equal('content_points' in pages[0], false);
+  assert.equal('html_content' in pages[0], false);
 });
 test('native shortcut and toolbar Save cannot duplicate writes', async () => {
   const context = nativeEngine(), engine = context.LandPPTEditorEngine, release = engine.subscribe(() => {});

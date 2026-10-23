@@ -117,7 +117,7 @@ async def stream_outline_generation(
                     project_id,
                     force_regenerate=force_fresh_generation,
                 )
-                if content_source in ("file", "url") and (
+                if content_source in ("file", "url", "mixed") and (
                     force_fresh_generation or not has_saved_file_outline
                 ):
                     await user_ppt_service.project_manager.update_project_status(
@@ -217,6 +217,9 @@ async def generate_outline(
                 "status": "error",
                 "error": "项目需求尚未确认，请先完成需求确认步骤"
             }
+
+        if project.confirmed_requirements.get("content_source") == "mixed":
+            return {"status": "success", "defer_generation": True, "message": "请通过大纲生成工作区合并文件与网页资料。"}
 
         # Check credits before generating outline
         user_ppt_service = get_ppt_service_for_user(user.id)
@@ -372,7 +375,7 @@ async def regenerate_outline(
         page_count_settings = confirmed_requirements.get('page_count_settings', {})
 
         # Check if this is a file-like project (uploaded files or URL-extracted content)
-        is_file_project = confirmed_requirements.get('content_source') in ('file', 'url')
+        is_file_project = confirmed_requirements.get('content_source') in ('file', 'url', 'mixed')
 
         user_ppt_service_for_credits = get_ppt_service_for_user(user.id)
         _, outline_settings = await user_ppt_service_for_credits.get_role_provider_async("outline")
@@ -518,6 +521,10 @@ async def generate_file_outline(
                 "outline_content": formatted_json,
                 "message": "File outline generated successfully"
             }
+        elif confirmed_requirements.get("content_source") == "mixed":
+            # All sources must use the common stream; the legacy single-file
+            # fallback below would otherwise silently omit the web content.
+            return {"status": "success", "defer_generation": True, "message": "请通过大纲生成工作区合并文件与网页资料。"}
         else:
             # Check if there's an uploaded file that needs processing
             if (confirmed_requirements and

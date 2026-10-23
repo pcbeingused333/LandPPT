@@ -360,7 +360,7 @@ def test_material_sources_file_dedup_remove_and_url_limit(ui_page):
     page.get_by_role("button", name="开始生成", exact=True).click()
     expect(page.get_by_text("保留草稿供重试")).to_be_visible()
     fields, uploads = state["writes"][0][3]
-    assert fields["content_source"] == "file" and "content_urls" not in fields
+    assert fields["content_source"] == "mixed" and fields["content_urls"].splitlines() == links[:50]
     assert uploads == [("file_upload", "source.txt", b"source-text")]
     assert (
         fields["file_processing_mode"] == "magic_pdf"

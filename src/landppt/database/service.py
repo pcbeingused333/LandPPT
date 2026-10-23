@@ -304,6 +304,10 @@ class DatabaseService:
             else:
                 project_status = "draft"
 
+        preference = next((
+            item for item in vars(db_project).get("library_preferences", [])
+            if item.user_id == getattr(db_project, "user_id", None)
+        ), None)
         return PPTProject(
             project_id=db_project.project_id,
             title=db_project.title,
@@ -318,6 +322,8 @@ class DatabaseService:
             slides_html=db_project.slides_html,
             slides_data=slides_data,
             cover_url=project_cover_url(db_project.project_id, slides_data),
+            is_favorite=bool(preference and preference.is_favorite),
+            is_pinned=bool(preference and preference.is_pinned),
             confirmed_requirements=db_project.confirmed_requirements,
             project_metadata=db_project.project_metadata,
             todo_board=todo_board,
@@ -413,9 +419,14 @@ class DatabaseService:
     async def list_projects(self, page: int = 1, page_size: int = 10, 
                           status: Optional[str] = None,
                           user_id: Optional[int] = None,
-                          search: Optional[str] = None) -> ProjectListResponse:
+                          search: Optional[str] = None,
+                          favorite: bool = False,
+                          sort: str = "updated") -> ProjectListResponse:
         """List projects with pagination. If user_id is provided, filters by owner."""
-        search_filters = {"search": search.strip()} if search and search.strip() else {}
+        search_filters: Dict[str, Any] = {"search": search.strip()} if search and search.strip() else {}
+        if favorite:
+            search_filters["favorite"] = True
+        order_filters = {"sort": sort} if sort != "updated" else {}
         if status:
             total_candidates = await self.project_repo.count_projects(user_id=user_id, **search_filters)
             if total_candidates == 0:
@@ -432,6 +443,7 @@ class DatabaseService:
                 page_size=total_candidates,
                 status=None,
                 **search_filters,
+                **order_filters,
             )
             all_projects = [self._convert_db_project_to_api(db_project) for db_project in db_projects]
             filtered_projects = [project for project in all_projects if project.status == status]
@@ -446,6 +458,7 @@ class DatabaseService:
                 page_size=page_size,
                 status=None,
                 **search_filters,
+                **order_filters,
             )
             total = await self.project_repo.count_projects(user_id=user_id, status=None, **search_filters)
             projects = [self._convert_db_project_to_api(db_project) for db_project in db_projects]
@@ -457,6 +470,11 @@ class DatabaseService:
             page_size=page_size
         )
     
+    async def set_project_library_preferences(
+        self, project_id: str, user_id: int, changes: Dict[str, bool]
+    ) -> Optional[Dict[str, bool]]:
+        return await self.project_repo.set_library_preferences(project_id, user_id, changes)
+
     async def update_project_status(self, project_id: str, status: str, user_id: Optional[int] = None) -> bool:
         """Update project status. If user_id is provided, enforces ownership."""
         result = await self.project_repo.update(project_id, {"status": status}, user_id=user_id)

@@ -1319,7 +1319,7 @@ def test_migration_018_is_registered_once():
 
     versions = [migration["version"] for migration in DatabaseMigration().migrations]
     assert versions.count("018") == 1
-    assert versions[-1] == "019"
+    assert versions[-1] == "020"
     assert sorted(versions) == versions, "migrations must stay in ascending order"
 
 

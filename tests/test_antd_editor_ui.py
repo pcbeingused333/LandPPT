@@ -344,7 +344,7 @@ def test_editor_permission_dependent_actions_keep_visibility(ui_page, restricted
     page, load = ui_page
     state = setup(page, load, restricted=restricted)
     page.get_by_role("button", name="导出", exact=True).click()
-    assert page.get_by_role("menuitem", name="标准导出 PPTX", exact=True).count() == (
+    assert page.get_by_role("radio", name="标准导出 PPTX", exact=True).count() == (
         0 if restricted else 1
     )
     page.keyboard.press("Escape")

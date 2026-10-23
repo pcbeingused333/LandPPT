@@ -504,10 +504,13 @@ function refreshSidebar() {
                 <iframe title="Slide ${index + 1}"
                         loading="lazy"></iframe>
             </div>
-            <div class="slide-title">${index + 1}. ${slide.title}${(typeof isSvgRenderedSlide === 'function' && isSvgRenderedSlide(slide)) ? '<span class="slide-mode-badge" title="SVG 实验页">SVG</span>' : ''}</div>
+            <div class="slide-title">${(typeof isSvgRenderedSlide === 'function' && isSvgRenderedSlide(slide)) ? '<span class="slide-mode-badge" title="SVG 实验页">SVG</span>' : ''}</div>
             <div class="drag-indicator bottom"></div>
         `;
 
+        // Titles are document text, not thumbnail markup. Keep the trusted SVG
+        // badge while preventing a refreshed title from creating app elements.
+        thumbnailDiv.querySelector('.slide-title').prepend(document.createTextNode(`${index + 1}. ${slide.title ?? ''}`));
         slidesContainer.appendChild(thumbnailDiv);
 
         // 设置iframe内容并应用缩放。先挂载到DOM，确保缩放计算能拿到真实容器宽度。

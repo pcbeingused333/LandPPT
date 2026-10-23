@@ -227,5 +227,5 @@ def test_web_query_is_normalized_and_scoped_to_authenticated_user(monkeypatch):
     )
     assert payload["searchQuery"] == "Research & 数据"
     assert calls == [
-        dict(page=2, page_size=10, status="draft", user_id=17, search="Research & 数据")
+        dict(page=2, page_size=10, status="draft", user_id=17, search="Research & 数据", sort="pinned")
     ]

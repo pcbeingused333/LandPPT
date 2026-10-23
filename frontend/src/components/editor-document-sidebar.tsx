@@ -2,17 +2,20 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Alert, App, Button, Empty, Input, Segmented, Select, Skeleton, Tag, Tooltip } from 'antd';
 import { ArrowLeftOutlined, ArrowRightOutlined, DeleteOutlined, EditOutlined, EyeOutlined, FileTextOutlined, PlusOutlined, ReloadOutlined, RobotOutlined, SaveOutlined } from '@ant-design/icons';
 import { request, type ApiData } from '../api';
+import { EditorOutlineNavigation } from './editor-outline-navigation';
+import { EditorOutlineBatch, type BatchPage } from './editor-outline-batch';
 import './editor-document-sidebar.css';
 
-export type DocumentPage = { key: string; slideId: string | null; title: string };
+export type DocumentPage = { key: string; slideId: string | null; title: string; slideType?: string };
 export type DocumentBridge = {
   call(name: string, ...args: unknown[]): any;
   applyDocument(key: string, document: ApiData): void;
   openSpeechDocument(language: string, preview: boolean): void;
+  save(): Promise<unknown>;
   saveDocument?: (() => Promise<void>) | null;
   setDocumentState?(state: { documentPanel: string; documentDirty: boolean; documentSaving: boolean }): void;
 };
-type Panel = 'slides' | 'outline' | 'speech';
+type Panel = 'slides' | 'contents' | 'outline' | 'speech';
 type Draft = { value: ApiData; base: ApiData; revision: string; slideId: string | null; loading: boolean; saving: boolean; dirty: boolean; error: string; editing: boolean; source: ApiData };
 const outlineValue = (outline: ApiData, title: string): ApiData => ({
   title: outline.title || title, slide_type: outline.slide_type || outline.type || 'content',
@@ -34,12 +37,22 @@ export function EditorDocumentSidebar({ projectId, pages, current, selected, dia
   const drafts = useRef(new Map<string, Draft>()), pagesRef = useRef(pages), mounted = useRef(true);
   pagesRef.current = pages;
   const page = pages[current];
+  const textPanel = panel === 'outline' || panel === 'speech';
   const key = (kind: string, pageKey = page?.key, lang = language) => `${kind}:${pageKey}:${kind === 'speech' ? lang : ''}`;
-  const draft = panel === 'slides' ? undefined : drafts.current.get(key(panel));
+  const draft = textPanel ? drafts.current.get(key(panel)) : undefined;
   const changed = () => { if (mounted.current) redraw(version => version + 1); };
   const dirtyCount = [...drafts.current.values()].filter(item => item.dirty).length;
+  const [batchPages, setBatchPages] = useState<BatchPage[]>([]), [batchOpen, setBatchOpen] = useState(false);
+  const batchOrigin = useRef<HTMLElement | null>(null);
+  function openBatch(keys: string[]) {
+    if ([...drafts.current.values()].some(item => item.dirty || item.saving)) return;
+    const selection = pages.flatMap((item, index) => keys.includes(item.key) ? [{ ...item, index }] : []);
+    if (!selection.length) return;
+    batchOrigin.current = document.activeElement as HTMLElement;
+    setBatchPages(selection); setBatchOpen(true);
+  }
   useLayoutEffect(() => {
-    bridge.saveDocument = panel === 'slides' ? null : save;
+    bridge.saveDocument = textPanel ? save : null;
     const sidebar = document.getElementById('slidesSidebar')!;
     sidebar.dataset.documentDirty = String(!!draft?.dirty && !draft.loading && !!draft.revision);
     sidebar.dataset.documentSaving = String(!!draft?.saving);
@@ -60,7 +73,7 @@ export function EditorDocumentSidebar({ projectId, pages, current, selected, dia
     return () => window.removeEventListener('beforeunload', warn);
   }, []);
   useEffect(() => {
-    if (panel === 'slides' || !page) return;
+    if (!textPanel || !page) return;
     const activeKey = key(panel), existing = drafts.current.get(activeKey);
     if (existing?.dirty || existing?.saving) return;
     const abort = new AbortController();
@@ -101,7 +114,7 @@ export function EditorDocumentSidebar({ projectId, pages, current, selected, dia
     else discard();
   }
   async function save() {
-    if (!draft || draft.loading || draft.saving || !draft.revision || !page || panel === 'slides') return;
+    if (!draft || draft.loading || draft.saving || !draft.revision || !page || !textPanel) return;
     const active = draft, kind = panel, pageKey = page.key, lang = language;
     const index = pagesRef.current.findIndex(item => item.key === pageKey);
     if (index < 0) { active.error = '此页已删除，草稿仍保留'; changed(); return; }
@@ -123,17 +136,20 @@ export function EditorDocumentSidebar({ projectId, pages, current, selected, dia
   }
   function switchPanel(value: string | number) { setPanel(value as Panel); }
   const sourceMissing = !draft?.source.script;
-  const types = [{ value: 'title', label: '封面' }, { value: 'content', label: '内容页' }, { value: 'conclusion', label: '总结页' }];
+  const types = [{ value: 'title', label: '封面' }, { value: 'content', label: '内容页' }, { value: 'transition', label: '章节过渡页' }, { value: 'conclusion', label: '总结页' }];
   if (draft?.value.slide_type && !types.some(item => item.value === draft.value.slide_type)) types.push({ value: draft.value.slide_type, label: draft.value.slide_type });
   return <div className="editor-document-sidebar" onKeyDown={event => {
     // Keep native canvas shortcuts away from text fields and Ant popups.
     event.stopPropagation();
-    if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's' && panel !== 'slides') { event.preventDefault(); void save(); }
+    if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's' && textPanel) { event.preventDefault(); void save(); }
+    else if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's' && panel === 'contents') { event.preventDefault(); void bridge.save(); }
   }}>
     <div className="editor-document-tabs"><Segmented block aria-label="左侧内容" value={panel} onChange={switchPanel} options={[
-      { value: 'slides', label: '幻灯片' }, { value: 'outline', label: '大纲' }, { value: 'speech', label: '讲稿' },
+      { value: 'slides', label: '幻灯片' }, { value: 'contents', label: '目录' }, { value: 'outline', label: '大纲' }, { value: 'speech', label: '讲稿' },
     ]} /></div>
-    {panel === 'slides' ? <div className="editor-document-selection">Ctrl+点击多选 · 已选 {selected} 页{dirtyCount > 0 && <Tag>{dirtyCount} 份草稿</Tag>}</div> : <>
+    <EditorOutlineNavigation pages={pages} current={current} visible={panel === 'contents'} disabled={[...drafts.current.values()].some(item => item.saving)} batchDisabled={dirtyCount > 0} onSelect={index => bridge.call('selectSlide', index)} onBatchEdit={openBatch} />
+    <EditorOutlineBatch open={batchOpen} projectId={projectId} pages={batchPages} origin={batchOrigin.current} onClose={() => setBatchOpen(false)} onSaved={items => { items.forEach(item => { drafts.current.delete(key('outline', item.key)); bridge.applyDocument(item.key, item.document); }); changed(); }} />
+    {panel === 'slides' ? <div className="editor-document-selection">Ctrl+点击多选 · 已选 {selected} 页{dirtyCount > 0 && <Tag>{dirtyCount} 份草稿</Tag>}</div> : panel === 'contents' ? null : <>
       <div className="editor-document-nav">
         <Button aria-label="上一页" icon={<ArrowLeftOutlined aria-hidden />} disabled={current <= 0 || !!draft?.saving} onClick={() => bridge.call('selectSlide', current - 1)} />
         <Select aria-label="选择文稿页面" value={page ? current : undefined} disabled={!page || !!draft?.saving} showSearch optionFilterProp="label" options={pages.map((item, index) => ({ value: index, label: `${index + 1}. ${item.title || '未命名'}` }))} onChange={index => bridge.call('selectSlide', index)} />

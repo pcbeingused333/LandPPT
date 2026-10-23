@@ -1,6 +1,6 @@
 """Authenticated, revision-checked text editing for the presentation sidebar."""
 
-from typing import Literal
+from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, Query, Response
 from pydantic import BaseModel, ConfigDict, Field, model_validator
@@ -9,6 +9,7 @@ from ...auth.middleware import get_current_user_required
 from ...database.database import AsyncSessionLocal
 from ...database.models import User
 from ...services.editor_document_service import EditorDocumentService
+from ...services.editor_outline_batch_service import EditorOutlineBatchService
 
 router = APIRouter()
 
@@ -48,6 +49,72 @@ class DocumentPatch(BaseModel):
         ):
             raise ValueError("Provide only the matching document payload")
         return self
+
+
+class BatchOutlineChanges(BaseModel):
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+    title: str | None = Field(default=None, min_length=1, max_length=255)
+    slide_type: str | None = Field(default=None, min_length=1, max_length=50)
+
+    @model_validator(mode="after")
+    def require_changes(self):
+        if not self.model_fields_set or any(
+            getattr(self, name) is None for name in self.model_fields_set
+        ):
+            raise ValueError("Provide a non-empty title or page type")
+        return self
+
+
+class BatchOutlinePage(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    slide_index: int = Field(ge=0, le=10000)
+    slide_id: str | None = Field(max_length=100)
+    revision: str = Field(min_length=64, max_length=64)
+    changes: BatchOutlineChanges
+
+
+class BatchOutlinePatch(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    project_revision: str = Field(min_length=64, max_length=64)
+    pages: list[BatchOutlinePage] = Field(min_length=1, max_length=50)
+
+    @model_validator(mode="after")
+    def unique_pages(self):
+        if len({page.slide_index for page in self.pages}) != len(self.pages):
+            raise ValueError("Select each page only once")
+        return self
+
+
+@router.get("/api/projects/{project_id}/editor-outline-batch")
+async def read_outline_batch(
+    project_id: str,
+    response: Response,
+    indices: list[Annotated[int, Field(ge=0, le=10000)]] = Query(
+        min_length=1, max_length=50
+    ),
+    user: User = Depends(get_current_user_required),
+):
+    response.headers["Cache-Control"] = "no-store"
+    async with AsyncSessionLocal() as session:
+        result = await EditorOutlineBatchService(session).read(
+            project_id, user.id, indices
+        )
+    return {"success": True, **result}
+
+
+@router.patch("/api/projects/{project_id}/editor-outline-batch")
+async def save_outline_batch(
+    project_id: str,
+    body: BatchOutlinePatch,
+    response: Response,
+    user: User = Depends(get_current_user_required),
+):
+    response.headers["Cache-Control"] = "no-store"
+    async with AsyncSessionLocal() as session:
+        result = await EditorOutlineBatchService(session).save(
+            project_id, user.id, body
+        )
+    return {"success": True, **result}
 
 
 @router.get("/api/projects/{project_id}/editor-documents/{slide_index}")

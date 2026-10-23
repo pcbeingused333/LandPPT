@@ -23,7 +23,7 @@ from .outline_support import (
     _normalize_content_source_urls,
     _process_uploaded_files_for_outline,
     _process_url_sources_for_outline,
-    _save_uploaded_files_for_confirmed_requirements,
+    _prepare_confirmed_source_inputs,
 )
 from .support import (
     check_credits_for_operation,
@@ -148,14 +148,10 @@ async def confirm_project_requirements(
 
         # Handle content sources
         file_outline = None
-        source_urls: List[str] = []
-        saved_file_metadata: Dict[str, Any] = {}
-        if content_source == "file":
-            saved_file_metadata = await _save_uploaded_files_for_confirmed_requirements(file_upload or [])
-        elif content_source == "url":
-            source_urls = _normalize_content_source_urls(content_urls)
-            if not source_urls:
-                raise Exception("Please provide at least one valid URL (http/https).")
+        saved_file_metadata = await _prepare_confirmed_source_inputs(
+            content_source, file_upload or [], content_urls
+        )
+        source_urls = saved_file_metadata.get("source_urls", [])
         # Legacy synchronous file/url generation remains disabled below to avoid long-lived confirm requests.
         if False and content_source == "file":
             # Process uploaded files (support multiple files) and generate outline
@@ -257,11 +253,11 @@ async def confirm_project_requirements(
             "custom_style_prompt": custom_style_prompt if ppt_style == "custom" else None,
             "description": description,
             "content_source": content_source,
-            "source_urls": source_urls if content_source == "url" else None,
-            "file_processing_mode": file_processing_mode if content_source in ("file", "url") else None,
-            "content_analysis_depth": content_analysis_depth if content_source in ("file", "url") else None,
-            "file_generated_outline": file_outline if content_source not in ("file", "url") else None,
-            "force_file_outline_regeneration": content_source in ("file", "url"),
+            "source_urls": source_urls if content_source in ("url", "mixed") else None,
+            "file_processing_mode": file_processing_mode if content_source in ("file", "url", "mixed") else None,
+            "content_analysis_depth": content_analysis_depth if content_source in ("file", "url", "mixed") else None,
+            "file_generated_outline": file_outline if content_source not in ("file", "url", "mixed") else None,
+            "force_file_outline_regeneration": content_source in ("file", "url", "mixed"),
             "unattended": build_unattended_requirements(
                 enabled=unattended_mode,
                 stop_at_stage=stop_at_stage,
@@ -331,6 +327,8 @@ async def confirm_project_requirements(
 
         return JSONResponse(response_payload)
 
+    except HTTPException:
+        raise
     except Exception as e:
         from fastapi.responses import JSONResponse
         return JSONResponse({

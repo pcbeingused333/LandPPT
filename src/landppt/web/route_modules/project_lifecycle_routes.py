@@ -5,7 +5,7 @@
 from __future__ import annotations
 
 import asyncio
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Literal
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
@@ -18,8 +18,7 @@ from ...services.template_package.outline_reference import (
     PREFERENCE_KEY, REFERENCE_KEY, load_package_preference,
 )
 from .outline_support import (
-    _normalize_content_source_urls,
-    _save_uploaded_files_for_confirmed_requirements,
+    _prepare_confirmed_source_inputs,
 )
 from .support import get_ppt_service_for_user, logger, ppt_service, templates
 from .unattended_support import (
@@ -119,7 +118,9 @@ async def web_dashboard(
         completed_projects = len([project for project in projects if project.status == "completed"])
         in_progress_projects = len([project for project in projects if project.status == "in_progress"])
         draft_projects = len([project for project in projects if project.status == "draft"])
-        recent_projects = sorted(projects, key=lambda project: project.updated_at, reverse=True)[:5]
+        recent_projects = sorted(
+            projects, key=lambda project: (-int(project.is_pinned), -project.updated_at, project.project_id)
+        )[:5]
 
         active_todo_boards = []
         for project in projects:
@@ -151,6 +152,8 @@ async def web_projects_list(
     status: str | None = None,
     user: User = Depends(get_current_user_required),
     search: str | None = None,
+    favorite: bool = False,
+    sort: Literal["updated", "pinned"] = "pinned",
 ):
     """项目列表页。"""
     try:
@@ -161,7 +164,16 @@ async def web_projects_list(
             status=status,
             user_id=user.id,
             **({"search": search} if search else {}),
+            **({"favorite": True} if favorite else {}),
+            **({"sort": sort} if sort != "updated" else {}),
         )
+        last_page = max(1, (projects_response.total + 9) // 10)
+        if favorite and page > last_page:
+            # Removing the final favorite on a page must not leave an empty,
+            # out-of-range page; preserve every committed filter in the URL.
+            return RedirectResponse(
+                str(request.url.include_query_params(page=last_page)), status_code=303
+            )
         return templates.TemplateResponse(
             "pages/project/projects_list.html",
             {
@@ -172,6 +184,8 @@ async def web_projects_list(
                 "page_size": projects_response.page_size,
                 "status_filter": status,
                 "search_query": search,
+                "favorite_filter": favorite,
+                "sort_order": sort,
             },
         )
     except Exception as exc:
@@ -259,14 +273,10 @@ async def web_create_project_and_confirm(
             render_mode = "svg"
 
         # 先处理内容来源，避免在素材无效时留下一个无法继续的空项目
-        source_urls: List[str] = []
-        saved_file_metadata: Dict[str, Any] = {}
-        if content_source == "file":
-            saved_file_metadata = await _save_uploaded_files_for_confirmed_requirements(file_upload or [])
-        elif content_source == "url":
-            source_urls = _normalize_content_source_urls(content_urls)
-            if not source_urls:
-                raise ValueError("请至少提供一个有效 URL（http/https）")
+        saved_file_metadata = await _prepare_confirmed_source_inputs(
+            content_source, file_upload or [], content_urls
+        )
+        source_urls = saved_file_metadata.get("source_urls", [])
 
         requirements = (requirements or "").strip() or None
         custom_audience = (custom_audience or "").strip() or None
@@ -285,7 +295,7 @@ async def web_create_project_and_confirm(
             custom_style_prompt=custom_style_prompt,
             include_transition_pages=include_transition_pages,
             description=description,
-            use_file_content=content_source in ("file", "url"),
+            use_file_content=content_source in ("file", "url", "mixed"),
             file_processing_mode=file_processing_mode,
             content_analysis_depth=content_analysis_depth,
             user_id=user.id,
@@ -314,11 +324,11 @@ async def web_create_project_and_confirm(
             "custom_style_prompt": custom_style_prompt if ppt_style == "custom" else None,
             "description": description,
             "content_source": content_source,
-            "source_urls": source_urls if content_source == "url" else None,
-            "file_processing_mode": file_processing_mode if content_source in ("file", "url") else None,
-            "content_analysis_depth": content_analysis_depth if content_source in ("file", "url") else None,
+            "source_urls": source_urls if content_source in ("url", "mixed") else None,
+            "file_processing_mode": file_processing_mode if content_source in ("file", "url", "mixed") else None,
+            "content_analysis_depth": content_analysis_depth if content_source in ("file", "url", "mixed") else None,
             "file_generated_outline": None,
-            "force_file_outline_regeneration": content_source in ("file", "url"),
+            "force_file_outline_regeneration": content_source in ("file", "url", "mixed"),
             "unattended": build_unattended_requirements(
                 enabled=unattended_mode,
                 stop_at_stage=stop_at_stage,
@@ -366,6 +376,8 @@ async def web_create_project_and_confirm(
             payload["unattended"] = unattended
 
         return JSONResponse(payload)
+    except HTTPException:
+        raise
     except Exception as exc:
         payload: Dict[str, Any] = {"status": "error", "message": str(exc)}
         if project_id:

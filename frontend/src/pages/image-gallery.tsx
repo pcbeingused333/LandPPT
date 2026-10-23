@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Alert, Button, Card, Checkbox, Empty, Input, Modal, Pagination, Select, Space, Spin, Tag } from 'antd';
+import { Alert, Button, Card, Checkbox, Empty, Input, Modal, Pagination, Select, Space, Spin, Tabs, Tag } from 'antd';
 import { DeleteOutlined, PictureOutlined, ReloadOutlined, UploadOutlined } from '@ant-design/icons';
 import { request, type ApiData } from '../api';
 import { useAdminActions } from '../components/admin-data';
@@ -7,8 +7,19 @@ import { ImageActions, downloadImageFile, fileSize, imageEndpoint, imageSources,
 import { modalFocus } from '../components/modal-focus';
 import ImageUpload from './image-upload';
 import ImageDetail from './image-detail';
+import { ArtifactLibrary } from '../components/artifact-library';
+import { SourceLibrary } from '../components/source-library';
 
-export default function ImageGallery() {
+export default function MaterialLibrary() {
+  const [active, setActive] = useState(() => { const tab = new URLSearchParams(location.search).get('tab'); return tab === 'exports' || tab === 'sources' ? tab : 'images'; });
+  return <Tabs activeKey={active} onChange={value => { setActive(value); const url = new URL(location.href); if (value !== 'images') url.searchParams.set('tab', value); else url.searchParams.delete('tab'); history.replaceState(history.state, '', url); }} items={[
+    { key: 'images', label: '图片素材', children: <ImageGallery /> },
+    { key: 'exports', label: '导出文件', children: <ArtifactLibrary active={active === 'exports'} /> },
+    { key: 'sources', label: '项目资料', children: <SourceLibrary active={active === 'sources'} /> },
+  ]} />;
+}
+
+function ImageGallery() {
   const [images, setImages] = useState<ApiData[]>([]); const [total, setTotal] = useState(0); const [page, setPage] = useState(1);
   const [category, setCategory] = useState(''); const [search, setSearch] = useState(''); const [query, setQuery] = useState(''); const [sort, setSort] = useState('created_desc');
   const [loading, setLoading] = useState(true); const [error, setError] = useState('');

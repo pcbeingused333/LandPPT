@@ -3,7 +3,7 @@ Pydantic models for API requests and responses
 """
 
 from typing import List, Optional, Dict, Any, Union, Literal
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, StrictBool, field_validator, model_validator
 import time
 import uuid
 
@@ -154,6 +154,8 @@ class PPTProject(BaseModel):
     slides_html: Optional[str] = None
     slides_data: Optional[List[Dict[str, Any]]] = None  # Individual slide data
     cover_url: Optional[str] = None  # Private, content-versioned first-page thumbnail
+    is_favorite: bool = False
+    is_pinned: bool = False
     confirmed_requirements: Optional[Dict[str, Any]] = None  # Confirmed requirements from step 1
     project_metadata: Optional[Dict[str, Any]] = None  # 项目元数据，包括选择的模板ID等
     todo_board: Optional[TodoBoard] = None
@@ -170,6 +172,21 @@ class ProjectListResponse(BaseModel):
 
 class ProjectRenameRequest(BaseModel):
     title: str = Field(..., min_length=1, max_length=255)
+
+
+class ProjectLibraryPreferenceRequest(BaseModel):
+    model_config = {"extra": "forbid"}
+
+    is_favorite: Optional[StrictBool] = None
+    is_pinned: Optional[StrictBool] = None
+
+    @model_validator(mode="after")
+    def require_boolean_change(self):
+        if not self.model_fields_set or any(
+            getattr(self, key) is None for key in self.model_fields_set
+        ):
+            raise ValueError("Provide at least one boolean preference")
+        return self
 
 # Enhanced Slide Models
 class SlideContent(BaseModel):

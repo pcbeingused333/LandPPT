@@ -7,7 +7,7 @@
     "project_id": {{ project.project_id | tojson }}, "title": {{ project.title | tojson }}, "topic": {{ project.topic | tojson }},
     "scenario": {{ project.scenario | tojson }}, "status": {{ project.status | tojson }}, "version": {{ project.version }},
     "requirements": {{ project.requirements | tojson }}, "created": {{ (project.created_at | strftime('%Y-%m-%d %H:%M')) | tojson }},
-    "hasSlides": {{ (project.slides_html is not none and project.slides_html | length > 0) | tojson }},
+    "hasSlides": {{ ((project.slides_data | default([], true) | length > 0) or (project.slides_html is not none and project.slides_html | length > 0)) | tojson }},
     "outline": {{ project.outline | tojson }}
 },
 "board": {% if todo_board %}{

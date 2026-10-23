@@ -165,9 +165,17 @@ async def _save_uploaded_files_for_confirmed_requirements(file_uploads: List[Upl
             if not content:
                 raise Exception(f"{file_upload.filename}: file content is empty.")
 
-            project_file_path = await run_blocking_io(
+            saving = asyncio.create_task(run_blocking_io(
                 _save_project_file_sync, content, file_upload.filename
-            )
+            ))
+            try:
+                project_file_path = await asyncio.shield(saving)
+            except asyncio.CancelledError:
+                # Thread writes cannot be cancelled. Wait for their result so
+                # the outer cleanup can remove the newly created file.
+                project_file_path = await saving
+                saved_files.append({"filename": file_upload.filename, "file_path": project_file_path})
+                raise
             saved_files.append({
                 "filename": file_upload.filename,
                 "file_path": project_file_path,
@@ -178,7 +186,7 @@ async def _save_uploaded_files_for_confirmed_requirements(file_uploads: List[Upl
             saved_metadata["file_path"] = saved_files[0]["file_path"]
             saved_metadata["filename"] = saved_files[0]["filename"]
         return saved_metadata
-    except Exception:
+    except BaseException:
         for item in saved_files:
             file_path = item.get("file_path")
             if not file_path:
@@ -188,6 +196,25 @@ async def _save_uploaded_files_for_confirmed_requirements(file_uploads: List[Upl
             except Exception:
                 pass
         raise
+
+
+async def _prepare_confirmed_source_inputs(
+    content_source: str, file_uploads: List[UploadFile], content_urls: Optional[str]
+) -> Dict[str, Any]:
+    """Validate both source kinds before saving uploads; never fetch during confirm."""
+    if content_source not in {"manual", "file", "url", "mixed"}:
+        raise HTTPException(status_code=422, detail="无效的资料来源")
+    metadata: Dict[str, Any] = {}
+    if content_source in {"url", "mixed"}:
+        source_urls = _normalize_content_source_urls(content_urls)
+        if not source_urls:
+            raise HTTPException(status_code=422, detail="请至少提供一个有效 URL（http/https）")
+        metadata["source_urls"] = source_urls
+    if content_source in {"file", "mixed"}:
+        if content_source == "mixed" and not file_uploads:
+            raise HTTPException(status_code=422, detail="混合资料需要至少一个文件和一个链接")
+        metadata.update(await _save_uploaded_files_for_confirmed_requirements(file_uploads or []))
+    return metadata
 
 
 async def _persist_generated_source_outline(
@@ -407,13 +434,19 @@ async def _generate_outline_from_confirmed_sources(
     content_analysis_depth = confirmed_requirements.get("content_analysis_depth", "standard")
     user_ppt_service = get_ppt_service_for_user(user_id)
 
-    if content_source == "url":
+    if content_source in {"url", "mixed"}:
         source_urls = confirmed_requirements.get("source_urls") or []
         if isinstance(source_urls, str):
             source_urls = _normalize_content_source_urls(source_urls)
         if not source_urls:
             raise Exception("Please provide at least one valid URL (http/https).")
 
+        mixed_inputs = {}
+        if content_source == "mixed":
+            uploads = normalize_uploaded_files(confirmed_requirements.get("uploaded_files"))
+            if not uploads:
+                raise ValueError("混合资料缺少原始上传文件，请重新添加文件后重试。")
+            mixed_inputs["uploaded_files"] = uploads
         outline = await _process_url_sources_for_outline(
             source_urls=source_urls,
             topic=topic,
@@ -435,6 +468,7 @@ async def _generate_outline_from_confirmed_sources(
             user_id=user_id,
             network_mode=network_mode,
             event_callback=event_callback,
+            **mixed_inputs,
         )
         if not outline:
             raise Exception("Failed to extract usable content from the provided URLs.")
@@ -568,10 +602,8 @@ async def _stream_outline_from_confirmed_sources(
     user_id: int,
 ) -> Any:
     content_source = (confirmed_requirements or {}).get("content_source") or "file"
-    status_message = (
-        "正在抓取并分析 URL 内容..."
-        if content_source == "url"
-        else "正在处理上传文件并生成大纲..."
+    status_message = {"mixed": "正在合并文件与网页资料...", "url": "正在抓取并分析 URL 内容..."}.get(
+        content_source, "正在处理上传文件并生成大纲..."
     )
 
     try:
@@ -630,10 +662,8 @@ async def _stream_outline_from_confirmed_sources_v2(
     user_id: int,
 ) -> Any:
     content_source = (confirmed_requirements or {}).get("content_source") or "file"
-    status_message = (
-        "正在抓取并分析 URL 内容..."
-        if content_source == "url"
-        else "正在处理上传文件并生成大纲..."
+    status_message = {"mixed": "正在合并文件与网页资料...", "url": "正在抓取并分析 URL 内容..."}.get(
+        content_source, "正在处理上传文件并生成大纲..."
     )
 
     # Tasks spawned below must be cancelled when this generator is closed (client
@@ -720,7 +750,7 @@ async def _stream_outline_from_confirmed_sources_v2(
         else:
             research_event_queue: Optional[asyncio.Queue] = None
             research_event_callback = None
-            if content_source == "url":
+            if content_source in {"url", "mixed"}:
                 research_event_queue = asyncio.Queue()
 
                 async def _url_research_event_cb(event: Dict[str, Any]) -> None:
@@ -797,6 +827,7 @@ async def _stream_outline_from_confirmed_sources_v2(
                 "failed",
                 None,
                 {"message": str(e), "failed_at": time.time()},
+                user_id=user_id,
             )
         except Exception as stage_error:
             logger.warning(
@@ -1057,14 +1088,16 @@ async def _process_url_sources_for_outline(
     user_id: int = None,
     network_mode: bool = False,
     event_callback=None,
+    uploaded_files: Optional[List[Dict[str, str]]] = None,
 ) -> Optional[Dict[str, Any]]:
-    """Process URL sources (web pages + downloadable files) and generate file-style outline."""
+    """Merge web/downloaded content and optional uploads before outline generation."""
     if not source_urls:
         return None
+    mixed = bool(uploaded_files)
 
     saved_file_path: Optional[str] = None
     merged_file_path: Optional[str] = None
-    source_filename = f"url_sources_{int(time.time())}.md"
+    source_filename = f"{'mixed' if mixed else 'url'}_sources_{int(time.time())}.md"
     downloaded_file_paths: List[str] = []
 
     try:
@@ -1073,6 +1106,23 @@ async def _process_url_sources_for_outline(
 
         extractor = WebContentExtractor()
         file_processor = FileProcessor()
+
+        # Keep originals separate from downloaded files and generated Markdown.
+        # Regeneration must re-read exactly the user's sources, not merge its own
+        # previous output back into the input a second time.
+        processed_uploads = []
+        for entry in uploaded_files or []:
+            name = entry.get("filename") or Path(entry["file_path"]).name
+            try:
+                result = await file_processor.process_file(
+                    entry["file_path"], name, file_processing_mode=file_processing_mode
+                )
+                content = result.processed_content
+                if not content or not content.strip():
+                    raise ValueError("文件内容为空")
+            except Exception as exc:
+                raise ValueError(f"无法读取附件 {name}，请检查文件后重试。") from exc
+            processed_uploads.append({"filename": name, "content": content})
 
         downloaded_sources: List[Dict[str, Any]] = []
         web_source_urls: List[str] = []
@@ -1138,6 +1188,8 @@ async def _process_url_sources_for_outline(
                     processed_content = file_result.processed_content
                     used_processing_mode = file_processing_mode
 
+                if mixed and not (processed_content or "").strip():
+                    raise ValueError("下载文件内容为空")
                 processed_file_sources.append({
                     **downloaded,
                     "content": processed_content,
@@ -1161,12 +1213,19 @@ async def _process_url_sources_for_outline(
                 delay_between_requests=0.1,
             )
 
+        if uploaded_files:
+            succeeded_urls = {item["source_url"] for item in processed_file_sources}
+            succeeded_urls.update(item.url for item in extracted_contents if (item.content or "").strip())
+            failed_urls = [url for url in source_urls if url not in succeeded_urls]
+            if failed_urls:
+                raise ValueError("部分链接未能读取，未生成不完整的大纲。请确认链接可访问后重试，或在管理资料中更换链接：" + "、".join(failed_urls))
+
         if not processed_file_sources and not extracted_contents:
             logger.error("No URL content or downloadable files were processed successfully")
             return None
 
         markdown_parts: List[str] = []
-        markdown_parts.append("# URL Source Content\n")
+        markdown_parts.append("# Mixed Source Content\n" if uploaded_files else "# URL Source Content\n")
         if topic and topic.strip():
             markdown_parts.append(f"\nTopic: {topic.strip()}\n")
         markdown_parts.append(
@@ -1182,6 +1241,11 @@ async def _process_url_sources_for_outline(
                 source_summary=f"URL count: {len(source_urls)}",
             )
         )
+
+        if processed_uploads:
+            markdown_parts.append("\n## Uploaded File Sources\n")
+            for idx, item in enumerate(processed_uploads, 1):
+                markdown_parts.append(f"\n### Upload {idx}: {item['filename']}\n\n{item['content']}\n")
 
         if processed_file_sources:
             markdown_parts.append("\n## Downloaded File Sources\n")
@@ -1283,6 +1347,7 @@ async def _process_url_sources_for_outline(
                     pass
             return None
 
+        original_uploads = uploaded_files
         uploaded_files = [
             {
                 "filename": item["filename"],
@@ -1308,10 +1373,11 @@ async def _process_url_sources_for_outline(
         outline_with_url_info["file_info"] = {
             "file_path": outline_file_path,
             "filename": outline_filename,
-            "uploaded_files": uploaded_files,
-            "source_type": "url",
+            "uploaded_files": original_uploads or uploaded_files,
+            "source_type": "mixed" if original_uploads else "url",
+            "files_count": len(original_uploads or []),
             "source_urls": source_urls,
-            "sources_count": len(source_urls),
+            "sources_count": len(source_urls) + len(original_uploads or []),
             "downloaded_files_count": len(processed_file_sources),
             "web_sources_count": len(web_source_urls),
             "web_extracted_count": len(extracted_contents),
@@ -1348,7 +1414,7 @@ async def _process_url_sources_for_outline(
         }
         return outline_with_url_info
 
-    except Exception as e:
+    except (Exception, asyncio.CancelledError) as e:
         logger.error(f"Error processing URL sources for outline: {e}")
         if saved_file_path:
             try:
@@ -1365,6 +1431,8 @@ async def _process_url_sources_for_outline(
                 await run_blocking_io(_cleanup_project_file_sync, downloaded_path)
             except Exception:
                 pass
+        if mixed or isinstance(e, asyncio.CancelledError):
+            raise
         return None
 
 
@@ -1596,7 +1664,7 @@ def _save_temp_file_sync(content: bytes, filename: str) -> str:
 def _save_project_file_sync(content: bytes, filename: str) -> str:
     """同步保存项目文件到永久位置（在线程池中运行）"""
     import os
-    import time
+    from uuid import uuid4
     from pathlib import Path
 
     # 创建项目文件目录
@@ -1604,9 +1672,8 @@ def _save_project_file_sync(content: bytes, filename: str) -> str:
     project_files_dir.mkdir(parents=True, exist_ok=True)
 
     # 生成唯一文件名
-    timestamp = int(time.time())
     file_ext = os.path.splitext(filename)[1]
-    safe_filename = f"{timestamp}_{filename}"
+    safe_filename = f"{uuid4().hex}{file_ext}"
     file_path = project_files_dir / safe_filename
 
     # 保存文件

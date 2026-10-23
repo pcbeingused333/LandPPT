@@ -61,6 +61,27 @@ class LocalArtifactStorage(ArtifactStorage):
     async def exists(self, key: str) -> bool:
         return await asyncio.to_thread(self._path_for_key(key).is_file)
 
+    async def size(self, key: str) -> int:
+        path = self._path_for_key(key)
+        if not await asyncio.to_thread(path.is_file):
+            raise FileNotFoundError(key)
+        return (await asyncio.to_thread(path.stat)).st_size
+
+    async def open_range(self, key: str, start: int, end: int) -> AsyncIterator[bytes]:
+        if start < 0 or end < start:
+            raise ValueError("Invalid byte range")
+        with self._path_for_key(key).open("rb") as file_obj:
+            await asyncio.to_thread(file_obj.seek, start)
+            remaining = end - start + 1
+            while remaining:
+                chunk = await asyncio.to_thread(
+                    file_obj.read, min(256 * 1024, remaining)
+                )
+                if not chunk:
+                    break
+                remaining -= len(chunk)
+                yield chunk
+
     async def delete(self, key: str) -> None:
         path = self._path_for_key(key)
         if await asyncio.to_thread(path.exists):

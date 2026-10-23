@@ -20,7 +20,7 @@ Dependencies and generated assets are ignored by Git.
 ```sh
 npm run check --prefix frontend
 npm run test:controllers --prefix frontend
-python -m pytest tests/test_app_ui.py tests/test_antd_ui.py tests/test_antd_settings_performance_ui.py tests/test_antd_settings_models_ui.py tests/test_antd_settings_compact_ui.py tests/test_antd_asset_updates_ui.py tests/test_antd_navigation_ui.py tests/test_antd_projects_ui.py tests/test_antd_project_covers_ui.py tests/test_antd_project_search_ui.py tests/test_antd_pagination_ui.py tests/test_antd_progress_ui.py tests/test_antd_account_ui.py tests/test_antd_email_login_ui.py tests/test_antd_admin_ui.py tests/test_antd_admin_management_ui.py tests/test_antd_community_ui.py tests/test_antd_images_ui.py tests/test_antd_templates_ui.py tests/test_antd_creation_research_ui.py tests/test_antd_creation_workspace_ui.py tests/test_antd_home_generator_ui.py tests/test_antd_home_ui.py tests/test_antd_generator_skeleton_ui.py tests/test_antd_generator_lifecycle_ui.py tests/test_antd_template_wizard_ui.py tests/test_antd_generator_documents_ui.py tests/test_antd_presentation_ui.py tests/test_antd_todo_ui.py tests/test_antd_outline_lifecycle_ui.py tests/test_antd_workspace_stages_ui.py tests/test_antd_editor_ui.py tests/test_antd_editor_lifecycle_ui.py tests/test_antd_editor_media_ui.py tests/test_antd_editor_context_ui.py tests/test_antd_editor_export_ui.py tests/test_antd_editor_share_ui.py tests/test_antd_quick_edit_ui.py tests/test_antd_editor_documents_ui.py tests/test_antd_speech_dialog_mount_ui.py tests/test_antd_remaining_ui.py tests/test_template_package_workspace_ui.py -q
+python -m pytest tests/test_app_ui.py tests/test_antd_ui.py tests/test_antd_settings_performance_ui.py tests/test_antd_settings_models_ui.py tests/test_antd_settings_compact_ui.py tests/test_antd_asset_updates_ui.py tests/test_antd_navigation_ui.py tests/test_antd_projects_ui.py tests/test_antd_project_covers_ui.py tests/test_antd_project_search_ui.py tests/test_antd_project_library_ui.py tests/test_antd_mixed_sources_ui.py tests/test_antd_pagination_ui.py tests/test_antd_progress_ui.py tests/test_antd_account_ui.py tests/test_antd_email_login_ui.py tests/test_antd_admin_ui.py tests/test_antd_admin_management_ui.py tests/test_antd_community_ui.py tests/test_antd_images_ui.py tests/test_antd_templates_ui.py tests/test_antd_creation_research_ui.py tests/test_antd_creation_workspace_ui.py tests/test_antd_home_generator_ui.py tests/test_antd_home_ui.py tests/test_antd_generator_skeleton_ui.py tests/test_antd_generator_lifecycle_ui.py tests/test_antd_template_wizard_ui.py tests/test_antd_generator_documents_ui.py tests/test_antd_presentation_ui.py tests/test_antd_todo_ui.py tests/test_antd_outline_lifecycle_ui.py tests/test_antd_workspace_stages_ui.py tests/test_antd_editor_ui.py tests/test_antd_editor_lifecycle_ui.py tests/test_antd_editor_media_ui.py tests/test_antd_editor_context_ui.py tests/test_antd_editor_export_ui.py tests/test_antd_editor_share_ui.py tests/test_antd_quick_edit_ui.py tests/test_antd_editor_documents_ui.py tests/test_antd_speech_dialog_mount_ui.py tests/test_antd_remaining_ui.py tests/test_template_package_workspace_ui.py -q
 ```
 
 Build before installing from source or publishing Python packages. Hatch includes
@@ -285,7 +285,7 @@ are allowed to finish; this lifecycle does not claim to cancel server work.
 Repeated Save shares one operation, including native shortcut entry. Saving HTML
 now writes only the current page, rather than marking/writing every neighbor.
 Failure retains the source and allows deliberate retry.
-Ant controls own the header, view modes, save/export/regenerate menus and AI drawer;
+Ant controls own the header, view modes, save/regenerate actions, export chooser and AI drawer;
 thumbnail, CodeMirror, quick-edit, SVG and export engines retain data ownership.
 The native surface adapter is limited to specialized dialogs, task messages,
 context menus and thumbnail accessibility. It no longer reads business state or
@@ -298,7 +298,7 @@ invokes the original frame-sizing functions when the new toolbar changes size.
 The editor deliberately omits the creation-stage Steps. Project detail, planning
 and generation pages retain that navigation; the editor keeps its page counter,
 return link and task-specific save/export feedback.
-The left sidebar now switches between slides, outline and speech. Text is loaded
+The left sidebar now switches between slides, contents, outline and speech. Text is loaded
 on demand, with a page picker, reading/editing modes, fixed save footer and
 Chinese/English speech drafts. Drafts remain in this editor session across page,
 tab and language switches; leaving the page with unsaved text triggers the browser
@@ -315,6 +315,74 @@ copies receive new page IDs. Failed loads/saves retain drafts and expose retry;
 reloading dirty text requires explicit discard. Mobile panes use the existing
 sidebar overlay and 44px controls. Regression coverage is in
 `tests/test_antd_editor_documents_ui.py` and `tests/test_editor_document_service.py`.
+The contents pane uses a native Ant Tree to group pages under explicit chapter
+divider types. It supports title/exact-page-number search, chapter folding,
+keyboard navigation, active-page highlighting and a locate-current-page action.
+Decks without dividers retain their flat order; titles never imply chapters.
+The explicit engine port exposes only each page's stable key, title, ID and type;
+opening/searching the tree performs no document reads, writes or AI requests.
+The normal page-selection command preserves canvas engines and document drafts.
+Search and inactive-chapter folding survive tab switches within this session;
+returning to the directory expands the current page's chapter when available.
+Saving an
+outline as a chapter divider updates grouping; native refresh/reorder uses current
+indices and stable page keys. Contents-mode Save/Ctrl+S saves the current canvas,
+not hidden text drafts. The pane reuses the mobile sidebar overlay and scrolls
+independently of its tabs/search controls. No graph inference or persistent chapter
+schema is added. See `tests/test_antd_editor_outline_navigation_ui.py`,
+`frontend/tests/editor-outline-tree.test.mjs` and local evidence in
+`artifacts/editor-outline-navigation-20261022/`.
+
+The directory's structure overview opens a native Ant Drawer with responsive
+chapter cards. It shares `outlineGroups`/`outlineTree`, includes each source page
+once in reading order and keeps the explicit divider page selectable. Leading
+pages are labelled unsectioned; a flat deck gets one "all pages" card. Neither
+titles nor content imply a chapter or an arbitrary relationship. Searching the
+overview preserves a matching page's explicit chapter context and absolute index.
+Locate clears only the overview filter and focuses/scrolls the current page;
+subsequent search typing retains focus. The directory's independent query and
+multi-selection survive. Choosing a page uses the same selection command and
+returns to the editor, preserving canvas data and hidden text drafts.
+
+The overview reads only the current engine snapshot, with no document fetch,
+write, thumbnail rendering, AI call or auto-save. Its Drawer owns focus return
+and keeps the footer usable on narrow/short screens. A temporary capture listener
+handles Escape and Ctrl/Cmd+S only while open, including opening transitions and
+visible Tooltip portals; it is removed on close/unmount. Other popup key events
+stay inside the modal. The close action receives focus without opening a mobile
+text keyboard, and the component avoids stealing focus from a control already in
+use. Hiding the directory closes its portal. After close the editor regains its
+normal save shortcut. Native thumbnail refresh now prepends a title text node
+instead of interpolating title markup, preserving the static SVG mode badge.
+
+See `tests/test_antd_editor_outline_overview_ui.py`,
+`frontend/tests/editor-outline-tree.test.mjs` and
+`artifacts/editor-outline-overview-20261023/` for HTML/SVG navigation, modal
+lifecycle, title safety and real read-only acceptance. This is a chapter overview,
+not a free-form relationship canvas or a cross-page editing/AI operation. No
+backend, persistent schema or document format changes are introduced.
+
+The contents pane also offers opt-in multi-selection and a native Ant Drawer for
+editing 1–50 page titles/types together. Chapter checkboxes select their own page;
+selection survives searches. Each title/type remains individually editable, with
+optional title prefixes and a uniform type. Existing unsaved outline/speech drafts
+must be saved or discarded before entering the batch editor. Loading, read-only
+task state, explicit reset/reload, dirty-close confirmation and keyboard focus
+follow the existing application conventions. During saving, closing and duplicate
+submissions are blocked. Failures retain the entire draft; malformed receipts are
+not partially applied to local metadata. Saving only sends changed pages and
+updates directory metadata without reloading or regenerating canvas artwork.
+Owner-only GET/PATCH `/api/projects/{id}/editor-outline-batch` use a project revision
+plus each page's identity and outline hash. The server validates every page before
+writing, locks the project and uses a transactional timestamp compare-and-swap
+with active-stage/task guards. Any conflict rejects the whole batch. Supplied
+title/type fields are mirrored to normalized and legacy outline metadata; artwork,
+unknown content, unselected pages, speech, workflow settings and version are kept.
+No model call, job, migration or automatic canvas repaint is added. This is
+structured title/type editing; natural-language cross-page AI editing remains a
+separate capability. See `tests/test_editor_outline_batch.py`,
+`tests/test_antd_editor_outline_batch_ui.py` and local evidence in
+`artifacts/editor-outline-batch-20261022/`.
 Thumbnail context actions use a grouped Ant menu with the target page title,
 clipboard availability and a separate destructive action. The original nine
 handlers still perform edits, copy/paste, insertion, duplication and exports.
@@ -345,6 +413,25 @@ keeps resize/minimize preferences, expands its input instead of leaving blank
 space, and fits its minimum height to visible controls so old sizes cannot clip
 Apply. It follows toolbar/viewport bounds and respects reduced motion. Escape
 closes it locally, retains the selection/draft and returns focus to its trigger.
+The toolbar export action opens a native Ant Drawer organized by the intended
+use: editable PPTX, preserved-layout PPTX, PDF reading/printing, or an HTML ZIP.
+The chooser explains editability and format, shows the whole-deck page count,
+and reminds users to save page/speech edits before exporting. It does not save
+automatically. Native engine capabilities still select HTML-client versus
+SVG-native/vector choices; the server-provided permission controls standard
+PPTX. Choices persist only in the mounted editor, and an unavailable remembered
+choice falls back visibly to a current method. Choosing a purpose/method makes
+no request and loads no converter; only Start invokes the existing command.
+Saving blocks Start, and the trigger remains disabled while that command is
+pending. The native exporter retains its progress, cancellation, errors and
+download behavior. Closing the selector restores focus; completing conversion
+restores the enabled trigger only if focus has not moved to another control.
+The chooser contains its keyboard events and fits mobile/short viewports with a
+fixed action footer. Single-page export remains in the thumbnail context menu.
+No export endpoint, converter, file format or authorization rule changes.
+See `tests/test_antd_editor_export_chooser_ui.py` and
+`artifacts/editor-export-chooser-20261022/` for selection, handoff and real ZIP
+download evidence.
 PPTX client and SVG conversion use a dedicated Ant dialog with file context,
 native stage messages, page counts and live progress. Missing progress remains
 indeterminate; the UI adds no timer estimates. The original cancel button and
@@ -389,11 +476,48 @@ inactivity while subtitles remain visible. Mobile narration uses two control row
 Browser fixtures isolate cues/audio; real TTS and audio playback remain deployment
 integration checks.
 
-The task board sends the existing multipart confirmation fields for manual,
-file and URL sources. Failed confirmation keeps inputs and files; success removes
+The task board sends multipart confirmation fields for manual, file, URL and
+mixed sources. Failed confirmation keeps inputs and files; success removes
 the form before starting exactly one existing outline stream. Published package
 selection loads on demand, supports retry and uses SVG. Custom audience/style,
 page ranges, transition pages and footer controls keep their form names.
+
+Creation and requirement confirmation derive the source kind from all retained
+files/links, independently of the currently visible input tab. Files and URLs
+are both submitted for `content_source=mixed`; count tags, removal actions and
+an Ant notice explain the combined input. The supported file extensions match
+the existing FileProcessor (PDF/DOCX/TXT/MD/JPG/JPEG/PNG), with a 100 MiB per-file
+limit; spreadsheet formats are no longer advertised as supported.
+Confirmation saves the original uploads and normalized URL list before any
+extraction/AI work. The common source path merges uploads, downloaded documents
+and web pages into one outline request, retaining package/research settings.
+Mixed input fails explicitly when a source cannot be read; it does not produce
+an outline from only the remaining sources. Original upload identities survive
+regeneration; prior merged Markdown and downloaded copies never become original
+uploads. Cancellation removes generated material while retaining user uploads.
+Streams, forced regeneration and unattended runs recognize the mixed kind;
+legacy non-streaming endpoints defer to the common stream instead of dropping
+web content. Planning offers a bounded source summary containing filenames/URLs.
+Existing projects now offer **管理资料** in the planning board, including projects
+without prior attachments. A native Ant Drawer retains/removes saved attachments,
+accepts new uploads and edits the URL list. It saves sources independently of
+audience, page count, package/design settings, saved outlines and rendered pages.
+Saving never starts extraction or AI; regeneration remains an explicit action.
+The source read/write endpoints expose opaque attachment IDs and filenames, never
+server file paths. Ownership is enforced even for administrators. A requirements
+revision, project row lock/CAS and active stage/task checks reject stale or busy
+writes, including tasks that start during upload. Failed saves preserve browser
+drafts. Source edits invalidate the reusable file outline and derived file paths;
+the previous outline/pages remain available until explicitly regenerated.
+New uploads have unique storage names. Failure/cancellation removes uncommitted
+uploads, while a disconnect after commit preserves the confirmed files. Removing
+an attachment changes its project selection; it does not physically delete the
+original file or purge historical generated assets. Storage garbage collection
+and a general asset library remain outside this batch.
+See `tests/test_project_sources.py`, `tests/test_antd_project_sources_ui.py` (CI
+ui-1), and `artifacts/project-sources-20261022/` for this follow-up's evidence.
+See `tests/test_mixed_source_outline.py`, `tests/test_antd_mixed_sources_ui.py`
+(frontend CI ui-1), and local evidence in `artifacts/mixed-sources-20261022/`.
 The outline list, detailed view, JSON preview/export, JSON and single-slide
 editors, regeneration dialog and AI optimization now use Ant components. AI
 results remain editable drafts until explicitly saved; failed requests retain
@@ -488,6 +612,25 @@ prevent concurrent saves. Keyboard focus stays in dialogs and returns to the
 trigger after asynchronous tests.
 
 Project lists share one table/mobile-card collection and action controller.
+Favorites and pins use a native Ant Dropdown on each project title in cards and
+tables. The library adds All / Favorites tabs and Pinned first / Recently updated
+sorting; the dashboard shows up to five pinned/recent projects and links to
+Favorites. `PATCH /api/projects/{id}/library-preferences` accepts only explicit
+boolean flags for the authenticated owner, including for admin accounts. Flags
+live in the per-user `project_library_preferences` table (startup migration 020),
+independent of document content, version, update time and cover identity.
+Partial upserts preserve the other flag under concurrent SQLite/PostgreSQL writes.
+Favorites, search and effective status filter before pagination; pin ordering is
+global with stable update-time/project-ID tie breaking. Library URLs retain every
+filter; removing the final favorite on a page redirects to a valid page. Web lists
+default to pinned first; the API keeps its previous update-time default unless
+`sort=pinned` is explicit. Project duplication starts without personal flags, and
+project deletion cleans them up. Dashboard organization refreshes only its project
+section from authenticated server HTML, preserving the creation draft; a failed
+refresh retains confirmed flags and explains that ordering needs a refresh.
+Regression coverage is in `tests/test_project_library_preferences.py` and
+`tests/test_antd_project_library_ui.py` (frontend CI ui-1). Local evidence for the
+third batch's first capability is in `artifacts/project-library-batch3-20261022/`.
 Search submits on Enter or its icon and matches titles, topics and project IDs
 across all pages owned by the authenticated user. The trimmed `search` query
 persists through pagination, status changes and reloads. Clearing resets the page
@@ -539,6 +682,99 @@ create/edit dialogs, preserve failed inputs and keep deletion confirmation.
 The public sponsor page receives only presentation fields from the existing
 server-filtered list; its admin preview and visibility checks remain server-owned.
 
+The image route now has native Ant tabs for images, stored export files and
+project source records.
+The export pane reads only while active, supports filename/project search,
+type/sort filters, server pagination and project-scoped links from the project
+menu. Tab and project scope are reflected in the current URL without pushing
+extra history entries; switching tabs preserves image selection and filters.
+The project scope is read again from the current URL when a file/source pane
+reactivates, preventing stale scope after another pane clears it.
+The compact scope help explains why browser-generated PPTX and directly downloaded
+HTML packages are absent. Stored files display their name, type, size, creation
+time, project and optional expiry, with native attachment downloads that do not
+buffer large files into the application. No automatic upload, regeneration,
+deletion or successful-download message is added.
+Owner-only GET `/api/artifact-library` selects a public metadata projection from
+the existing Artifact table. It filters known PDF/PPTX/narration audio/video
+exports, owner, expiry and linked-project ownership before counting and paging;
+admin status does not expand this personal list. Literal search escapes SQL
+wildcards, sort ties include IDs, and missing/foreign projects are not disclosed.
+No storage keys, task IDs, checksums or arbitrary metadata reach the browser.
+Existing artifact download authorization and streaming remain unchanged. This is
+the stored-export catalogue, not a general upload or media-cache library; it adds
+no migration or conversion. Read failures retain filters and offer retry; stale
+reads are aborted on scope changes, tab changes and unmount. See
+`tests/test_artifact_library.py`, `tests/test_antd_artifact_library_ui.py` and
+`artifacts/artifact-library-20261022/` for API, real storage/download and layout
+evidence.
+
+Stored narration video and individual audio exports now offer an Ant Drawer
+preview. The server derives `preview_kind` from an allowlist of export type,
+MIME and filename extension; ZIP/PDF/PPTX and mismatched records keep downloads.
+An existing narration audio export is normally a ZIP, so it is not presented as
+a playable audio track. This adds neither synthesis nor automatic extraction.
+The Drawer uses native media controls with `preload="none"` and no autoplay.
+Opening it does not read the media body. Error/retry, metadata, a persistent
+download action, two-line long filenames and mobile layout use native Ant
+components. Closing, changing pane or unmounting pauses the player, removes its
+source and releases the browser request immediately; closing restores focus to
+the connected preview trigger. Retry waits for playback rather than reloading
+automatically. File filters and pagination remain untouched.
+
+GET/HEAD `/api/artifact-library/{id}/preview` uses the same personal ownership,
+expiry/type and linked-project visibility rules as the catalogue, including for
+admins. It never returns a public storage URL. Matching media is served inline
+with no-store, nosniff and same-origin resource policy. Actual storage size drives
+Content-Length and byte ranges, independent of cached metadata. Local storage
+seeks directly; S3/MinIO sends the range to object storage. Single ranges return
+206, unsatisfiable byte ranges 416; unsupported units/multi-ranges and unverified
+If-Range fall back to the full entity. HEAD reads no body. Storage readers close
+on completion, body cancellation and disconnect during response headers. Missing
+objects return 404 and unavailable storage 503 without disclosing storage keys.
+Attachment download streaming/authorization is unchanged.
+
+See `tests/test_artifact_preview.py`, `tests/test_antd_artifact_preview_ui.py` and
+`artifacts/artifact-preview-20261022/` for range/authorization regressions, real
+MP4/WebM/WAV playback, PostgreSQL/MinIO acceptance and fixture cleanup. The tiny
+test WebM is a generated three-second silent gray frame, requiring no encoder
+or external media service in browser CI. PDF/PPTX inline viewing, general uploads,
+physical raw-source/media-cache consolidation and asset deletion remain separate work.
+
+The project source pane groups attachment names and HTTP(S) links by project.
+It supports project-name/topic search, file/link modes, project-update sorting,
+pagination and project-scoped links from the detail menu. Large source sets use
+native Collapse; long names and URLs use Typography ellipsis. It searches
+projects rather than promising a cross-file content search. The catalogue is an
+index of source records, not a new file store, downloader or parser.
+
+Owner-only GET `/api/source-library` filters/counts/pages projects in SQL first,
+then projects only source-related JSON fields for that page. It does not load
+the outline, slide data/HTML, generated source documents or AI settings. Admins
+have the same personal scope; missing/foreign project filters return the same
+404. Literal SQL wildcard search and ID sort ties match the other catalogues.
+The public response contains basenames, validated links and counts, without
+server file paths or full requirements. URL-source parse caches are excluded
+from attachment names, and legacy single-file references remain supported.
+Unsafe/credential-bearing links are omitted with an invalid-link count. Each
+source array is capped at 50 entries without reducing its reported full count.
+An explicitly scoped empty project is still shown so sources can be added.
+
+Management reuses `ProjectSources` and its existing owner/revision/CAS/task
+guards, upload validation and retryable drafts. The list pauses reads while a
+Drawer is open and refreshes only after its close animation, preserving the
+Drawer during a save. Inputs/page are retained, an emptied last page clamps
+back, and focus restores after the refreshed trigger is enabled (or to the
+heading if the project disappeared). The optional `onAfterClose` leaves other
+source entry points unchanged. Changes mark sources for regeneration without
+rewriting existing slides or automatically starting a task.
+
+See `tests/test_source_library.py`, `tests/test_antd_source_library_ui.py` and
+`artifacts/source-library-20261022/` for SQLite/PostgreSQL reads, real attachment
+replacement/clearing and verified fixture cleanup. This adds no migration or
+physical file move. Independent asset uploads, original-file downloads, binary
+deduplication and narration-cache indexing are still separate capabilities.
+
 Image gallery uses the existing list query, detail/update endpoints and
 multipart uploads. Selection survives pagination; batch operations snapshot the
 selected IDs and retain failures for retry. Clear-all still requires two
@@ -579,6 +815,48 @@ The original controller nodes and scoped native components are compatibility
 boundaries, not unfinished page shells. Screenshots and verification reports
 are stored in ignored `artifacts/` directories.
 
+## Project Agent and natural-language page batches
+
+Project detail exposes a native Ant `ProjectAgent` Drawer. It uses the project's
+owner-authenticated `/api/projects/{id}/agent` lifecycle, persisted `AsyncTask`
+records and the existing inline/Valkey worker dispatch. Opening/refreshing a
+Drawer restores the latest task without starting a model call; closing it stops
+polling and retains the input draft. Failed polling has an explicit refresh path.
+
+The editor-role model chooses from a bounded JSON tool protocol: read selected
+page text, answer using project context, produce page edits, or offer an existing
+project workspace link. Page indices are explicit and limited to ten per request;
+model tool arguments cannot enlarge that scope.
+The server supplies the page picker and its revision; stale pickers cannot start
+an edit after another window reorders or changes the project. A changed revision
+clears the selection on refresh and leaves the instruction draft intact.
+Existing single-page Agent tools
+generate each artwork draft, including HTML/SVG validation. Project analysis is
+limited to four turns and per-page editing to twelve iterations. Provider-aware
+AI-edit credit checks/charges use the existing billing contract: per analysis
+turn and per completed page edit, with no charge on applying the saved proposal.
+
+Generation never saves artwork. The Drawer displays per-page text differences;
+confirmation applies the server-held drafts as one transaction. It checks owner,
+project revision, page identity and HTML hash, safety, a 24-hour proposal lifetime,
+and active workflow/task gates again at the compare-and-swap write. One conflict
+rejects the complete batch; previews remain available. Only page artwork and its
+user-edited flag change; outline, speech scripts, metadata and versions stay as
+before. The combined HTML cache is invalidated, and project detail uses actual
+page data when showing its editor/presentation entry points.
+
+Cancellation uses a database flag observed during provider waits, including
+across web/worker processes. Applying is idempotent through a receipt outside
+TaskStore-owned result fields. The UI never executes model-returned markup or
+interprets the text diff as HTML. These tools do not autonomously generate a new
+project, export, publish, or access external sites; they offer the established
+workspace entry for those workflows. See `tests/test_project_agent.py`,
+`tests/test_antd_project_agent_ui.py` and `artifacts/project-agent-20261023/`.
+
+Further asset-management expansion, an arbitrary relationship canvas, dark theme
+and a public case centre were removed from scope at the user's request on
+2026-10-23; the existing asset/source functions and chapter overview are retained.
+
 ## Design constraints
 
 Keep black primary actions, neutral surfaces, 14px body text, 20px page headings,
@@ -592,4 +870,4 @@ its actions, permission visibility and browser regressions. Test built assets,
 error/empty states and desktop/mobile geometry. Store screenshots in ignored
 `artifacts/` folders.
 
-Editor integration and real five-page creation → generation → editing → export/share acceptance are recorded in `artifacts/editor-finish-20261022/README.md`; specialized engines are intentional compatibility boundaries. No commit or release was made.
+Editor integration and real five-page creation → generation → editing → export/share acceptance are recorded in `artifacts/editor-finish-20261022/README.md`; specialized engines retain their compatibility boundaries. Final project-Agent, real HTML/SVG page editing and full-regression evidence is in `artifacts/project-agent-20261023/README.md`. The 41 existing backend failures were reproduced at HEAD `1df08a6`; this delivery does not claim a completely green repository suite or a published release. Commit state is recorded in Git history.

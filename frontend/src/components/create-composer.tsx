@@ -1,17 +1,17 @@
 import { lazy, Suspense, useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
-import { Alert, Button, Card, Checkbox, Collapse, Divider, Drawer, Empty, Flex, Form, Grid, Input, InputNumber, Modal, Segmented, Select, Space, Spin, Tabs, Typography, Upload, theme } from 'antd';
+import { Alert, Button, Card, Checkbox, Collapse, Divider, Drawer, Empty, Flex, Form, Grid, Input, InputNumber, Modal, Segmented, Select, Space, Spin, Tabs, Tag, Typography, Upload, theme } from 'antd';
 import { ArrowRightOutlined, DownOutlined, FontSizeOutlined, InboxOutlined, LinkOutlined, PaperClipOutlined, ReloadOutlined, SlidersOutlined } from '@ant-design/icons';
 import { errorText, request, type ApiData } from '../api';
 import { useCreationDraft } from './creation-draft';
 import { modalFocus } from './modal-focus';
 import { useTemplateModalFocus } from './templates';
+import { contentSource, sourceExtensions as extensions } from './source-materials';
 
 const TemplatePackages = lazy(() => import('../pages/template-packages'));
 
 const audienceOptions = ['企业管理层', '技术团队', '销售团队', '学生群体', '学术研究者', '投资人', '客户群体', '培训学员', '项目团队', '行业专家', '普通大众', '自定义'];
 const choices = (pairs: string[][]) => pairs.map(([value, label]) => ({ value, label }));
 const stages = choices([['outline', '生成大纲'], ['template', '选择模板'], ['ppt', '生成 PPT'], ['speech_script', '生成演讲稿'], ['narration_audio', '生成配音'], ['video', '导出讲解视频']]);
-const extensions = ['pdf', 'docx', 'txt', 'md', 'jpg', 'jpeg', 'png', 'xlsx', 'csv'];
 const defaults = { topic: '', requirements: '', scenario: 'general', audience_type: '普通大众', custom_audience: '', page_count_mode: 'ai_decide', min_pages: 8, max_pages: 15, ppt_style: 'general', custom_style_prompt: '', language: 'zh', render_mode: 'html', generation_mode: 'freeform', package_version_id: '', network_mode: false, include_transition_pages: false, include_page_numbers: true, file_processing_mode: 'markitdown', content_analysis_depth: 'fast', content_urls: '', unattended_mode: false, unattended_template_mode: 'auto', unattended_template_id: '', stop_at_stage: 'ppt', unattended_notify_in_app: true, unattended_notify_email: false };
 const urls = (value: string) => String(value || '').split(/[\n,;\t ]+/).map(item => item.trim()).filter(Boolean).slice(0, 50);
 function projectURL(value: unknown) {
@@ -48,7 +48,8 @@ function ComposerForm({ data, compact }: { data: ApiData; compact: boolean }) {
   const changeFiles = (update: (current: File[]) => File[]) => setFiles(current => { const next = update(current); draft.current.files = next; return next; });
   const [packages, setPackages] = useState<ApiData[]>([]); const [packageError, setPackageError] = useState(''); const [packageLoading, setPackageLoading] = useState(false); const [refresh, setRefresh] = useState(0);
   const fast = values.generation_mode === 'package'; const links = urls(values.content_urls);
-  const source = files.length ? 'file' : links.length ? 'url' : 'manual';
+  const source = contentSource(files.length, links.length);
+  const sourceSummary = [files.length ? `${files.length} 个附件` : '', links.length ? `${links.length} 个链接` : ''].filter(Boolean).join(' · ') || '未添加资料';
   const settingsSummary = [values.language === 'en' ? 'English' : '中文', values.page_count_mode === 'custom_range' ? `${values.min_pages || defaults.min_pages}–${values.max_pages || defaults.max_pages} 页` : 'AI 智能页数', values.ppt_style === 'keynote' ? '发布会风格' : values.ppt_style === 'custom' ? '自定义风格' : '通用风格', ...(values.network_mode ? ['联网研究'] : [])].join(' · ');
   useEffect(() => {
     if (!fast) return;
@@ -85,8 +86,8 @@ function ComposerForm({ data, compact }: { data: ApiData; compact: boolean }) {
       const value = input[key]; body.append(key, typeof value === 'boolean' ? String(value) : String(value ?? '').trim());
     }
     body.append('content_source', source);
-    if (source === 'url') body.append('content_urls', links.join('\n'));
-    if (source === 'file') files.forEach(file => body.append('file_upload', file));
+    if (links.length) body.append('content_urls', links.join('\n'));
+    if (files.length) files.forEach(file => body.append('file_upload', file));
     locked.current.locked = true; setFeedback({ pending: true, error: '', redirect: '' }); let navigating = false;
     try {
       const response = await fetch('/projects/create-and-confirm', { method: 'POST', credentials: 'same-origin', headers: { Accept: 'application/json' }, body });
@@ -108,13 +109,17 @@ function ComposerForm({ data, compact }: { data: ApiData; compact: boolean }) {
   </Form.Item>;
   const requirementsField = <Form.Item name="requirements" label={compact ? undefined : '具体需求（选填）'}><Input.TextArea aria-label="具体需求" variant={compact ? 'borderless' : undefined} autoSize={{ minRows: compact ? 2 : 4, maxRows: 10 }} placeholder={compact ? '补充重点内容、章节思路、数据或风格偏好（选填）' : '重点内容、章节思路、数据素材、风格偏好…'} /></Form.Item>;
   const fileSource = <Upload.Dragger multiple disabled={pending} accept={extensions.map(ext => '.' + ext).join(',')} beforeUpload={addFile} showUploadList={false}>
-    <InboxOutlined aria-hidden className="create-upload-icon" /><p>点击选择或拖入文件</p><p className="subtle">PDF / DOCX / TXT / MD / 图片 / XLSX / CSV，单个最大 100MB</p>
+    <InboxOutlined aria-hidden className="create-upload-icon" /><p>点击选择或拖入文件</p><p className="subtle">PDF / DOCX / TXT / MD / 图片，单个最大 100MB</p>
   </Upload.Dragger>;
   const urlSource = <Form.Item name="content_urls" label={compact ? undefined : '内容链接'} extra="每行一个或逗号分隔，最多使用前 50 个链接。支持网页与文件 URL。"><Input.TextArea aria-label="内容链接" autoSize={{ minRows: compact ? 2 : 3, maxRows: 6 }} placeholder="https://example.com/article" /></Form.Item>;
   const sourceExtras = <>
-    {sourceTab !== 'manual' && parsing}
+    {(sourceTab !== 'manual' || source !== 'manual') && parsing}
+    {source !== 'manual' && <Space wrap className="create-source-summary" role="status" aria-label="已添加资料">
+      {!!files.length && <Tag icon={<PaperClipOutlined aria-hidden />}>{files.length} 个附件</Tag>}
+      {!!links.length && <><Tag icon={<LinkOutlined aria-hidden />}>{links.length} 个链接</Tag><Button type="text" size="small" disabled={pending} onClick={() => { form.setFieldValue('content_urls', ''); remember(); }}>清空链接</Button></>}
+    </Space>}
     {files.length > 0 && <div className="create-files" aria-label="已选附件">{files.map((file, index) => <div className="create-file" key={file.name + ':' + file.size}><span>{file.name}<small className="subtle">{(file.size / 1024).toFixed(1)} KB</small></span><Button size="small" disabled={pending} aria-label={`移除附件 ${file.name}`} onClick={() => changeFiles(current => current.filter((_, i) => i !== index))}>移除</Button></div>)}</div>}
-    {files.length > 0 && links.length > 0 && <Alert type="info" title="已同时添加附件和链接，将优先使用附件。移除全部附件后会使用链接。" />}
+    {source === 'mixed' && <Alert type="info" title="附件与网页链接将合并用于生成大纲。" />}
     {warning && <Alert className="page-error" type="warning" title={warning} closable onClose={() => setWarning('')} />}
   </>;
   const summary = <Typography.Text id="creationAdvancedSummary" className="create-advanced-summary" type="secondary">{settingsSummary}</Typography.Text>;
@@ -161,7 +166,7 @@ function ComposerForm({ data, compact }: { data: ApiData; compact: boolean }) {
   </div>;
   const errorAlert = error && <Alert className="page-error" type="error" title={error} description={redirect ? <span>项目已创建，可<a href={redirect}>前往看板</a>手动确认需求，避免重复创建。</span> : undefined} showIcon />;
   const submitButton = <Button type="primary" htmlType="submit" aria-label="开始生成" aria-busy={pending} icon={<ArrowRightOutlined aria-hidden />} loading={pending} disabled={pending || (fast && (packageLoading || !!packageError))}>开始生成</Button>;
-  const sourceTabs: [string, string, ReactNode][] = [['manual', '仅文字', <FontSizeOutlined aria-hidden />], ['file', '文件资料', <PaperClipOutlined aria-hidden />], ['url', '网页链接', <LinkOutlined aria-hidden />]];
+  const sourceTabs: [string, string, ReactNode][] = [['manual', '主题', <FontSizeOutlined aria-hidden />], ['file', '文件资料', <PaperClipOutlined aria-hidden />], ['url', '网页链接', <LinkOutlined aria-hidden />]];
   const formProps = { name: 'create', form, layout: 'vertical' as const, initialValues: initial, disabled: pending, scrollToFirstError: { focus: true }, onFinish: submit,
     onValuesChange: (changed: ApiData) => { if (changed.generation_mode === 'package') form.setFieldValue('render_mode', 'svg'); remember(); },
     onKeyDown: (event: KeyboardEvent<HTMLFormElement>) => { if (!event.nativeEvent.isComposing && (event.ctrlKey || event.metaKey) && event.key === 'Enter') { event.preventDefault(); if (!locked.current.locked) form.submit(); } },
@@ -204,7 +209,7 @@ function ComposerForm({ data, compact }: { data: ApiData; compact: boolean }) {
       <div className="create-project-grid">
         <div className="create-main">
           <Card size="small" title="演示内容">{topicField}{requirementsField}</Card>
-          <Card size="small" title="参考资料（选填）" extra={<span className="subtle" role="status">{source === 'file' ? `${files.length} 个附件` : source === 'url' ? `${links.length} 个链接` : '未添加资料'}</span>}>
+          <Card size="small" title="参考资料（选填）" extra={<span className="subtle">{sourceSummary}</span>}>
             <Tabs activeKey={sourceTab} onChange={chooseSource} items={[
               { key: 'manual', label: '主题与需求', children: <p className="subtle create-manual-help">根据上方主题和需求生成内容，也可添加文件或网页链接作为参考。</p> },
               { key: 'file', label: '文件资料', children: fileSource },

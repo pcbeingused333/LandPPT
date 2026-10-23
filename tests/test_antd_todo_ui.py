@@ -714,9 +714,9 @@ def test_file_upload_validation_and_source_switch_preserve_selected_files(ui_pag
     page.get_by_role("button", name="开始生成大纲", exact=True).click()
     page.wait_for_function("outlineStreams.length===1")
     assert state["files"] == [("notes.txt", b"research notes")]
-    assert state["fields"]["content_source"] == "file"
+    assert state["fields"]["content_source"] == "mixed"
     assert state["fields"]["topic"] == ""
-    assert "content_urls" not in state["fields"]
+    assert state["fields"]["content_urls"] == "https://example.com/article"
 
 
 def test_url_normalisation_and_range_validation_before_post(ui_page):

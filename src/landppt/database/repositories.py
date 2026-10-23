@@ -7,10 +7,10 @@ import logging
 import secrets
 from typing import List, Optional, Dict, Any, Tuple
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, update, delete, and_, func, or_, inspect, text
+from sqlalchemy import select, update, delete, and_, func, or_, inspect, text, case
 from sqlalchemy.orm import selectinload
 
-from .models import Project, TodoBoard, TodoStage, ProjectVersion, SlideData, PPTTemplate, GlobalMasterTemplate, CreditTransaction, Notification, RedemptionCode, User, UserConfig, UserMetrics
+from .models import Project, ProjectLibraryPreference, TodoBoard, TodoStage, ProjectVersion, SlideData, PPTTemplate, GlobalMasterTemplate, CreditTransaction, Notification, RedemptionCode, User, UserConfig, UserMetrics
 from ..api.models import PPTProject, TodoBoard as TodoBoardModel, TodoStage as TodoStageModel
 
 logger = logging.getLogger(__name__)
@@ -72,6 +72,7 @@ class ProjectRepository:
         """Get project by ID with all relationships. If user_id is provided, also checks ownership."""
         user_id = _effective_user_id(user_id)
         stmt = select(Project).where(Project.project_id == project_id).options(
+            selectinload(Project.library_preferences),
             selectinload(Project.todo_board).selectinload(TodoBoard.stages),
             selectinload(Project.versions),
             selectinload(Project.slides)
@@ -89,10 +90,60 @@ class ProjectRepository:
             Project.project_id.icontains(search.strip(), autoescape=True),
         )
 
-    async def list_projects(self, user_id: Optional[int] = None, page: int = 1, page_size: int = 10, status: Optional[str] = None, search: Optional[str] = None) -> List[Project]:
+    @staticmethod
+    def _preference_filter(field: str):
+        return select(ProjectLibraryPreference.project_id).where(
+            ProjectLibraryPreference.project_id == Project.project_id,
+            ProjectLibraryPreference.user_id == Project.user_id,
+            getattr(ProjectLibraryPreference, field).is_(True),
+        ).exists()
+
+    async def set_library_preferences(
+        self, project_id: str, user_id: int, changes: Dict[str, bool]
+    ) -> Optional[Dict[str, bool]]:
+        """Idempotent partial upsert, scoped to the authenticated owner.
+
+        Only supplied flags are changed, so concurrent favorite/pin requests do
+        not overwrite one another. No UPDATE is issued against the project.
+        """
+        if user_id <= 0 or not changes or any(
+            key not in {"is_favorite", "is_pinned"} or type(value) is not bool
+            for key, value in changes.items()
+        ):
+            raise ValueError("Invalid library preferences")
+        try:
+            owned = await self.session.scalar(select(Project.id).where(
+                Project.project_id == project_id, Project.user_id == user_id
+            ))
+            if owned is None:
+                return None
+            dialect = self.session.get_bind().dialect.name
+            if dialect == "postgresql":
+                from sqlalchemy.dialects.postgresql import insert
+            elif dialect == "sqlite":
+                from sqlalchemy.dialects.sqlite import insert
+            else:
+                raise RuntimeError("Project preferences require SQLite or PostgreSQL")
+            statement = insert(ProjectLibraryPreference).values(
+                user_id=user_id, project_id=project_id, **changes
+            )
+            statement = statement.on_conflict_do_update(
+                index_elements=["user_id", "project_id"], set_=changes
+            ).returning(
+                ProjectLibraryPreference.is_favorite, ProjectLibraryPreference.is_pinned
+            )
+            result = (await self.session.execute(statement)).one()
+            await self.session.commit()
+            return dict(is_favorite=result.is_favorite, is_pinned=result.is_pinned)
+        except Exception:
+            await self.session.rollback()
+            raise
+
+    async def list_projects(self, user_id: Optional[int] = None, page: int = 1, page_size: int = 10, status: Optional[str] = None, search: Optional[str] = None, favorite: bool = False, sort: str = "updated") -> List[Project]:
         """List projects with pagination. If user_id is provided, filters by owner."""
         user_id = _effective_user_id(user_id)
         stmt = select(Project).options(
+            selectinload(Project.library_preferences),
             selectinload(Project.todo_board).selectinload(TodoBoard.stages),
             selectinload(Project.versions),
             selectinload(Project.slides)
@@ -104,14 +155,17 @@ class ProjectRepository:
             stmt = stmt.where(Project.status == status)
         if search and search.strip():
             stmt = stmt.where(self._search_filter(search))
-        
-        stmt = stmt.order_by(Project.updated_at.desc())
+        if favorite:
+            stmt = stmt.where(self._preference_filter("is_favorite"))
+        if sort == "pinned":
+            stmt = stmt.order_by(case((self._preference_filter("is_pinned"), 1), else_=0).desc())
+        stmt = stmt.order_by(Project.updated_at.desc(), Project.project_id.asc())
         stmt = stmt.offset((page - 1) * page_size).limit(page_size)
         
         result = await self.session.execute(stmt)
         return result.scalars().all()
     
-    async def count_projects(self, user_id: Optional[int] = None, status: Optional[str] = None, search: Optional[str] = None) -> int:
+    async def count_projects(self, user_id: Optional[int] = None, status: Optional[str] = None, search: Optional[str] = None, favorite: bool = False) -> int:
         """Count total projects. If user_id is provided, counts only that user's projects."""
         user_id = _effective_user_id(user_id)
         stmt = select(func.count(Project.id))
@@ -121,6 +175,8 @@ class ProjectRepository:
             stmt = stmt.where(Project.status == status)
         if search and search.strip():
             stmt = stmt.where(self._search_filter(search))
+        if favorite:
+            stmt = stmt.where(self._preference_filter("is_favorite"))
 
         result = await self.session.execute(stmt)
         return result.scalar() or 0
@@ -188,6 +244,9 @@ class ProjectRepository:
             return False
         
         try:
+            await self.session.execute(delete(ProjectLibraryPreference).where(
+                ProjectLibraryPreference.project_id == project_id
+            ))
             from .models import PackagePageState, PackageProjectState, SlideContentRevision
             for package_model in (PackagePageState, SlideContentRevision, PackageProjectState):
                 await self.session.execute(delete(package_model).where(package_model.project_id == project_id))

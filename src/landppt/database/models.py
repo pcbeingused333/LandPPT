@@ -18,6 +18,7 @@ from sqlalchemy import (
     UniqueConstraint,
     case,
     event,
+    false,
     func,
     select,
 )
@@ -199,6 +200,23 @@ class Project(Base):
     slides: Mapped[List["SlideData"]] = relationship("SlideData", back_populates="project")
     speech_scripts: Mapped[List["SpeechScript"]] = relationship("SpeechScript", back_populates="project")
     narration_audios: Mapped[List["NarrationAudio"]] = relationship("NarrationAudio", back_populates="project")
+    library_preferences: Mapped[List["ProjectLibraryPreference"]] = relationship(
+        "ProjectLibraryPreference", lazy="raise", passive_deletes=True
+    )
+
+
+class ProjectLibraryPreference(Base):
+    """Personal organization state, independent of document content/version."""
+    __tablename__ = "project_library_preferences"
+
+    user_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("users.id", ondelete="CASCADE"), primary_key=True
+    )
+    project_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("projects.project_id", ondelete="CASCADE"), primary_key=True
+    )
+    is_favorite: Mapped[bool] = mapped_column(Boolean, default=False, server_default=false())
+    is_pinned: Mapped[bool] = mapped_column(Boolean, default=False, server_default=false())
 
 
 class TodoBoard(Base):

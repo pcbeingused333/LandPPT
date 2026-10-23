@@ -26,9 +26,20 @@ jobs:
               tests/test_antd_projects_ui.py tests/test_antd_project_covers_ui.py tests/test_antd_settings_compact_ui.py
               tests/test_antd_editor_documents_ui.py tests/test_template_package_workspace_ui.py
               tests/test_antd_email_login_ui.py
+              tests/test_antd_project_library_ui.py
+              tests/test_antd_mixed_sources_ui.py
+              tests/test_antd_project_sources_ui.py
+              tests/test_antd_editor_outline_navigation_ui.py
+              tests/test_antd_editor_outline_overview_ui.py
+              tests/test_antd_editor_outline_batch_ui.py
+              tests/test_antd_project_agent_ui.py
           - shard: ui-2
             tests: >-
               tests/test_antd_editor_ui.py tests/test_antd_editor_lifecycle_ui.py tests/test_antd_images_ui.py tests/test_antd_editor_export_ui.py
+              tests/test_antd_editor_export_chooser_ui.py
+              tests/test_antd_artifact_library_ui.py
+              tests/test_antd_artifact_preview_ui.py
+              tests/test_antd_source_library_ui.py
               tests/test_antd_navigation_ui.py tests/test_antd_home_generator_ui.py tests/test_antd_generator_lifecycle_ui.py tests/test_antd_template_wizard_ui.py tests/test_antd_workspace_stages_ui.py tests/test_antd_quick_edit_ui.py
               tests/test_antd_ui.py tests/test_antd_settings_performance_ui.py tests/test_antd_speech_dialog_mount_ui.py
           - shard: ui-3
@@ -71,3 +82,13 @@ jobs:
             artifacts/browser-results.xml
             artifacts/template-package-workspace-layout/
             artifacts/ai-providers/
+            artifacts/mixed-sources-20261022/
+            artifacts/project-sources-20261022/
+            artifacts/editor-outline-navigation-20261022/
+            artifacts/editor-outline-batch-20261022/
+            artifacts/editor-export-chooser-20261022/
+            artifacts/artifact-library-20261022/
+            artifacts/artifact-preview-20261022/
+            artifacts/source-library-20261022/
+            artifacts/editor-outline-overview-20261023/
+            artifacts/project-agent-20261023/

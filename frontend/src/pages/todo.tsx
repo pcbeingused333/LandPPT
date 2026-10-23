@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, Button, Card, Checkbox, Collapse, Form, Input, InputNumber, Select, Space, Tabs, Tag, Upload } from 'antd';
+import { Alert, Button, Card, Checkbox, Collapse, Form, Input, InputNumber, Select, Space, Tabs, Tag, Typography, Upload } from 'antd';
 import { EyeOutlined, InboxOutlined, ReloadOutlined } from '@ant-design/icons';
 import { errorText, request, type ApiData } from '../api';
 import { useNativeFeedback } from '../components/native-feedback';
@@ -7,9 +7,10 @@ import { UnattendedPanel } from '../components/unattended';
 import { TodoOutline } from '../components/todo-outline';
 import { ProjectStages, ProjectWorkspaceHeader } from '../components/project-stages';
 import { createOutlineController } from '../controllers/outline-controller';
+import { contentSource, sourceExtensions as extensions } from '../components/source-materials';
+import { ProjectSources, type SourceSummary } from '../components/project-sources';
 
 const audience = ['企业管理层', '技术团队', '销售团队', '学生群体', '学术研究者', '投资人', '客户群体', '培训学员', '项目团队', '行业专家', '普通大众', '自定义'].map(value => ({ value, label: value === '自定义' ? '自定义受众' : value }));
-const extensions = ['pdf', 'docx', 'txt', 'md', 'jpg', 'jpeg', 'png', 'xlsx', 'csv'];
 const options = (items: string[][]) => items.map(([value, label]) => ({ value, label }));
 function parseUrls(raw: string) {
   const unique = new Set<string>();
@@ -26,8 +27,10 @@ export default function Todo({ data }: { data: ApiData }) {
   const fields = { ...initial, ...Form.useWatch(values => values, form) };
   const [confirmed, setConfirmed] = useState(!data.showRequirements);
   const [pending, setPending] = useState(false);
-  const [source, setSource] = useState('manual');
+  const [sourceTab, setSourceTab] = useState('manual');
   const [files, setFiles] = useState<File[]>([]);
+  const links = parseUrls(fields.content_urls);
+  const source = contentSource(files.length, links.length);
   const [error, setError] = useState(''); const [warning, setWarning] = useState('');
   const [packages, setPackages] = useState<ApiData[]>([]);
   const [packageError, setPackageError] = useState(''); const [packageLoading, setPackageLoading] = useState(false); const [revision, setRevision] = useState(0);
@@ -37,7 +40,17 @@ export default function Todo({ data }: { data: ApiData }) {
   const reloading = useRef(false);
   const reloadTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const fast = fields.generation_mode === 'package';
+  const savedFiles: string[] = Array.isArray(data.sourceSummary?.files) ? data.sourceSummary.files.filter((value: unknown) => typeof value === 'string') : [];
+  const savedLinks = (Array.isArray(data.sourceSummary?.urls) ? data.sourceSummary.urls : []).filter((value: unknown) => {
+    try { return typeof value === 'string' && ['http:', 'https:'].includes(new URL(value).protocol); } catch { return false; }
+  }) as string[];
   const base = `/projects/${encodeURIComponent(data.projectId)}`;
+  const [sourceSummary, setSourceSummary] = useState<SourceSummary | null>(null);
+  const [sourceOpen, setSourceOpen] = useState(false);
+  const [outlineBusy, setOutlineBusy] = useState(outlineController.snapshot().loading);
+  useEffect(() => outlineController.subscribe(state => setOutlineBusy(state.loading)), [outlineController]);
+  const displayFiles = sourceSummary?.files ?? savedFiles;
+  const displayLinks = sourceSummary?.urls ?? savedLinks;
   useEffect(() => {
     const visibility = () => outlineController.setVisible(!document.hidden);
     const hide = () => outlineController.suspend();
@@ -76,16 +89,16 @@ export default function Todo({ data }: { data: ApiData }) {
     if (locked.current || data.unattendedActive || readOnly) return;
     setError('');
     const values = { ...initial, ...form.getFieldsValue(true), ...input };
-    if (source === 'file' && !files.length) { setError('请至少选择一个文件。'); return; }
+    if (sourceTab === 'file' && !files.length && !links.length) { setError('请至少选择一个文件。'); return; }
     const urls = parseUrls(values.content_urls);
-    if (source === 'url' && !urls.length) { setError('请至少提供一个有效 URL（http/https）。'); return; }
+    if (sourceTab === 'url' && !urls.length && !files.length) { setError('请至少提供一个有效 URL（http/https）。'); return; }
     if (fast && (packageLoading || packageError || !packages.some(item => String(item.id) === values.package_version_id))) { setError('快速模式需要先选择一个已发布的模板包。'); return; }
     if (values.page_count_mode === 'custom_range' && values.min_pages > values.max_pages) { setError('最少页数不能大于最多页数。'); return; }
     const body = new FormData();
     Object.entries(values).filter(([key]) => key !== 'content_urls' && key !== 'package_version_id').forEach(([key, value]) => body.append(key, String(value ?? '').trim()));
     body.set('content_source', source); body.set('package_version_id', fast ? values.package_version_id : '0'); body.set('render_mode', fast ? 'svg' : values.render_mode);
-    if (source === 'url') body.set('content_urls', urls.join('\n'));
-    if (source === 'file') files.forEach(file => body.append('file_upload', file));
+    if (urls.length) body.set('content_urls', urls.join('\n'));
+    if (files.length) files.forEach(file => body.append('file_upload', file));
     locked.current = true; setPending(true);
     try {
       const response = await fetch(`${base}/confirm-requirements`, { method: 'POST', credentials: 'same-origin', headers: { Accept: 'application/json' }, body });
@@ -103,18 +116,23 @@ export default function Todo({ data }: { data: ApiData }) {
       stages={<ProjectStages projectId={data.projectId} state={data.workspace} current="planning" />} />
     {(readOnly || data.hasOutput) && <Alert showIcon type="info" className="page-error" title={readOnly ? '生成任务进行中，可查看大纲，完成后再编辑。' : '大纲修改不会自动更新已生成页面，请在编辑器中调整页面。'} />}
     <div id="unattendedMonitor"><UnattendedPanel projectId={data.projectId} initiallyActive={!!data.unattendedActive} onUpdate={run => { if (!data.hasOutline && run.stages?.some((stage: ApiData) => stage.id === 'outline' && stage.status === 'completed')) reloadSoon(600); }} onComplete={run => reloadSoon(run.task_status === 'completed' ? 1500 : 6000)} /></div>
+    {confirmed && <div className="todo-source-controls"><Typography.Text type="secondary">项目资料</Typography.Text><ProjectSources projectId={data.projectId} disabled={readOnly || outlineBusy || !!data.unattendedActive} onOpenChange={setSourceOpen} onSaved={setSourceSummary} /></div>}
+    {sourceSummary && <Alert type="info" showIcon className="page-error" title="资料已更新，请重新生成大纲以应用修改。现有页面不会自动更新。" />}
+    {confirmed && (displayFiles.length > 0 || displayLinks.length > 0) && <Collapse size="small" className="todo-source-summary" items={[{ key: 'sources', label: `参考资料 · ${displayFiles.length} 个附件 · ${displayLinks.length} 个链接`, children: <Space direction="vertical" className="todo-source-list">{displayFiles.map((name, index) => <Tag key={index}>{name}</Tag>)}{displayLinks.map((url, index) => <a key={index} href={url} target="_blank" rel="noopener noreferrer">{url}</a>)}</Space> }]} />}
     {!confirmed && !data.unattendedActive && <Form form={form} name="todo-requirements" layout="vertical" initialValues={initial} disabled={pending || readOnly} onFinish={submit} scrollToFirstError={{ focus: true }}>
       <div className="todo-ant-form-grid"><Card size="small" title="内容与受众">
-        <Tabs activeKey={source} onChange={value => { if (!pending) setSource(value); }} items={[
+        <Tabs activeKey={sourceTab} onChange={value => { if (!pending) setSourceTab(value); }} items={[
           { key: 'manual', label: '输入主题', children: <p className="subtle">根据主题和已保存的具体需求生成大纲。</p> },
-          { key: 'file', label: '上传文件', children: <><Upload.Dragger multiple accept={extensions.map(ext => '.' + ext).join(',')} beforeUpload={addFile} showUploadList={false}><p><InboxOutlined aria-hidden /></p><p>选择或拖入资料文件</p><p className="subtle">PDF、Word、文本、图片与表格，单个文件不超过 100MB。</p></Upload.Dragger><ul className="todo-ant-files">{files.map((file, index) => <li key={`${file.name}-${file.size}`}><span title={file.name}>{file.name}</span><Button size="small" aria-label={`移除文件 ${file.name}`} onClick={() => setFiles(current => current.filter((_, i) => i !== index))}>移除</Button></li>)}</ul>{files.length > 0 && <Button onClick={() => setFiles([])}>清空文件</Button>}</> },
+          { key: 'file', label: '上传文件', children: <><Upload.Dragger multiple accept={extensions.map(ext => '.' + ext).join(',')} beforeUpload={addFile} showUploadList={false}><p><InboxOutlined aria-hidden /></p><p>选择或拖入资料文件</p><p className="subtle">PDF、Word、文本与图片，单个文件不超过 100MB。</p></Upload.Dragger><ul className="todo-ant-files">{files.map((file, index) => <li key={`${file.name}-${file.size}`}><span title={file.name}>{file.name}</span><Button size="small" aria-label={`移除文件 ${file.name}`} onClick={() => setFiles(current => current.filter((_, i) => i !== index))}>移除</Button></li>)}</ul>{files.length > 0 && <Button onClick={() => setFiles([])}>清空文件</Button>}</> },
           { key: 'url', label: '网页链接', children: <Form.Item name="content_urls" label="内容链接" extra={`每行一个或逗号分隔，最多50个；已识别 ${parseUrls(fields.content_urls).length} 个。`}><Input.TextArea aria-label="内容链接" autoSize={{ minRows: 3, maxRows: 5 }} placeholder="https://example.com/article" /></Form.Item> },
         ]} />
+        {(files.length > 0 || links.length > 0) && <Space wrap role="status" aria-label="已添加资料"><Tag>{files.length} 个附件 · {links.length} 个链接</Tag>{links.length > 0 && <Button type="text" size="small" onClick={() => form.setFieldValue('content_urls', '')}>清空链接</Button>}</Space>}
+        {source === 'mixed' && <Alert type="info" title="附件与网页链接将合并用于生成大纲。" />}
         {warning && <Alert type="warning" title={warning} closable onClose={() => setWarning('')} />}
-        <Form.Item name="topic" label="主题" rules={source === 'file' ? [] : [{ required: true, whitespace: true, message: '请输入主题' }]}><Input aria-label="主题" placeholder={source === 'file' ? '可留空，自动从文件提取' : '请输入演示主题'} /></Form.Item>
+        <Form.Item name="topic" label="主题" rules={files.length > 0 || sourceTab === 'file' ? [] : [{ required: true, whitespace: true, message: '请输入主题' }]}><Input aria-label="主题" placeholder={files.length > 0 || sourceTab === 'file' ? '可留空，自动从资料提取' : '请输入演示主题'} /></Form.Item>
         {select('audience_type', '目标受众', audience, true)}
         {fields.audience_type === '自定义' && <Form.Item name="custom_audience" label="自定义受众" rules={[{ required: true, whitespace: true, message: '请描述自定义受众' }]}><Input aria-label="自定义受众" /></Form.Item>}
-        {source !== 'manual' && <Collapse size="small" items={[{ key: 'parsing', label: '资料解析选项', children: <>{select('file_processing_mode', 'PDF 处理方式', options([['markitdown','标准处理 · MarkItDown'], ['magic_pdf','高质量 · Mineru（提取图片）']]))}{select('content_analysis_depth','解析深度',options([['fast','快速解析'],['standard','标准解析'],['deep','深度解析']]))}</> }]} />}
+        {(sourceTab !== 'manual' || source !== 'manual') && <Collapse size="small" items={[{ key: 'parsing', label: '资料解析选项', children: <>{select('file_processing_mode', 'PDF 处理方式', options([['markitdown','标准处理 · MarkItDown'], ['magic_pdf','高质量 · Mineru（提取图片）']]))}{select('content_analysis_depth','解析深度',options([['fast','快速解析'],['standard','标准解析'],['deep','深度解析']]))}</> }]} />}
       </Card><Card size="small" title="页数与设计">
         {select('page_count_mode','页数设置',options([['ai_decide','AI 智能决定'],['custom_range','自定义范围']]))}
         {fields.page_count_mode === 'custom_range' && <div className="create-field-grid"><Form.Item name="min_pages" label="最少页数" rules={[{ required: true }]}><InputNumber aria-label="最少页数" min={5} max={50} precision={0} /></Form.Item><Form.Item name="max_pages" label="最多页数" rules={[{ required: true }]}><InputNumber aria-label="最多页数" min={5} max={50} precision={0} /></Form.Item></div>}
@@ -127,6 +145,6 @@ export default function Todo({ data }: { data: ApiData }) {
       {error && <Alert type="error" title="需求确认失败" description={error} className="page-error" />}
       <div className="todo-ant-submit"><span className="subtle">确认后开始生成，可实时查看并编辑大纲。</span><Button type="primary" htmlType="submit" aria-label="开始生成大纲" loading={pending} disabled={pending || readOnly || fast && (packageLoading || !!packageError)} aria-busy={pending}>开始生成大纲</Button></div>
     </Form>}
-    <TodoOutline projectId={data.projectId} unattendedActive={!!data.unattendedActive} readOnly={readOnly} controller={outlineController} />
+    <TodoOutline projectId={data.projectId} unattendedActive={!!data.unattendedActive} readOnly={readOnly || sourceOpen} controller={outlineController} />
   </div>;
 }

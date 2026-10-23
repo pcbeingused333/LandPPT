@@ -551,7 +551,7 @@ class UnattendedPipelineRunner:
         await self._require_credits("outline_generation", 1, outline_provider)
 
         content_source = confirmed_requirements.get("content_source")
-        if content_source in ("file", "url"):
+        if content_source in ("file", "url", "mixed"):
             # File/URL sourced outlines are produced by the web-layer helper: it merges
             # uploads, optionally runs research, and persists the result itself.
             from ..web.route_modules.outline_support import _stream_outline_from_confirmed_sources_v2

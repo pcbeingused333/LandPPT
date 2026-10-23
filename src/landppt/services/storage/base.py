@@ -36,6 +36,14 @@ class ArtifactStorage(ABC):
         """Open an async byte stream for key."""
 
     @abstractmethod
+    async def size(self, key: str) -> int:
+        """Read the current stored size, raising FileNotFoundError if absent."""
+
+    @abstractmethod
+    async def open_range(self, key: str, start: int, end: int) -> AsyncIterator[bytes]:
+        """Read an inclusive byte range without downloading preceding bytes."""
+
+    @abstractmethod
     async def exists(self, key: str) -> bool:
         """Return whether key exists."""
 

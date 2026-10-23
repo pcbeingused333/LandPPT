@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Alert, App, Button, Drawer, Dropdown, Grid, Modal, Segmented, Space, Tag } from 'antd';
-import { ArrowLeftOutlined, BarsOutlined, CodeOutlined, DownloadOutlined, EditOutlined, EllipsisOutlined, EyeOutlined, PlayCircleOutlined, ReloadOutlined, RobotOutlined, SaveOutlined } from '@ant-design/icons';
+import { ArrowLeftOutlined, BarsOutlined, CodeOutlined, EditOutlined, EllipsisOutlined, EyeOutlined, PlayCircleOutlined, ReloadOutlined, RobotOutlined, SaveOutlined } from '@ant-design/icons';
 import type { ApiData } from '../api';
 import { useNativeFeedback } from '../components/native-feedback';
 import { modalFocus } from '../components/modal-focus';
@@ -9,6 +9,7 @@ import { NativeControls, keepNativeSubmitForms, nativeSelectIsOpen } from '../co
 import { editorTaskNotice, EditorTaskPanel } from '../components/editor-task-progress';
 import { EditorThumbnailMenu, type EditorContextMenu } from '../components/editor-thumbnail-menu';
 import { EditorExportDialog, type EditorExportProgress } from '../components/editor-export-dialog';
+import { EditorExportChooser } from '../components/editor-export-chooser';
 import { EditorShareDialog, type EditorShareLinks } from '../components/editor-share-dialog';
 import { EditorQuickIcons } from '../components/editor-quick-icons';
 import { EditorDocumentSidebar } from '../components/editor-document-sidebar';
@@ -73,6 +74,7 @@ export default function SlidesEditor({ data }: { data: ApiData }) {
   const controller = useMemo(() => createEditorController((window as any).LandPPTEditorEngine, (window as any).LandPPTEditorSurfaces), []);
   const [state, setState] = useState<EditorState>(() => controller.getSnapshot() as EditorState);
   const saving = !!state.savePending || !!state.saving;
+  const textPanel = state.documentPanel === 'outline' || state.documentPanel === 'speech';
   const previousToasts = useRef(new Map<string, string>()); const moreRef = useRef<HTMLButtonElement>(null);
   const taskDialog = [...state.dialogs].reverse().find(record => record.node.querySelector('.speech-modal-body-preview'));
   useLayoutEffect(() => {
@@ -123,23 +125,15 @@ export default function SlidesEditor({ data }: { data: ApiData }) {
   useEffect(() => () => { previousToasts.current.forEach((_, key) => notification.destroy(key)); }, [notification]);
   const save = () => { void controller.save(); };
   const call = (name: string, ...args: unknown[]) => controller.call(name, ...args);
-  const items = [
-    ...(state.clientExport ? [{ key: 'client', label: '客户端导出 PPTX · Beta', onClick: () => call('exportSlidesToPptxClient') }] : []),
-    ...(state.nativeExport ? [{ key: 'native', label: 'SVG 原生对象 PPTX', onClick: () => call('exportSvgPagesToPptx', 'native') }] : []),
-    ...(state.vectorExport ? [{ key: 'vector', label: 'SVG 矢量保真 PPTX', onClick: () => call('exportSvgPagesToPptx', 'vector') }] : []),
-    ...(data.standardExport ? [{ key: 'standard', label: '标准导出 PPTX', onClick: () => call('exportToPPTX') }] : []),
-    { key: 'images', label: '图片形式 PPTX', onClick: () => call('exportToPPTXAsImages') },
-    { key: 'pdf', label: '导出 PDF', onClick: () => call('exportToPDF') }, { key: 'html', label: '下载 HTML', onClick: () => call('downloadHTML') },
-  ];
   const toolbar = <div className="editor-ant-toolbar" role="toolbar" aria-label="幻灯片编辑工具">
     <div className="editor-ant-view"><Segmented aria-label="编辑视图" value={state.mode === 'quickedit' ? 'preview' : state.mode} options={[
       { value: 'preview', label: '预览', icon: <EyeOutlined aria-hidden /> }, { value: 'edit', label: '代码', icon: <CodeOutlined aria-hidden /> }, { value: 'split', label: '分屏' },
     ]} onChange={mode => call('setMode', mode)} /><Button disabled={!state.count} type={state.mode === 'quickedit' ? 'primary' : 'default'} icon={<EditOutlined aria-hidden />} onClick={() => call('toggleQuickEditMode')}>{state.svg ? '编辑 SVG' : '快速编辑'}</Button>{state.packageContent && <Button onClick={() => controller.call('openPackageEditor')}>内容与版式</Button>}</div>
-    <Space wrap size={8} className="editor-ant-actions"><Button disabled={!state.count} icon={<PlayCircleOutlined aria-hidden />} onClick={() => controller.call('startSlideshow')}>放映</Button><Button type="primary" disabled={!state.count || state.documentPanel !== 'slides' && !state.documentDirty} loading={saving || state.documentSaving} icon={<SaveOutlined aria-hidden />} onClick={save}>{state.documentPanel === 'outline' ? '保存大纲' : state.documentPanel === 'speech' ? '保存讲稿' : '保存'}</Button><Button disabled={!state.count} icon={<RobotOutlined aria-hidden />} onClick={() => controller.call('openAIEditSidebar')}>AI 编辑</Button>
+    <Space wrap size={8} className="editor-ant-actions"><Button disabled={!state.count} icon={<PlayCircleOutlined aria-hidden />} onClick={() => controller.call('startSlideshow')}>放映</Button><Button type="primary" disabled={!state.count || textPanel && !state.documentDirty} loading={saving || state.documentSaving} icon={<SaveOutlined aria-hidden />} onClick={save}>{state.documentPanel === 'outline' ? '保存大纲' : state.documentPanel === 'speech' ? '保存讲稿' : '保存'}</Button><Button disabled={!state.count} icon={<RobotOutlined aria-hidden />} onClick={() => controller.call('openAIEditSidebar')}>AI 编辑</Button>
       <Dropdown trigger={['click']} menu={{ items: [
         { key: 'current', label: '重新生成当前页', onClick: () => call('quickRegenerateSlide') }, { key: 'selected', label: `重新生成所选页（${state.selected}）`, onClick: () => call('regenerateSelectedSlides') }, { key: 'all', label: '重新生成全部', danger: true, onClick: () => call('regenerateAllSlides') },
       ] }}><Button disabled={!state.count} icon={<ReloadOutlined aria-hidden />}>重新生成</Button></Dropdown>
-      <Dropdown trigger={['click']} menu={{ items }}><Button data-editor-export-trigger disabled={!state.count} icon={<DownloadOutlined aria-hidden />}>导出</Button></Dropdown>
+      <EditorExportChooser projectTitle={data.title} count={state.count} client={state.clientExport} native={state.nativeExport} vector={state.vectorExport} standard={!!data.standardExport} saving={saving || state.documentSaving} run={call} />
       <Dropdown trigger={['click']} onOpenChange={open => { if (!open) queueMicrotask(() => moreRef.current?.focus()); }} menu={{ items: [
         { key: 'template', label: '更换模板', onClick: () => call('showChangeTemplateDialog') }, { key: 'share', label: '分享链接', onClick: () => call('showShareDialog') }, { key: 'speech', label: '生成演讲稿', onClick: () => call('showSpeechScriptDialog') }, { key: 'chat', label: '自由对话（当前页）', disabled: state.svg, onClick: () => call('openNativeChatDialog') },
       ] }}><Button ref={moreRef} aria-label="更多工具" icon={<EllipsisOutlined aria-hidden />} /></Dropdown>

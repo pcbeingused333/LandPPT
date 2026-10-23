@@ -98,6 +98,9 @@ test = [
     "httpx>=0.25.0",
 ]
 
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
 [project.scripts]
 landppt = "landppt.main:main"
 landppt-cli = "landppt.cli:main"

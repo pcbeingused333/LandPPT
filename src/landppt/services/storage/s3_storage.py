@@ -32,7 +32,9 @@ class S3ArtifactStorage(ArtifactStorage):
 
         self.bucket = bucket
         self.public_base_url = (public_base_url or "").rstrip("/")
-        s3_config = Config(s3={"addressing_style": "path" if force_path_style else "virtual"})
+        s3_config = Config(
+            s3={"addressing_style": "path" if force_path_style else "virtual"}
+        )
         self.client = boto3.client(
             "s3",
             endpoint_url=endpoint_url,
@@ -50,7 +52,9 @@ class S3ArtifactStorage(ArtifactStorage):
         metadata: Optional[dict] = None,
     ) -> str:
         extra_args = self._extra_args(content_type, metadata)
-        await asyncio.to_thread(self.client.upload_file, local_path, self.bucket, key, ExtraArgs=extra_args)
+        await asyncio.to_thread(
+            self.client.upload_file, local_path, self.bucket, key, ExtraArgs=extra_args
+        )
         return key
 
     async def put_bytes(
@@ -66,7 +70,9 @@ class S3ArtifactStorage(ArtifactStorage):
         return key
 
     async def open_stream(self, key: str) -> AsyncIterator[bytes]:
-        response = await asyncio.to_thread(self.client.get_object, Bucket=self.bucket, Key=key)
+        response = await asyncio.to_thread(
+            self.client.get_object, Bucket=self.bucket, Key=key
+        )
         body = response["Body"]
         try:
             while True:
@@ -79,13 +85,53 @@ class S3ArtifactStorage(ArtifactStorage):
 
     async def exists(self, key: str) -> bool:
         try:
-            await asyncio.to_thread(self.client.head_object, Bucket=self.bucket, Key=key)
+            await asyncio.to_thread(
+                self.client.head_object, Bucket=self.bucket, Key=key
+            )
             return True
         except ClientError as exc:
             status = exc.response.get("ResponseMetadata", {}).get("HTTPStatusCode")
             if status == 404:
                 return False
             raise
+
+    async def size(self, key: str) -> int:
+        try:
+            response = await asyncio.to_thread(
+                self.client.head_object, Bucket=self.bucket, Key=key
+            )
+            return int(response["ContentLength"])
+        except ClientError as exc:
+            if exc.response.get("ResponseMetadata", {}).get(
+                "HTTPStatusCode"
+            ) == 404 or exc.response.get("Error", {}).get("Code") in {
+                "NoSuchKey",
+                "NotFound",
+                "404",
+            }:
+                raise FileNotFoundError(key) from exc
+            raise
+
+    async def open_range(self, key: str, start: int, end: int) -> AsyncIterator[bytes]:
+        if start < 0 or end < start:
+            raise ValueError("Invalid byte range")
+        response = await asyncio.to_thread(
+            self.client.get_object,
+            Bucket=self.bucket,
+            Key=key,
+            Range=f"bytes={start}-{end}",
+        )
+        body = response["Body"]
+        try:
+            remaining = end - start + 1
+            while remaining:
+                chunk = await asyncio.to_thread(body.read, min(256 * 1024, remaining))
+                if not chunk:
+                    break
+                remaining -= len(chunk)
+                yield chunk
+        finally:
+            await asyncio.to_thread(body.close)
 
     async def delete(self, key: str) -> None:
         await asyncio.to_thread(self.client.delete_object, Bucket=self.bucket, Key=key)
