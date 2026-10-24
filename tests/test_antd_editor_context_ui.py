@@ -123,7 +123,8 @@ def test_menu_closes_and_can_reopen_after_leaving_thumbnail_context(ui_page, met
         page.locator(".editor-ant-title h1").click(button="right")
     elif method == "scroll":
         box = page.locator(".slides-container").bounding_box()
-        page.mouse.move(box["x"] + 2, box["y"] + box["height"] - 2)
+        # Stay clear of the panel's rounded corner (splitter) and of the open menu itself.
+        page.mouse.move(box["x"] + 8, box["y"] + box["height"] - 24)
         page.mouse.wheel(0, 500)
     else:
         page.set_viewport_size(dict(width=1024, height=768))

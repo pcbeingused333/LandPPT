@@ -21,10 +21,10 @@ def test_editor_actions_work_without_hidden_toolbar_or_dom_state_signals(ui_page
     page.evaluate("currentSlideIndex = 1; LandPPTEditorEngine.changed()")
     expect(page.locator(".editor-ant-title")).to_contain_text("第 2 / 2 页")
     page.get_by_role("button", name="AI 编辑", exact=True).click()
-    assistant = page.get_by_role("dialog", name=re.compile("^AI 编辑助手"))
+    # Desktop keeps the assistant as the workspace's right-hand rail rather than a dialog.
+    assistant = page.get_by_role("region", name="AI 编辑助手", exact=True)
     expect(assistant).to_be_visible()
     expect(assistant).to_contain_text("第 2 页")
-    page.keyboard.press("Escape")
     assert not state["errors"] and not state["writes"]
 
 

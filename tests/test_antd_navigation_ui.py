@@ -10,7 +10,7 @@ from test_app_ui import ROOT, browser, detail_project, template_environment, ui_
 
 ROUTES = {
     "/home": ("pages/home/index.html", "让想法， 成为好演示。", "home"),
-    "/dashboard": ("pages/project/project_dashboard.html", "项目仪表板", "dashboard"),
+    "/dashboard": ("pages/project/project_dashboard.html", "首页", "dashboard"),
     "/projects": ("pages/project/projects_list.html", "项目列表", "projects"),
     "/create": ("pages/project/scenarios.html", "创建 PPT", "create-project"),
     "/scenarios": ("pages/project/scenarios.html", "创建 PPT", "create-project"),
@@ -145,7 +145,7 @@ def test_project_detail_navigation_keeps_shell_and_reads_fresh_metadata(ui_page,
     expect(page.get_by_role("heading", name=detail_project["title"], exact=True)).to_be_visible()
     expect(page.locator("#appMain")).to_have_attribute("aria-busy", "false")
     assert page.evaluate("window.navHeader===document.querySelector('.app-header')")
-    assert page.locator('.app-sidebar a[href="/projects"]').get_attribute("aria-current") == "page"
+    assert page.locator('.app-sidebar .app-nav a[href="/projects"]').get_attribute("aria-current") == "page"
     assert page.evaluate("document.documentElement.scrollWidth <= innerWidth+1")
     page.get_by_role("link", name="返回项目列表", exact=True).click()
     expect(page.get_by_role("heading", name="项目列表", exact=True)).to_be_visible()
@@ -198,7 +198,7 @@ def test_navigation_refreshes_sponsor_entry_after_settings_change(ui_page):
     state = navigation_app(page)
     state["values"]["user"] = dict(username="sponsor-reader", is_admin=False)
     page.goto("http://ui.test/dashboard", wait_until="networkidle")
-    expect(page.get_by_role("heading", name="项目仪表板", exact=True)).to_be_visible()
+    expect(page.get_by_role("heading", name="首页", exact=True)).to_be_visible()
     expect(page.locator("#navSponsorLink")).to_have_count(0)
     page.evaluate("window.sponsorHeader = document.querySelector('.app-header')")
     public["sponsor_page_enabled"] = True
@@ -235,7 +235,7 @@ def test_navigation_reuses_shell_across_all_main_pages(ui_page, width, height):
     page.set_viewport_size(dict(width=width, height=height))
     state = navigation_app(page)
     page.goto("http://ui.test/dashboard", wait_until="networkidle")
-    expect(page.get_by_role("heading", name="项目仪表板", exact=True)).to_be_visible()
+    expect(page.get_by_role("heading", name="首页", exact=True)).to_be_visible()
     page.evaluate(
         "() => {window.navHeader=document.querySelector('.app-header');window.navMarker='same-document';}"
     )
@@ -424,3 +424,12 @@ def test_navigation_keeps_modified_click_and_new_tab_native(ui_page):
     assert urlsplit(popup.url).path == "/projects"
     assert urlsplit(page.url).path == "/dashboard"
     popup.close()
+
+
+def test_credits_link_is_not_highlighted_outside_its_page(ui_page):
+    page, load = ui_page
+    load("pages/project/project_dashboard.html", path="/dashboard", credits_enabled=True)
+    credits = page.locator(".app-sidebar .sidebar-credits")
+    expect(credits).to_be_visible()
+    expect(credits).not_to_have_attribute("aria-current", "page")
+    assert credits.evaluate("e => getComputedStyle(e).backgroundColor") == "rgba(0, 0, 0, 0)"

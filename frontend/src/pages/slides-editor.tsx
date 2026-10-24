@@ -1,7 +1,7 @@
 import { lazy, Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Alert, App, Button, Drawer, Dropdown, Grid, Modal, Segmented, Space, Splitter, Tag } from 'antd';
-import { ArrowLeftOutlined, BarsOutlined, CodeOutlined, ColumnHeightOutlined, EditOutlined, EllipsisOutlined, EyeOutlined, PlayCircleOutlined, ReloadOutlined, RobotOutlined, SaveOutlined, SplitCellsOutlined } from '@ant-design/icons';
+import { Alert, App, Button, Drawer, Dropdown, Grid, Modal, Segmented, Space, Splitter, Tag, Tooltip } from 'antd';
+import { ArrowLeftOutlined, AudioOutlined, BarsOutlined, CodeOutlined, ColumnHeightOutlined, DoubleRightOutlined, EditOutlined, EllipsisOutlined, EyeOutlined, FolderOpenOutlined, LayoutOutlined, PictureOutlined, PlayCircleOutlined, ReloadOutlined, RobotOutlined, SaveOutlined, SplitCellsOutlined, UnorderedListOutlined } from '@ant-design/icons';
 import type { ApiData } from '../api';
 import { useNativeFeedback } from '../components/native-feedback';
 import { modalFocus } from '../components/modal-focus';
@@ -86,14 +86,25 @@ export default function SlidesEditor({ data }: { data: ApiData }) {
   const previousToasts = useRef(new Map<string, string>()); const moreRef = useRef<HTMLButtonElement>(null);
   const taskDialog = [...state.dialogs].reverse().find(record => record.node.querySelector('.speech-modal-body-preview'));
   const [workspace] = useState<ApiData | null>(() => { const node = document.getElementById('workspaceData'); return node ? JSON.parse(node.textContent || '{}') : null; });
-  const [view, setView] = useState<WorkspaceView>(data.workspaceView || 'slides');
-  const [visited, setVisited] = useState<Set<WorkspaceView>>(() => new Set([data.workspaceView || 'slides']));
+  const [view, setView] = useState<WorkspaceView>(() => {
+    const query = new URLSearchParams(location.search).get('workspace');
+    return ['overview', 'planning', 'generate', 'slides', 'sources', 'exports'].includes(query || '') ? query as WorkspaceView : data.workspaceView || 'slides';
+  });
+  const [visited, setVisited] = useState<Set<WorkspaceView>>(() => new Set([view]));
   const [continuous, setContinuous] = useState(!!workspace);
   const [railSizes, setRailSizes] = useState([340, 240]);
   const nativeContainer = useMemo(() => [document.querySelector('.editor-container')!], []);
   const nativeSidebar = useMemo(() => [document.getElementById('slidesSidebar')!], []);
   const nativeEditor = useMemo(() => [document.querySelector('.main-editor')!], []);
   const desktop = !!screens.lg && window.innerWidth >= 1024;
+  const editing = view === 'slides';
+  const assistantVisible = desktop && editing && state.aiOpen;
+  const wasDesktop = useRef(desktop);
+  // The desktop rail is open by default; on shrinking to a touch layout it would reappear as a full-screen drawer.
+  useEffect(() => {
+    if (wasDesktop.current && !desktop && state.aiOpen) controller.call('closeAIEditSidebar');
+    wasDesktop.current = desktop;
+  }, [desktop, state.aiOpen, controller]);
   const openView = (next: WorkspaceView) => {
     setVisited(previous => new Set([...previous, next]));
     setView(next);
@@ -106,10 +117,6 @@ export default function SlidesEditor({ data }: { data: ApiData }) {
     node.addEventListener('click', select);
     return () => node.removeEventListener('click', select);
   }, [nativeSidebar]);
-  useEffect(() => {
-    const query = new URLSearchParams(location.search).get('workspace');
-    if (['overview', 'planning', 'generate', 'slides', 'sources', 'exports'].includes(query || '')) { setView(query as WorkspaceView); setVisited(previous => new Set([...previous, query as WorkspaceView])); }
-  }, []);
   useEffect(() => {
     if (!workspace) return;
     const base = `/projects/${encodeURIComponent(String(data.projectId))}`;
@@ -132,7 +139,6 @@ export default function SlidesEditor({ data }: { data: ApiData }) {
     document.addEventListener('click', click); document.addEventListener('landppt:navigate', navigate);
     return () => { document.removeEventListener('click', click); document.removeEventListener('landppt:navigate', navigate); };
   }, [workspace, data.projectId]);
-  useEffect(() => { if (desktop) controller.call('openAIEditSidebar', { focus: false }); }, [desktop, controller]);
   useLayoutEffect(() => {
     const node = nativeEditor[0] as HTMLElement;
     node.dataset.workspaceView = view; node.dataset.continuous = String(continuous && view === 'slides');
@@ -151,6 +157,12 @@ export default function SlidesEditor({ data }: { data: ApiData }) {
     window.addEventListener('pagehide', hide); window.addEventListener('pageshow', show);
     return () => { unsubscribe(); controller.dispose(); window.removeEventListener('pagehide', hide); window.removeEventListener('pageshow', show); };
   }, [controller]);
+  // Enter editing with the desktop rail expanded, while allowing manual collapse
+  // until the next view change. Keep its native form mounted to retain chat drafts.
+  useEffect(() => {
+    if (!editing) controller.call('closeAIEditSidebar');
+    else if (desktop) controller.call('openAIEditSidebar', { focus: false });
+  }, [editing, desktop, controller]);
   useLayoutEffect(() => {
     const resize = () => {
       const quickToolbar = document.getElementById('quickEditToolbar');
@@ -202,13 +214,13 @@ export default function SlidesEditor({ data }: { data: ApiData }) {
   </div>;
   return <>
     <NativeNodes nodes={nativeContainer} className="workspace-native-root" />
-    {createPortal(<Splitter className={`project-splitter${desktop ? ' is-desktop' : ''}`} onResize={sizes => setRailSizes([sizes[2], sizes[0]])} onCollapse={(collapsed, sizes) => { setRailSizes([sizes[2], sizes[0]]); if (collapsed[2] !== !state.aiOpen) call(collapsed[2] ? 'closeAIEditSidebar' : 'openAIEditSidebar'); if (collapsed[0] !== !state.sidebar) call('toggleSidebar'); }}>
+    {createPortal(<Splitter className={`project-splitter${desktop ? ' is-desktop' : ''}`} onResize={sizes => setRailSizes([sizes[2], sizes[0]])} onCollapse={(collapsed, sizes) => { setRailSizes([sizes[2], sizes[0]]); if (editing && collapsed[2] !== !state.aiOpen) call(collapsed[2] ? 'closeAIEditSidebar' : 'openAIEditSidebar'); if (collapsed[0] !== !state.sidebar) call('toggleSidebar'); }}>
       <Splitter.Panel size={desktop && state.sidebar ? railSizes[1] || 240 : 0} min={desktop && state.sidebar ? 200 : 0} max="38%" resizable={desktop} collapsible>
         <NativeNodes nodes={nativeSidebar} className="workspace-files-host" />
       </Splitter.Panel>
       <Splitter.Panel min={desktop ? 250 : 0} collapsible><NativeNodes nodes={nativeEditor} className="workspace-preview-host" /></Splitter.Panel>
-      <Splitter.Panel size={desktop && state.aiOpen ? railSizes[0] || 340 : 0} min={desktop && state.aiOpen ? 280 : 0} max="45%" resizable={desktop} collapsible>
-        {desktop && <section className="workspace-assistant editor-ant-assistant" aria-label="AI 编辑助手" data-empty={!state.count}><header><div><RobotOutlined aria-hidden /><strong>AI 创作助手</strong>{state.count > 0 && <Tag>第 {state.current + 1} 页</Tag>}</div><Button type="text" aria-label="收起 AI 助手" onClick={() => call('closeAIEditSidebar')}>收起</Button></header><div className="workspace-assistant-tools"><ProjectAgent projectId={String(data.projectId)} /><Button type="text" disabled={!state.count} aria-label="查看当前页大纲" onClick={() => call('showSlideOutline')}>大纲</Button>{data.autoRepair && <Button disabled={!state.count} onClick={() => call('autoRepairSlideLayout')}>修复排版</Button>}<Button disabled={!state.count} aria-label="一键配图" onClick={() => call('autoGenerateSlideImages')}>配图</Button></div>{workspace && state.count > 0 && <div className="workspace-result"><span className="sidebar-section-label">当前文稿 · {state.count} 页 · v{workspace.detail.project.version}</span><strong>{data.title}</strong><div><Button size="small" onClick={() => { openView('slides'); setContinuous(true); }}>检查文稿</Button><Button type="text" size="small" onClick={() => call('showSpeechScriptDialog')}>准备讲稿</Button><Button type="text" size="small" onClick={() => openView('exports')}>导出文件</Button></div></div>}{!state.count && workspace && <div className="workspace-awaiting"><strong>从想法开始</strong><p>确认需求、整理大纲，再逐页完成设计。</p><Button type="primary" onClick={() => openView('planning')}>确认内容需求</Button></div>}<NativeAssistant /></section>}
+      <Splitter.Panel className={`workspace-assistant-panel${editing ? '' : ' is-inactive'}`} size={assistantVisible ? railSizes[0] || 340 : 0} min={assistantVisible ? 280 : 0} max="45%" resizable={desktop && editing} collapsible={editing}>
+        {desktop && <section className="workspace-assistant editor-ant-assistant" aria-label="AI 编辑助手" data-empty={!state.count}><header><div><RobotOutlined aria-hidden /><strong>AI 创作助手</strong>{state.count > 0 && <Tag>第 {state.current + 1} 页</Tag>}{workspace && state.count > 0 && <span className="workspace-assistant-meta">{state.count} 页 · v{workspace.detail.project.version}</span>}</div><Tooltip title="收起"><Button type="text" size="small" aria-label="收起 AI 助手" icon={<DoubleRightOutlined aria-hidden />} onClick={() => call('closeAIEditSidebar')} /></Tooltip></header><div className="workspace-assistant-tools" role="toolbar" aria-label="AI 助手工具"><ProjectAgent projectId={String(data.projectId)} compact /><Tooltip title="当前页大纲"><Button type="text" size="small" disabled={!state.count} aria-label="查看当前页大纲" icon={<UnorderedListOutlined aria-hidden />} onClick={() => call('showSlideOutline')} /></Tooltip>{data.autoRepair && <Tooltip title="修复排版"><Button type="text" size="small" disabled={!state.count} aria-label="修复排版" icon={<LayoutOutlined aria-hidden />} onClick={() => call('autoRepairSlideLayout')} /></Tooltip>}<Tooltip title="一键配图"><Button type="text" size="small" disabled={!state.count} aria-label="一键配图" icon={<PictureOutlined aria-hidden />} onClick={() => call('autoGenerateSlideImages')} /></Tooltip>{workspace && state.count > 0 && <><span className="workspace-assistant-divider" aria-hidden /><Tooltip title="检查文稿"><Button type="text" size="small" aria-label="检查文稿" icon={<ColumnHeightOutlined aria-hidden />} onClick={() => { openView('slides'); setContinuous(true); }} /></Tooltip><Tooltip title="准备讲稿"><Button type="text" size="small" aria-label="准备讲稿" icon={<AudioOutlined aria-hidden />} onClick={() => call('showSpeechScriptDialog')} /></Tooltip><Tooltip title="导出文件"><Button type="text" size="small" aria-label="导出文件" icon={<FolderOpenOutlined aria-hidden />} onClick={() => openView('exports')} /></Tooltip></>}</div>{!state.count && workspace && <div className="workspace-awaiting"><strong>从想法开始</strong><p>确认需求、整理大纲，再逐页完成设计。</p><Button type="primary" onClick={() => openView('planning')}>确认内容需求</Button></div>}<NativeAssistant /></section>}
       </Splitter.Panel>
     </Splitter>, document.getElementById('editorAntWorkspace')!)}
     <EditorQuickIcons />
@@ -218,7 +230,7 @@ export default function SlidesEditor({ data }: { data: ApiData }) {
     {createPortal(<header className="editor-ant-header"><Button aria-label="展开或收起幻灯片列表" aria-expanded={state.sidebar} aria-controls="slidesSidebar" icon={<BarsOutlined aria-hidden />} onClick={() => controller.call('toggleSidebar')} /><div className="editor-ant-title"><h1 title={data.title}>{data.title}</h1><span>{state.count ? `第 ${state.current + 1} / ${state.count} 页` : "暂无幻灯片"}{state.svg && <Tag>SVG</Tag>}</span></div>{workspace && <Segmented className="workspace-tabs" aria-label="项目工作区视图" value={view} options={[{ value: 'overview', label: '概览' }, { value: 'planning', label: '大纲' }, { value: 'generate', label: '生成' }, { value: 'slides', label: '编辑' }]} onChange={openView} />}<Button href="/projects" icon={<ArrowLeftOutlined aria-hidden />}>项目列表</Button></header>, document.getElementById('editorAntHeader')!)}
     {createPortal(toolbar, document.getElementById('editorAntToolbar')!)}
     {createPortal(<><div className="workspace-route-body" hidden={view === 'slides'}><Suspense fallback={<p role="status">正在加载工作区…</p>}>{workspace && <><div hidden={view !== 'overview'}>{visited.has('overview') && <ProjectDetail data={workspace.detail} />}</div><div hidden={view !== 'planning'}>{visited.has('planning') && <Todo data={workspace.planning} active={view === 'planning'} />}</div><div hidden={view !== 'generate'}>{visited.has('generate') && <Generator data={workspace.generation} active={view === 'generate'} />}</div><div hidden={view !== 'sources'}>{visited.has('sources') && <SourceLibrary active={view === 'sources'} projectId={String(data.projectId)} onSourcesSaved={(projectId, summary) => window.dispatchEvent(new CustomEvent('landppt:project-sources-saved', { detail: { projectId, summary } }))} />}</div><div hidden={view !== 'exports'}>{visited.has('exports') && <ArtifactLibrary active={view === 'exports'} projectId={String(data.projectId)} />}</div></>}</Suspense></div>{continuous && view === 'slides' && <ContinuousPreview pages={state.previewPages || []} onEdit={index => { setContinuous(false); call('selectSlide', index); }} />}</>, document.getElementById('editorWorkspacePage')!)}
-    {!desktop && <Drawer title={<Space>AI 编辑助手<Tag>第 {state.current + 1} 页</Tag></Space>} open={state.aiOpen} onClose={() => call('closeAIEditSidebar')} zIndex={1500} size={screens.xs ? '100%' : Math.min(state.aiWidth || 480, window.innerWidth)} className="editor-ant-assistant" forceRender
+    {!desktop && <Drawer title={<Space>AI 编辑助手<Tag>第 {state.current + 1} 页</Tag></Space>} open={editing && state.aiOpen} onClose={() => call('closeAIEditSidebar')} zIndex={1500} size={screens.xs ? '100%' : Math.min(state.aiWidth || 480, window.innerWidth)} className="editor-ant-assistant" forceRender
       extra={<Space size={4}><Button aria-label="查看当前页大纲" onClick={() => call('showSlideOutline')}>大纲</Button>{data.autoRepair && <Button disabled={!state.count} onClick={() => call('autoRepairSlideLayout')}>修复排版</Button>}<Button disabled={!state.count} aria-label="一键配图" onClick={() => call('autoGenerateSlideImages')}>配图</Button></Space>}>
       <NativeAssistant />
     </Drawer>}

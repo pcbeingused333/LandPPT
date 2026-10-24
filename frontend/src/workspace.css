@@ -7,7 +7,6 @@
 .brand-symbol { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 9px; background: var(--lp-primary); color: var(--lp-on-primary); font-size: 22px; font-weight: 800; }
 .brand-symbol::before { content: 'L'; }
 .sidebar-search .ant-input-affix-wrapper { background: var(--lp-elevated); border-color: transparent; }
-.sidebar-create { width: 100%; }
 .app-sidebar .app-nav, .ant-drawer .app-nav { display: flex; flex-direction: column; align-items: stretch; gap: 4px; }
 .app-nav a { display: flex; align-items: center; gap: 12px; padding: 10px 12px; min-height: 40px; border-radius: 10px; color: var(--lp-secondary); }
 .ant-drawer .app-nav a { min-height: 44px; }
@@ -22,10 +21,14 @@
 .sidebar-bottom { display: grid; gap: 4px; margin-top: auto; padding-top: 12px; border-top: 1px solid var(--lp-divider); }
 .sidebar-bottom > a { display: flex; align-items: center; gap: 12px; padding: 8px 12px; color: var(--lp-secondary); border-radius: 10px; }
 .sidebar-bottom > a:hover { background: var(--lp-elevated); text-decoration: none; }
-.sidebar-bottom .sidebar-credits { color: var(--lp-accent); background: var(--lp-accent-bg); }
+/* Credits read like the other footer links; only the mark keeps the accent, and it highlights only on its own page. */
+.sidebar-bottom .sidebar-credits > span:first-child { color: var(--lp-accent); }
+.sidebar-bottom > a[aria-current=page] { background: var(--lp-elevated); color: var(--lp-text); }
 .app-header { min-height: 52px; padding: 8px 20px; gap: 12px; background: var(--lp-bg); border: 0; }
 .app-location { color: var(--lp-muted); font-size: 12px; }
 .app-header .app-account { margin-left: auto; }
+/* The sidebar footer already links 系统配置 on desktop; the header icon only serves the collapsed mobile layout. */
+@media (min-width: 1024px) { .app-header .app-settings { display: none; } }
 .mobile-brand, .app-header .mobile-menu { display: none; }
 .app-main { max-width: 1680px; min-width: 0; padding: 8px 20px 24px; }
 .app-main .ant-card { border-radius: var(--lp-radius-panel); box-shadow: none; }
@@ -38,7 +41,6 @@
 .sidebar-collapsed .sidebar-wordmark, .sidebar-collapsed .app-sidebar .app-nav-label, .sidebar-collapsed .sidebar-recent { display: none; }
 .sidebar-collapsed .app-sidebar .app-nav { width: 100%; }
 .sidebar-collapsed .app-sidebar .app-nav a { justify-content: center; padding-inline: 0; }
-.sidebar-collapsed .sidebar-create { width: 40px; padding-inline: 0; }
 .sidebar-collapsed .sidebar-bottom { margin-top: auto; }
 .auth-shell .app-body { width: 100%; margin: 0; }
 .ant-drawer .sidebar-search { margin-bottom: 16px; }
@@ -63,52 +65,153 @@ body.landppt-editor { padding: 0; background: var(--lp-bg); }
 .project-splitter > .ant-splitter-panel { overflow: hidden; border-radius: var(--lp-radius-panel); background: var(--lp-surface); }
 .project-splitter > .ant-splitter-bar { flex: 0 0 6px; background: var(--lp-bg); }
 .project-splitter .ant-splitter-bar-dragger:before { background: var(--lp-border); }
+.project-splitter > .workspace-assistant-panel.is-inactive,
+.project-splitter > .ant-splitter-bar:has(+ .workspace-assistant-panel.is-inactive) { display: none; }
 .workspace-assistant, .workspace-files-host, .workspace-preview-host { width: 100%; height: 100%; min-width: 0; min-height: 0; }
 .workspace-assistant { display: flex; flex-direction: column; }
-.workspace-assistant > header { display: flex; align-items: center; justify-content: space-between; min-height: 44px; padding: 4px 8px 4px 12px; border-bottom: 1px solid var(--lp-divider); }
-.workspace-assistant > header > div { display: flex; align-items: center; gap: 8px; }
-.workspace-assistant > header .ant-tag { margin: 0; }
-.workspace-assistant-tools { display: flex; flex-wrap: wrap; gap: 4px; padding: 6px 8px; --ant-control-height: 28px; }
-.workspace-assistant-tools .ant-btn { height: 28px; padding-inline: 10px; }
-.workspace-result { display: grid; gap: 4px; margin: 0 8px 6px; padding: 8px 10px; border: 1px solid var(--lp-border); border-radius: 12px; }
-.workspace-result .sidebar-section-label { padding: 0; }
-.workspace-result > strong { font-size: 13px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
-.workspace-result > div { display: flex; gap: 4px; flex-wrap: wrap; }
-.workspace-assistant .ai-message.system:has(.ai-empty-hint) { padding: 12px 8px; border: 0; background: transparent; }
-.workspace-assistant .ai-empty-hint { display: flex; flex-wrap: wrap; gap: 6px; }
-.workspace-assistant .ai-empty-hint-title { flex-basis: 100%; margin-bottom: 4px; font-size: 14px; }
-.workspace-assistant .ai-empty-hint-chip { color: var(--lp-secondary); border-color: var(--lp-border); }
+.workspace-assistant { font-size: 12px; }
+.workspace-assistant > header { display: flex; align-items: center; justify-content: space-between; gap: 6px; min-height: 40px; padding: 4px 6px 4px 12px; border-bottom: 1px solid var(--lp-divider); }
+.workspace-assistant > header > div { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.workspace-assistant > header strong { font-size: 13px; font-weight: 600; white-space: nowrap; }
+.workspace-assistant > header .ant-tag { margin: 0; padding-inline: 5px; font-size: 11px; line-height: 18px; }
+.workspace-assistant-meta { color: var(--lp-muted); font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.workspace-assistant-tools { display: flex; align-items: center; flex-wrap: wrap; gap: 2px; padding: 4px 6px; border-bottom: 1px solid var(--lp-divider); }
+.workspace-assistant-tools .ant-btn { width: 28px; height: 28px; color: var(--lp-secondary); }
+.workspace-assistant-tools .ant-btn:not(:disabled):hover { color: var(--lp-text); }
+.workspace-assistant-divider { width: 1px; height: 16px; margin-inline: 4px; background: var(--lp-border); }
+.workspace-assistant .ai-message.system:has(.ai-empty-hint) { padding: 10px 6px; border: 0; background: transparent; }
+.workspace-assistant .ai-empty-hint { display: flex; flex-wrap: wrap; gap: 4px; }
+.workspace-assistant .ai-empty-hint > i { display: none; }
+.workspace-assistant .ai-empty-hint-title { flex-basis: 100%; margin-bottom: 2px; font-size: 12px; color: var(--lp-secondary); }
+.workspace-assistant .ai-empty-hint-chip { padding: 1px 8px; font-size: 11px; color: var(--lp-secondary); border-color: var(--lp-border); }
+.workspace-assistant .ai-message { font-size: 12px; }
+.workspace-assistant .ai-input-container { gap: 6px; margin: 0; padding: 6px; border-width: 1px; border-radius: 12px; }
+.workspace-assistant .ai-input-container .ant-input { min-height: 56px !important; padding: 6px 8px; font-size: 12px; }
+.workspace-assistant .ai-input-buttons { display: flex; align-items: center; justify-content: flex-start; gap: 2px; }
+.workspace-assistant .ai-input-buttons .ant-btn { height: 28px; min-width: 28px; font-size: 12px; }
+.workspace-assistant .ai-input-buttons .ant-btn-default { width: 28px; padding: 0; border-color: transparent; background: transparent; color: var(--lp-secondary); }
+.workspace-assistant .ai-input-buttons .native-ant-button:has(.ant-btn-primary) { order: 9; margin-left: auto; }
+.workspace-assistant .ai-input-buttons .ant-btn-primary { padding-inline: 12px; }
 .workspace-assistant > .editor-adapted-content { flex: 1; min-height: 0; height: 0; }
 .workspace-assistant[data-empty="true"] > .editor-adapted-content { display: none; }
 .workspace-awaiting { margin: 8px 16px; padding: 20px 0; }
 .workspace-awaiting p { color: var(--lp-secondary); font-size: 12px; }
 .landppt-editor .workspace-assistant #aiSidebarResizeHandle { display: none; }
 .landppt-editor .workspace-body .project-splitter #slidesSidebar[data-editor-panel] { width: 100%; height: 100%; flex: 1 !important; border: 0; background: var(--lp-surface); }
-.workspace-files-heading { display: flex; align-items: center; justify-content: space-between; min-height: 44px; padding: 0 8px 0 12px; }
-.workspace-file-search { padding: 4px 8px; }
+.workspace-files-heading { display: flex; align-items: center; justify-content: space-between; min-height: 40px; padding: 0 8px 0 12px; }
+/* Folder shortcuts live in the heading as icons, so the panel spends its height on slides. */
+.workspace-files-heading > strong { font-size: 13px; }
+.workspace-file-folders { display: flex; align-items: center; gap: 2px; }
+.workspace-file-folders > :is(a,button) { display: inline-grid; place-items: center; width: 28px; height: 28px; padding: 0; border: 0; border-radius: 8px; background: transparent; color: var(--lp-secondary); cursor: pointer; }
+.workspace-file-folders > :is(a,button):hover, .workspace-file-folders > :is(a,button):focus-visible { background: var(--lp-elevated); color: var(--lp-text); text-decoration: none; }
+.workspace-file-folders > button:last-child { margin-left: 4px; }
+.workspace-file-search { padding: 2px 8px 6px; border-bottom: 1px solid var(--lp-divider); }
 .workspace-file-search .ant-input-affix-wrapper { padding-block: 3px; }
-.workspace-file-folders { display: grid; padding: 2px 6px 4px; border-bottom: 1px solid var(--lp-divider); }
-.workspace-file-folders > :is(a,button) { display: flex; align-items: center; gap: 10px; width: 100%; padding: 5px 8px; border: 0; border-radius: 8px; background: transparent; color: var(--lp-secondary); text-align: left; font-size: 12px; cursor: pointer; }
-.workspace-file-folders > :is(a,button):hover { background: var(--lp-elevated); color: var(--lp-text); text-decoration: none; }
 .workspace-files-host .editor-document-tabs .ant-segmented-group { display: flex; }
 .landppt-editor .workspace-files-host .editor-document-tabs .ant-segmented-item { flex: 1 1 0; width: 25%; min-width: 0; }
 .landppt-editor .workspace-files-host .editor-document-tabs .ant-segmented-item-label { min-width: 0; padding-inline: 2px; font-size: 12px; }
-.workspace-file-folders > .workspace-compact-create { display: none; }
+/* Touch layouts use 44px buttons; keep the heading as tall so toggling its actions never shifts the tabs below. */
+@media (max-width: 1023px) {
+  .workspace-files-heading { min-height: 44px; }
+  .workspace-file-folders > :is(a,button) { width: 44px; height: 44px; }
+}
 .workspace-files-host .slide-thumbnail[hidden] { display: none; }
 .workspace-files-host .slide-thumbnail { width: 100%; max-width: 100%; transform: none; }
 .workspace-files-host .slide-title { color: var(--lp-secondary); }
 .landppt-editor .workspace-preview-host > .main-editor { display: flex; flex-direction: column; width: 100%; height: 100%; min-width: 0; min-height: 0; overflow: hidden; }
 .landppt-editor .main-editor:not([data-workspace-view="slides"]) > :is(#editorAntToolbar,.editor-content), .landppt-editor .main-editor[data-continuous="true"] > .editor-content { display: none; }
 .main-editor #editorWorkspacePage { display: contents; }
-.workspace-route-body { flex: 1; overflow: auto; min-height: 0; padding: 20px; scrollbar-width: thin; }
+.workspace-route-body { flex: 1; overflow: auto; min-height: 0; padding: 10px 12px; scrollbar-width: thin; }
+/* Embedded views: the workspace header already shows the title and view tabs, so drop the duplicate back button and heading. */
+.workspace-route-body .project-workspace-header { gap: 0; margin-bottom: 8px; }
+.workspace-route-body .project-workspace-top { align-items: center; gap: 8px !important; }
+.workspace-route-body .project-workspace-top > .ant-btn:first-child { display: none; }
+.workspace-route-body .project-workspace-title { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.workspace-route-body .project-workspace-title h1 { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.workspace-route-body .project-workspace-meta { margin: 0; flex-wrap: nowrap; min-width: 0; overflow: hidden; }
+.workspace-route-body .project-workspace-meta > :not(.ant-tag) { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.workspace-route-body .project-workspace-actions .ant-space { gap: 6px !important; }
+.workspace-route-body .ant-alert { padding: 6px 12px; font-size: 13px; }
+.workspace-route-body .ant-card-head { min-height: 40px; padding-inline: 12px; }
+.workspace-route-body .ant-card-body { padding: 12px; }
+/* Generator (standalone and embedded): one compact chrome stack so pages start near the top. */
+.generator-ant-chrome .project-workspace-header { gap: 6px; margin: 0; padding: 8px 12px; }
+.generator-ant-chrome .project-workspace-top { gap: 8px !important; }
+.generator-ant-chrome .project-workspace-title { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.generator-ant-chrome .project-workspace-title h1 { min-width: 0; font-size: 15px; line-height: 1.4; }
+.generator-ant-chrome .project-workspace-meta { flex-wrap: nowrap; min-width: 0; margin: 0; overflow: hidden; }
+.generator-ant-chrome .project-workspace-meta > .subtle { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.generator-ant-chrome .project-stages .ant-steps { padding: 0 4px; }
+.generator-ant-chrome .project-stages .ant-steps-item { padding-block: 0 !important; }
+.generator-ant-chrome .project-stages .ant-steps-item-wrapper { padding-block: 5px !important; }
+.generator-ant-chrome .project-stages .ant-steps-item-title { font-size: 13px; line-height: 24px; }
+.generator-ant-chrome .project-stages .ant-steps-item-icon { width: 22px; height: 22px; line-height: 22px; font-size: 12px; margin-inline-end: 6px; }
+.generator-ant-status { padding: 6px 12px; }
+.generator-ant-status .ant-progress { line-height: 1; }
+.generator-ant-status .ant-progress-line { margin-block: 2px 0; }
+.generator-preview-summary { gap: 10px; padding: 8px 12px; }
+.generator-preview-summary .generator-preview-emblem { width: 30px; height: 30px; font-size: 14px; border-radius: 9px; }
+.generator-preview-copy h2 { margin: 0; font-size: 14px; }
+.generator-preview-copy p { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.generator-preview-count { min-width: 64px; }
+.generator-preview-count strong { font-size: 18px; }
+.generator-ant-workspace #slidesContainer { padding: 12px; gap: 10px; }
+/* Pending pages: dark-theme skeleton bars are translucent white, so they need a dark canvas to show. */
+.generator-skeleton-canvas { background: var(--lp-bg); }
+/* Embedded overview: columns follow the middle panel width (set by the splitter), not the viewport. */
+.workspace-route-body { container: workspace-view / inline-size; }
+.workspace-route-body .project-detail-page { display: grid; gap: 10px; }
+.workspace-route-body .project-detail-hero { display: flex; align-items: center; flex-wrap: nowrap; gap: 8px; margin: 0; }
+.workspace-route-body .detail-title-group { flex: 1; align-items: center; gap: 0; min-width: 0; }
+.workspace-route-body .detail-title-group > .ant-btn { display: none; }
+.workspace-route-body .project-detail-hero h1 { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.workspace-route-body .project-detail-hero p { flex-wrap: nowrap; gap: 8px; min-width: 0; margin: 0; font-size: 12px; color: var(--lp-muted); }
+.workspace-route-body .project-detail-hero p > span { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.workspace-route-body .project-detail-hero code { color: var(--lp-muted); background: none; padding: 0; }
+.workspace-route-body .detail-project-actions { gap: 6px !important; }
+.workspace-route-body .detail-navigation { display: none; }
+.workspace-route-body .detail-overview { gap: 10px; }
+.workspace-route-body .detail-overview .ant-card-head { min-height: 36px; padding-inline: 12px; font-size: 13px; }
+.workspace-route-body .detail-overview .ant-card-body { padding: 8px 12px 10px; }
+.workspace-route-body .detail-overview .ant-descriptions-row > td { padding-bottom: 4px; }
+.workspace-route-body .detail-overview .ant-descriptions-item-content { font-size: 13px; }
+.workspace-route-body .detail-progress-summary { gap: 10px; margin-bottom: 4px; }
+.workspace-route-body .detail-progress-summary strong { font-size: 13px; }
+.workspace-route-body .detail-progress-summary p { margin-top: 2px; font-size: 12px; }
+.workspace-route-body .detail-progress-summary > span { font-size: 20px; }
+.workspace-route-body .detail-progress-card .ant-progress { margin: 0; line-height: 1; }
+.workspace-route-body .detail-stage-list { margin-top: 4px; }
+.workspace-route-body .detail-stage-list .ant-collapse-header { padding: 4px 0 !important; font-size: 12px; }
+.workspace-route-body .stage-row { padding: 6px 0; }
+.workspace-route-body .stage-description { font-size: 12px; margin: 2px 0 0; }
+.workspace-route-body .outline-panel .section-heading { display: flex; align-items: center; justify-content: space-between; margin: 4px 0 6px; }
+.workspace-route-body .outline-panel .section-heading h2 { margin: 0; font-size: 14px; }
+.workspace-route-body .outline-panel .section-heading .ant-btn, .workspace-route-body .outline-slide-actions .ant-btn { width: 28px; height: 28px; min-width: 28px; }
+.workspace-route-body .outline-summary { gap: 4px 10px; margin-bottom: 8px; font-size: 12px; }
+.workspace-route-body .outline-summary h3 { font-size: 13px; }
+.workspace-route-body .outline-grid { grid-template-columns: repeat(auto-fill, minmax(min(100%, 210px), 1fr)); gap: 8px; }
+.workspace-route-body .outline-grid--detail { grid-template-columns: minmax(0, 1fr); }
+.workspace-route-body .outline-slide-card > .ant-card-body { padding: 8px 10px 10px; }
+.workspace-route-body .outline-card-top { margin-bottom: 4px; }
+.workspace-route-body .outline-page-number { width: 26px; height: 22px; border-radius: 6px; font-size: 11px; }
+.workspace-route-body .outline-slide-card h3 { margin: 0 0 2px; font-size: 13px; line-height: 1.45; }
+.workspace-route-body .outline-excerpt { font-size: 12px; -webkit-line-clamp: 1; }
+.workspace-route-body .outline-slide-card ul { margin: 4px 0 0; padding-left: 18px; font-size: 12px; }
+.workspace-route-body .outline-card-meta { margin-top: 8px; padding-top: 6px; font-size: 11px; }
+.workspace-route-body .detail-versions .section-heading h2 { margin: 4px 0 6px; font-size: 14px; }
+.workspace-route-body .detail-version-row { gap: 10px; padding: 6px 0; font-size: 12px; }
+@container workspace-view (min-width: 640px) {
+  .workspace-route-body .detail-overview--with-progress { grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); }
+}
+@container workspace-view (max-width: 520px) {
+  .workspace-route-body .project-detail-hero { flex-wrap: wrap; }
+  .workspace-route-body .detail-project-actions { width: 100%; }
+}
 .workspace-route-body[hidden] { display: none; }
 .workspace-route-body .project-stages, .workspace-route-body .detail-breadcrumb { display: none; }
-.workspace-route-body .detail-overview { grid-template-columns: minmax(0, 1fr); }
 .workspace-route-body .todo-ant-form-grid { grid-template-columns: minmax(0, 1fr); }
 .workspace-route-body .project-workspace-top { align-items: flex-start; }
 .workspace-route-body .project-workspace-title { min-width: 120px; }
-.workspace-route-body .project-detail-hero { flex-wrap: wrap; }
-.workspace-route-body .outline-grid { grid-template-columns: minmax(0, 1fr); }
 .workspace-route-body .generator-ant-workspace.main-container { min-height: 600px; height: 100%; border: 0; }
 body.landppt-generator:has(.app-shell) { padding: 0; height: 100dvh; }
 .landppt-generator .app-body { display: flex; flex-direction: column; height: 100dvh; }
@@ -159,11 +262,7 @@ body.landppt-generator:has(.app-shell) { padding: 0; height: 100dvh; }
   .workspace-route-body .detail-title-group { min-width: 0; }
 }
 @media (max-height: 700px) {
-  .workspace-files-heading, .workspace-file-search { display: none; }
-  .workspace-file-folders { display: flex; flex: 0 0 auto; padding: 0 8px; }
-  .workspace-file-folders > :is(a,button) { justify-content: center; width: auto; min-height: 32px; padding: 4px 12px; font-size: 0; }
-  .workspace-file-folders > .workspace-compact-create { display: flex; }
-  .workspace-file-folders .anticon { font-size: 14px; }
+  .workspace-file-search { display: none; }
   .workspace-files-host .editor-document-tabs { padding: 4px 8px; }
   .workspace-files-host .editor-document-nav { padding: 4px 8px; }
   .workspace-files-host .editor-document-tools { padding: 0 8px 4px; }

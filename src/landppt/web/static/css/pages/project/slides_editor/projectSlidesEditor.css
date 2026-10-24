@@ -225,7 +225,8 @@ body::before {
     justify-content: center;
 }
 
-.slide-preview iframe {
+/* Direct child only: embedded generator cards nest a scaled .slide-document inside .slide-preview. */
+.slide-preview > iframe {
     position: absolute;
     top: 50%;
     left: 50%;

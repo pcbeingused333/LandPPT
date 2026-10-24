@@ -1316,14 +1316,17 @@ class DEEPResearchService:
             }
 
         timeout_seconds = self._coerce_int(tool_input.get("timeout"), 30, 3, 90)
+        from .research.content_extractor import WEB_FETCH_HEADER_LIMITS, WEB_FETCH_USER_AGENT
+
         headers = {
-            "User-Agent": "LandPPT Research Agent/1.0",
+            "User-Agent": WEB_FETCH_USER_AGENT,
             "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,text/plain;q=0.8,*/*;q=0.5",
         }
         try:
             async with aiohttp.ClientSession(
                 timeout=aiohttp.ClientTimeout(total=timeout_seconds),
                 headers=headers,
+                **WEB_FETCH_HEADER_LIMITS,
             ) as session:
                 async with session.get(url, allow_redirects=True) as response:
                     raw_text = await response.text(errors="replace")

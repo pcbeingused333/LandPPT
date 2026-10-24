@@ -210,8 +210,7 @@ def test_responsive_creation_research_geometry(ui_page, width, height, scene):
         elif scene == "advanced":
             select(page, "目标受众", "自定义")
             select(page, "PPT 风格", "自定义风格")
-            page.get_by_text("无人值守", exact=True).click()
-            page.get_by_role("checkbox", name="开启无人值守").check()
+            page.get_by_role("checkbox", name="无人值守", exact=True).check()
         page.evaluate("window.scrollTo(0, 0)")
         bounds = page.get_by_role("button", name="开始生成", exact=True).bounding_box()
         assert bounds["y"] >= 0 and bounds["y"] + bounds["height"] <= height + 1
@@ -402,14 +401,13 @@ def test_custom_guidance_page_range_and_admin_unattended_saved_defaults(ui_page)
     select(page, "语言", "English")
     select(page, "页面绘制方式", "SVG（实验）")
     page.get_by_role("checkbox", name="联网深度研究").check()
-    page.get_by_text("章节与页码", exact=True).click()
     page.get_by_role("checkbox", name="章节过渡页").check()
     page.get_by_role("checkbox", name="页码 / Footer").uncheck()
-    page.get_by_text("无人值守", exact=True).click()
+    # Unattended options only appear once the mode is switched on in the settings tray.
+    page.get_by_role("checkbox", name="无人值守", exact=True).check()
     expect(page.get_by_text("导出讲解视频", exact=True)).to_be_visible()
     expect(page.get_by_role("checkbox", name="系统通知")).not_to_be_checked()
     expect(page.get_by_role("checkbox", name="邮件通知")).to_be_checked()
-    page.get_by_role("checkbox", name="开启无人值守").check()
     select(page, "无人值守模板", "指定已有模板")
     select(page, "选择模板", "科技风")
     page.get_by_role("button", name="开始生成", exact=True).click()
@@ -449,8 +447,7 @@ def test_every_unattended_stop_stage_reaches_existing_payload(ui_page, stage):
         ),
     )
     page.get_by_role("textbox", name="PPT 主题").fill("无人值守")
-    page.get_by_text("无人值守", exact=True).click()
-    page.get_by_role("checkbox", name="开启无人值守").check()
+    page.get_by_role("checkbox", name="无人值守", exact=True).check()
     page.get_by_role("button", name="开始生成", exact=True).click()
     expect(page.get_by_text("保留草稿供重试")).to_be_visible()
     assert state["writes"][0][3][0]["stop_at_stage"] == stage
@@ -671,11 +668,14 @@ def test_invalid_research_response_has_retry(ui_page, endpoint):
 
 
 @pytest.mark.parametrize("width,height", SIZES)
-def test_creation_submit_bar_keeps_footer_links_accessible(ui_page, width, height):
+def test_footer_links_stay_on_home_and_off_the_creation_page(ui_page, width, height):
     page, load = ui_page
     api(page)
     page.set_viewport_size(dict(width=width, height=height))
     creation(page, load)
+    # The page footer is reserved for the product home; app pages use the sidebar.
+    expect(page.locator(".app-footer")).to_have_count(0)
+    load("pages/home/index.html", path="/home")
     page.evaluate("window.scrollTo(0, document.documentElement.scrollHeight)")
     for name, href in [
         ("GitHub", "https://github.com/sligter/LandPPT"),
@@ -700,7 +700,7 @@ def test_creation_width_matches_dashboard_workspace(ui_page, width, height):
     page.set_viewport_size(dict(width=width, height=height))
     state = api(page)
     load("pages/project/project_dashboard.html", path="/dashboard")
-    page.get_by_role("heading", name="项目仪表板", exact=True).wait_for()
+    page.get_by_role("heading", name="首页", exact=True).wait_for()
     dashboard = page.locator(".page-heading").bounding_box()
     load("pages/project/scenarios.html", path="/scenarios", scenarios=SCENARIOS)
     page.get_by_role("heading", name="创建 PPT", exact=True).wait_for()

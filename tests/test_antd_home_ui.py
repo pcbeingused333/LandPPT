@@ -104,8 +104,8 @@ def test_home_workspace_and_creation_are_distinct_pages_with_one_shell(
     state = navigation_app(page)
     page.goto("http://ui.test/home", wait_until="networkidle")
     page.evaluate("window.homeHeader=document.querySelector('.app-header')")
-    page.get_by_role("link", name="打开工作台", exact=True).click()
-    expect(page.get_by_role("heading", name="项目仪表板", exact=True)).to_be_visible()
+    page.get_by_role("link", name="进入首页", exact=True).click()
+    expect(page.get_by_role("heading", name="首页", exact=True)).to_be_visible()
     assert page.locator(".home-showcase").count() == 0
     assert page.locator(".home-main").count() == 0
     open_navigation(page, "/home")

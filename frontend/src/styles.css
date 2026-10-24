@@ -59,7 +59,7 @@
 .generator-skeleton-host { display: contents; }
 .generator-skeleton-card { width: 100%; min-width: 0; max-width: 440px; justify-self: start; overflow: hidden; }
 .generator-skeleton-card.is-current { border-color: var(--lp-border); }
-.generator-skeleton-header { height: 48px; min-height: 48px; }
+.generator-skeleton-header { height: 40px; min-height: 40px; }
 .generator-skeleton-header .ant-card-head-wrapper { gap: 8px; }
 .generator-skeleton-title-row { display: flex; align-items: center; gap: 8px; min-width: 0; }
 .generator-skeleton-number { color: var(--lp-secondary); font-size: 11px; font-variant-numeric: tabular-nums; }
@@ -810,7 +810,7 @@ h2 { margin: 0; font-size: 16px; font-weight: 600; }
 }
 
 /* Dashboard: Ant components carry the look; these rules only arrange them. */
-#dashboardRoot .dashboard-header { flex-wrap: wrap; }
+#dashboardRoot .dashboard-header { flex-wrap: wrap; justify-content: flex-end; }
 .dashboard-summary { display: flex; flex-wrap: wrap; gap: 8px; }
 .dashboard-summary .dashboard-stat { display: inline-flex; align-items: center; gap: 6px; height: auto; min-height: 32px; padding: 4px 12px; }
 .dashboard-summary .stat-title { font-size: 12px; }
@@ -842,7 +842,21 @@ h2 { margin: 0; font-size: 16px; font-weight: 600; }
 .composer-advanced { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0 16px; padding: 16px 23px 4px; border-top: 1px solid var(--lp-border); background: var(--lp-elevated); border-radius: 0 0 10px 10px; }
 .composer-advanced > .create-field-grid { display: contents; }
 .composer-advanced > .create-extra-settings { grid-column: 1 / -1; margin: 0 0 12px; }
-.composer-advanced .create-research-help { margin: 0 0 12px; }
+/* Inline settings tray attached under the composer toolbar (replaces the side drawer). */
+.composer-advanced[hidden] { display: none; }
+.creation-composer--compact .composer-advanced { gap: 0 12px; padding: 12px 23px 2px; }
+.creation-composer--compact .composer-advanced .ant-form-item { margin-bottom: 10px; }
+.creation-composer--compact .composer-advanced .ant-form-item-label { padding-bottom: 2px; }
+.creation-composer--compact .composer-advanced .ant-form-item-label > label { font-size: 12px; color: var(--lp-secondary); }
+.composer-advanced .ant-input-number { width: 100%; }
+.composer-advanced > .create-extra-settings { margin: 0 0 10px; padding-top: 10px; border-top: 1px solid var(--lp-divider); }
+.create-option-row { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 20px; }
+.create-option-row .create-checkbox { margin: 0 !important; }
+.create-option-row .create-research-help { margin: 0 0 0 -14px; color: var(--lp-muted); }
+.create-unattended { margin-top: 10px; padding: 10px 12px 2px; border: 1px solid var(--lp-border); border-radius: 10px; }
+.create-unattended > p { margin: 0 0 8px; font-size: 12px; }
+.create-unattended .create-field-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0 12px; }
+.create-unattended .create-option-row { margin-bottom: 8px; }
 .creation-composer--compact > .ant-card-body > .ant-form > .page-error { margin: 0 12px 12px; }
 .recent-projects-header h2 { margin: 0; font-size: 16px; }
 .dashboard-project-item > .ant-card { height: 100%; display: flex; flex-direction: column; overflow: hidden; }
@@ -886,7 +900,7 @@ h2 { margin: 0; font-size: 16px; font-weight: 600; }
   .composer-mode { order: 2; flex: 1 1 0; width: auto; min-width: 0; min-height: 44px; }
   .creation-composer--compact .composer-actions > .ant-btn-primary { order: 3; min-height: 44px; }
   .composer-package, .composer-advanced { padding-inline: 12px; }
-  .composer-advanced { grid-template-columns: minmax(0, 1fr); }
+  .composer-advanced { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 8px; }
   .dashboard-all-projects { min-height: 44px; }
 }
 
@@ -918,9 +932,6 @@ h2 { margin: 0; font-size: 16px; font-weight: 600; }
   .project-workspace-actions .ant-btn, .generator-ant-status-tools .ant-btn { min-height: 44px; }
 }
 
-.creation-parameters-drawer .composer-advanced { grid-template-columns: repeat(2, minmax(0, 1fr)); padding: 0; background: transparent; border: 0; border-radius: 0; }
-.creation-parameters-drawer .ant-form-item { margin-bottom: 16px; }
-.creation-parameters-drawer .ant-input-number { width: 100%; }
 .template-detail-pagination { display: flex; align-items: center; justify-content: center; gap: 12px; margin: 12px 0; }
 .template-detail-pagination > .ant-typography { text-align: center; }
 .template-detail-layout { display: grid; grid-template-columns: minmax(0, 1fr) 220px; gap: 16px; align-items: start; }
@@ -930,9 +941,8 @@ h2 { margin: 0; font-size: 16px; font-weight: 600; }
 .template-detail-thumbnail .template-frame { width: 100%; flex-shrink: 0; }
 .template-detail-thumbnail > span { font-size: 12px; }
 @media (max-width: 600px) {
-  .creation-parameters-drawer .composer-advanced { grid-template-columns: minmax(0, 1fr); }
-  .creation-parameters-drawer input, .creation-parameters-drawer textarea { font-size: 16px !important; }
-  .creation-parameters-drawer .ant-checkbox-wrapper, .creation-parameters-drawer .ant-collapse-header { min-height: 44px; }
+  .composer-advanced input, .composer-advanced textarea { font-size: 16px !important; }
+  .composer-advanced .ant-checkbox-wrapper { min-height: 44px; align-items: center; }
   .template-detail-thumbnails { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .template-detail-layout { grid-template-columns: minmax(0, 1fr); gap: 8px; }
   .template-detail-pagination { gap: 8px; }

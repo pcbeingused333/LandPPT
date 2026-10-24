@@ -51,7 +51,7 @@ def test_antd_dashboard_serializes_only_public_user_fields(ui_page):
             username="production-user", is_admin=True, secret="must-not-render"
         ),
     )
-    page.get_by_role("heading", name="项目仪表板").wait_for()
+    page.get_by_role("heading", name="首页").wait_for()
     data = json.loads(page.locator("#antdData").text_content())
     assert data["user"] == {"username": "production-user", "is_admin": True}
     assert "must-not-render" not in page.content()

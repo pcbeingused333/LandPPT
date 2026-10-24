@@ -8,7 +8,7 @@
 .editor-ant-title h1 { font-size: 16px; line-height: 1.4; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .editor-ant-title > span { font-size: 12px; color: var(--lp-secondary); }
 .editor-ant-title .ant-tag { margin-left: 8px; }
-.editor-ant-toolbar { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px 12px; padding: 6px 8px; --ant-control-height: 32px; border-bottom: 1px solid var(--lp-border); background: var(--lp-surface); }
+.editor-ant-toolbar { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 4px 12px; min-height: 40px; padding: 4px 8px; --ant-control-height: 32px; border-bottom: 1px solid var(--lp-border); background: var(--lp-surface); }
 .editor-ant-view { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .editor-ant-toolbar .ant-btn { height: 32px; }
 .editor-ant-toolbar .ant-segmented-item-label { min-height: 26px; line-height: 26px; }
@@ -24,12 +24,19 @@
   .editor-ant-view .ant-btn > .ant-btn-icon + span, .editor-ant-view .ant-segmented-item-icon + span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
   .editor-ant-view .ant-segmented-item-icon { margin-inline-end: 0; }
 }
-.editor-export-chooser-body, .editor-export-methods { width: 100%; }
-.editor-export-goals { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
-.editor-export-methods .ant-radio-wrapper { align-items: flex-start; margin: 0; }
-.editor-export-methods .ant-radio { margin-top: 3px; }
-.editor-export-methods .ant-space, .editor-export-methods .ant-space-item { min-width: 0; }
-@media (max-width: 700px) { .editor-export-chooser .ant-btn { min-height: 44px; } }
+.editor-export-menu .ant-dropdown-menu { width: min(300px, calc(100vw - 16px)); max-height: min(70dvh, 520px); overflow: auto; padding: 4px; }
+.editor-export-menu .ant-dropdown-menu-item-group-title { padding: 6px 10px 2px; font-size: 11px; color: var(--lp-muted); }
+.editor-export-menu .ant-dropdown-menu-item { padding: 5px 10px; }
+.editor-export-item { display: grid; gap: 1px; min-width: 0; }
+.editor-export-item > span { font-size: 13px; }
+.editor-export-item > small { font-size: 11px; line-height: 1.4; color: var(--lp-secondary); white-space: normal; }
+.editor-export-summary { display: block; color: var(--lp-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.editor-export-hint { display: block; font-size: 11px; white-space: normal; }
+@media (max-width: 700px) {
+  /* Right-aligned to a trigger that may sit near the left edge; keep the whole menu on screen. */
+  .editor-export-menu { left: 8px !important; right: auto; }
+  .editor-export-menu .ant-dropdown-menu-item { min-height: 44px; }
+}
 .landppt-editor .workspace-body .slides-sidebar { background: var(--lp-elevated); border-right-color: var(--lp-border); }
 .landppt-editor .slides-sidebar .small { font-size: 11px; }
 .landppt-editor .slide-title { font-size: 12px; padding: 6px 8px; height: auto; min-height: 32px; }

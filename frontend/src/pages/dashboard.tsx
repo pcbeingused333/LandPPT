@@ -29,7 +29,7 @@ export default function Dashboard({ data }: { data: ApiData }) {
   }
   const { actions, organize, renameDialog } = useProjectActions((id, title) => setProjects(previous => previous.map(project => project.project_id === id ? { ...project, title } : project)), refreshProjects);
   return <div id="dashboardRoot">
-    <div className="page-heading dashboard-header"><h1>项目仪表板</h1>
+    <div className="page-heading dashboard-header"><h1 className="sr-only">首页</h1>
       <nav className="dashboard-summary" aria-label="项目概览">{summaries.map(([label, href], index) => <Button className="dashboard-stat" key={label} href={href} aria-label={`${label} ${Number(data.stats[index] || 0).toLocaleString()}`}><span className="stat-title">{label}</span><Typography.Text strong className="stat-number">{Number(data.stats[index] || 0).toLocaleString()}</Typography.Text></Button>)}</nav>
     </div>
     <section className="dashboard-create" aria-labelledby="dashboardCreateTitle"><Typography.Title level={2} id="dashboardCreateTitle" className="dashboard-create-title">想把什么，变成一场好演示？</Typography.Title><Typography.Paragraph type="secondary" className="dashboard-create-intro">输入主题即可开始，资料和参数按需添加。</Typography.Paragraph><CreateComposer data={data} compact /></section>

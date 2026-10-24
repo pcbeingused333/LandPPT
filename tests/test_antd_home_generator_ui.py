@@ -144,7 +144,7 @@ def test_home_product_links_and_workflow(ui_page):
     page, load = ui_page
     load("pages/home/index.html", path="/home")
     assert page.get_by_role("list", name="创建流程").locator("li").count() == 3
-    for name, path in [("打开工作台", "/dashboard"), ("探索模板库", "/global-master-templates"), ("创建我的演示文稿", "/create")]:
+    for name, path in [("进入首页", "/dashboard"), ("探索模板库", "/global-master-templates"), ("创建我的演示文稿", "/create")]:
         expect(page.get_by_role("link", name=name, exact=True)).to_have_attribute(
             "href", path
         )

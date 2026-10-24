@@ -19,6 +19,13 @@ from ...core.config import ai_config
 logger = logging.getLogger(__name__)
 
 
+# Sites such as GitHub send Content-Security-Policy headers longer than aiohttp's
+# 8190-byte default, which aborts the response before any content is read.
+WEB_FETCH_HEADER_LIMITS = {"max_line_size": 65536, "max_field_size": 65536}
+# Wikimedia and similar sites reject bot agents without a contact URL (HTTP 403).
+WEB_FETCH_USER_AGENT = "Mozilla/5.0 (compatible; LandPPT/1.0; +https://github.com/sligter/LandPPT)"
+
+
 class ExtractedContent:
     """Represents extracted content from a web page"""
     
@@ -50,7 +57,7 @@ class WebContentExtractor:
         self.timeout = ai_config.research_extraction_timeout
         # Do not cap extracted content length.
         self.max_content_length = None
-        self.user_agent = "LandPPT Research Bot 1.0"
+        self.user_agent = WEB_FETCH_USER_AGENT
         # If aggressive cleanup leaves too little text, fallback to relaxed extraction.
         self.min_usable_words = 80
         
@@ -211,7 +218,8 @@ class WebContentExtractor:
             
             async with aiohttp.ClientSession(
                 timeout=aiohttp.ClientTimeout(total=self.timeout),
-                headers=headers
+                headers=headers,
+                **WEB_FETCH_HEADER_LIMITS,
             ) as session:
                 async with session.get(url) as response:
                     if response.status != 200:

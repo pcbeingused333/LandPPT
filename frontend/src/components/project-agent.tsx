@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
-import { Alert, App, Button, Card, Collapse, Drawer, Flex, Form, Input, Progress, Select, Space, Tag, Timeline, Typography } from 'antd';
+import { Alert, App, Button, Card, Collapse, Drawer, Flex, Form, Input, Progress, Select, Space, Tag, Timeline, Tooltip, Typography } from 'antd';
 import { ReloadOutlined, RobotOutlined, StopOutlined } from '@ant-design/icons';
 import { request, type ApiData } from '../api';
 import { modalFocus } from './modal-focus';
 import { nativeSelectIsOpen } from './native-controls';
 
-export function ProjectAgent({ projectId, disabled = false }: { projectId: string; disabled?: boolean }) {
+export function ProjectAgent({ projectId, disabled = false, compact = false }: { projectId: string; disabled?: boolean; compact?: boolean }) {
   const { modal, message } = App.useApp();
   const [open, setOpen] = useState(() => new URLSearchParams(location.search).get('agent') === '1');
   const [instruction, setInstruction] = useState(''), [indices, setIndices] = useState<number[]>([]);
@@ -63,7 +63,9 @@ export function ProjectAgent({ projectId, disabled = false }: { projectId: strin
     });
   }
   return <>
-    <Button ref={trigger} icon={<RobotOutlined aria-hidden />} disabled={disabled} onClick={() => setOpen(true)}>项目助手</Button>
+    {compact
+      ? <Tooltip title="项目助手"><Button ref={trigger} type="text" size="small" aria-label="项目助手" icon={<RobotOutlined aria-hidden />} disabled={disabled} onClick={() => setOpen(true)} /></Tooltip>
+      : <Button ref={trigger} icon={<RobotOutlined aria-hidden />} disabled={disabled} onClick={() => setOpen(true)}>项目助手</Button>}
     <Drawer title="项目助手" open={open} size={760} styles={{ wrapper: { maxWidth: '100vw' } }} onClose={() => { if (!pending) setOpen(false); }} closable={!pending} maskClosable={!pending} keyboard={!pending}
       afterOpenChange={value => { if (!value) trigger.current?.focus(); }}
       drawerRender={node => <div style={{ height: '100%' }} onKeyDown={event => { event.stopPropagation(); if (event.key === 'Escape' && !nativeSelectIsOpen(event.target) && !pending) setOpen(false); if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's') event.preventDefault(); }}>{modalFocus(node, { height: '100%' })}</div>}

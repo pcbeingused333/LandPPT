@@ -154,14 +154,15 @@ export function EditorDocumentSidebar({ projectId, pages, current, selected, dia
     if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's' && textPanel) { event.preventDefault(); void save(); }
     else if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's' && panel === 'contents') { event.preventDefault(); void bridge.save(); }
   }}>
-    <header className="workspace-files-heading"><strong>项目文件</strong><Tooltip title="在当前页后新建幻灯片"><Button type="text" aria-label="新建幻灯片" icon={<PlusOutlined aria-hidden />} onClick={() => bridge.call('insertNewSlide')} /></Tooltip></header>
+    <header className="workspace-files-heading"><strong>项目文件</strong>
+      <nav className="workspace-file-folders" aria-label="项目文件夹">
+        <Tooltip title="来源资料"><a aria-label="来源资料" href={`/image-gallery?tab=sources&project=${encodeURIComponent(projectId)}`}><FolderOutlined aria-hidden /></a></Tooltip>
+        <Tooltip title="大纲与章节"><button aria-label="大纲与章节" type="button" onClick={() => { switchPanel('contents'); onNavigate?.(); }}><FileTextOutlined aria-hidden /></button></Tooltip>
+        <Tooltip title="导出文件"><a aria-label="导出文件" href={`/image-gallery?tab=exports&project=${encodeURIComponent(projectId)}`}><DownloadOutlined aria-hidden /></a></Tooltip>
+        <Tooltip title="在当前页后新建幻灯片"><button aria-label="新建幻灯片" type="button" onClick={() => bridge.call('insertNewSlide')}><PlusOutlined aria-hidden /></button></Tooltip>
+      </nav>
+    </header>
     <div className="workspace-file-search"><Input aria-label="搜索项目文件" placeholder="查找页面…" prefix={<SearchOutlined aria-hidden />} value={filter} allowClear onChange={event => { setFilter(event.target.value); switchPanel('slides'); }} /></div>
-    <nav className="workspace-file-folders" aria-label="项目文件夹">
-      <a title="来源资料" href={`/image-gallery?tab=sources&project=${encodeURIComponent(projectId)}`}><FolderOutlined aria-hidden />来源资料</a>
-      <button title="大纲与章节" type="button" onClick={() => { switchPanel('contents'); onNavigate?.(); }}><FileTextOutlined aria-hidden />大纲与章节</button>
-      <a title="导出文件" href={`/image-gallery?tab=exports&project=${encodeURIComponent(projectId)}`}><DownloadOutlined aria-hidden />导出文件</a>
-      <button className="workspace-compact-create" type="button" title="新建幻灯片" aria-label="新建幻灯片" onClick={() => bridge.call('insertNewSlide')}><PlusOutlined aria-hidden /></button>
-    </nav>
     <div className="editor-document-tabs"><Segmented block aria-label="左侧内容" value={panel} onChange={switchPanel} options={[
       { value: 'slides', label: '幻灯片' }, { value: 'contents', label: '目录' }, { value: 'outline', label: '大纲' }, { value: 'speech', label: '讲稿' },
     ]} /></div>

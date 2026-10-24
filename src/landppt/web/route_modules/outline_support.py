@@ -1101,7 +1101,7 @@ async def _process_url_sources_for_outline(
     downloaded_file_paths: List[str] = []
 
     try:
-        from ...services.research.content_extractor import WebContentExtractor
+        from ...services.research.content_extractor import WEB_FETCH_HEADER_LIMITS, WEB_FETCH_USER_AGENT, WebContentExtractor
         from ...services.file_processor import FileProcessor
 
         extractor = WebContentExtractor()
@@ -1129,10 +1129,10 @@ async def _process_url_sources_for_outline(
 
         timeout = aiohttp.ClientTimeout(total=60)
         headers = {
-            "User-Agent": "LandPPT Research Bot 1.0",
+            "User-Agent": WEB_FETCH_USER_AGENT,
             "Accept": "*/*",
         }
-        async with aiohttp.ClientSession(timeout=timeout, headers=headers) as session:
+        async with aiohttp.ClientSession(timeout=timeout, headers=headers, **WEB_FETCH_HEADER_LIMITS) as session:
             for idx, source_url in enumerate(source_urls, start=1):
                 likely_file_source = await _url_likely_points_to_file(session, source_url)
                 if not likely_file_source:

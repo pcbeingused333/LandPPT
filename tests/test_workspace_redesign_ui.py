@@ -67,6 +67,76 @@ def test_workspace_switches_in_place_and_preserves_editor_document(ui_page):
     assert not state["errors"] and not state["writes"]
 
 
+@pytest.mark.parametrize("view", ["overview", "planning", "generate"])
+@pytest.mark.parametrize("entry", ["route", "query"])
+def test_nonediting_views_release_the_assistant_panel_on_initial_load(ui_page, view, entry):
+    page, load = ui_page
+
+    def with_query(template, **kwargs):
+        if entry == "query":
+            kwargs["path"] += f"?workspace={view}"
+        return load(template, **kwargs)
+
+    state = workspace(page, with_query, view=view if entry == "route" else "slides")
+    expect(page.locator(".main-editor")).to_have_attribute("data-workspace-view", view)
+    expect(page.get_by_role("region", name="AI 编辑助手", exact=True)).not_to_be_visible()
+    expect(page.locator(".workspace-assistant-panel")).not_to_be_visible()
+    expect(page.locator(".ant-splitter-bar:has(+ .workspace-assistant-panel)")).not_to_be_visible()
+    preview = page.locator(".workspace-preview-host").bounding_box()
+    splitter = page.locator(".project-splitter").bounding_box()
+    assert preview["x"] + preview["width"] >= splitter["x"] + splitter["width"] - 1
+    if entry == "route":
+        page.screenshot(path=f"artifacts/ui-redesign/assistant-scope-{view}.png", full_page=True)
+    page.get_by_label("项目工作区视图").get_by_text("编辑", exact=True).click()
+    expect(page.get_by_role("region", name="AI 编辑助手", exact=True)).to_be_visible()
+    assert not state["errors"] and not state["writes"]
+
+
+def test_assistant_defaults_open_on_editor_entry_and_keeps_the_chat_draft(ui_page):
+    page, load = ui_page
+    state = workspace(page, load)
+    assistant = page.get_by_role("region", name="AI 编辑助手", exact=True)
+    expect(assistant).to_be_visible()
+    command = page.get_by_role("textbox", name="AI 编辑指令", exact=True)
+    command.fill("切换页面后继续编辑这个草稿")
+    tabs = page.get_by_label("项目工作区视图")
+    for label in ("概览", "大纲", "生成"):
+        page.get_by_role("button", name="收起 AI 助手", exact=True).click()
+        expect(assistant).not_to_be_visible()
+        tabs.get_by_text(label, exact=True).click()
+        expect(page.locator(".workspace-assistant-panel")).not_to_be_visible()
+        tabs.get_by_text("编辑", exact=True).click()
+        expect(assistant).to_be_visible()
+        expect(command).to_have_value("切换页面后继续编辑这个草稿")
+    tabs.get_by_text("概览", exact=True).click()
+    expect(assistant).not_to_be_visible()
+    tabs.get_by_text("编辑", exact=True).click()
+    expect(assistant).to_be_visible()
+    expect(command).to_have_value("切换页面后继续编辑这个草稿")
+    assert not state["errors"] and not state["writes"]
+
+
+def test_mobile_assistant_closes_when_leaving_editing_and_retains_the_draft(ui_page):
+    page, load = ui_page
+    page.set_viewport_size({"width": 390, "height": 844})
+    state = workspace(page, load, view="overview")
+    assistant = page.get_by_role("dialog", name=re.compile("^AI 编辑助手"))
+    expect(assistant).not_to_be_visible()
+    tabs = page.get_by_label("项目工作区视图")
+    tabs.get_by_text("编辑", exact=True).click()
+    page.get_by_role("button", name="AI 编辑", exact=True).click()
+    expect(assistant).to_be_visible()
+    page.get_by_role("textbox", name="AI 编辑指令", exact=True).fill("手机端的编辑草稿")
+    # App navigation may come from an assistant action while its modal covers the tabs.
+    page.evaluate("document.dispatchEvent(new CustomEvent('landppt:navigate', {detail: '/projects/ui-editor/todo?view=planning', cancelable: true}))")
+    expect(page.locator(".main-editor")).to_have_attribute("data-workspace-view", "planning")
+    expect(assistant).not_to_be_visible()
+    tabs.get_by_text("编辑", exact=True).click()
+    page.get_by_role("button", name="AI 编辑", exact=True).click()
+    expect(page.get_by_role("textbox", name="AI 编辑指令", exact=True)).to_have_value("手机端的编辑草稿")
+    assert not state["errors"] and not state["writes"]
+
+
 def test_sidebar_persists_and_search_submits_the_existing_query(ui_page):
     page, load = ui_page
     workspace(page, load)

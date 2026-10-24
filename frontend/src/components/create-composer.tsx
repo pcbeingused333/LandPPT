@@ -1,6 +1,6 @@
 import { lazy, Suspense, useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
-import { Alert, Button, Card, Checkbox, Collapse, Divider, Drawer, Empty, Flex, Form, Grid, Input, InputNumber, Modal, Segmented, Select, Space, Spin, Tabs, Tag, Typography, Upload, theme } from 'antd';
-import { ArrowRightOutlined, DownOutlined, FontSizeOutlined, InboxOutlined, LinkOutlined, PaperClipOutlined, ReloadOutlined, SlidersOutlined } from '@ant-design/icons';
+import { Alert, Button, Card, Checkbox, Divider, Empty, Flex, Form, Input, InputNumber, Modal, Segmented, Select, Space, Spin, Tabs, Tag, Tooltip, Typography, Upload, theme } from 'antd';
+import { ArrowRightOutlined, DownOutlined, FontSizeOutlined, InboxOutlined, InfoCircleOutlined, LinkOutlined, PaperClipOutlined, ReloadOutlined, SlidersOutlined } from '@ant-design/icons';
 import { errorText, request, type ApiData } from '../api';
 import { useCreationDraft } from './creation-draft';
 import { modalFocus } from './modal-focus';
@@ -25,7 +25,6 @@ function CreationTemplatePicker({ children, onClose }: { children: ReactNode; on
 }
 
 function ComposerForm({ data, compact }: { data: ApiData; compact: boolean }) {
-  const screens = Grid.useBreakpoint();
   const { draft, feedback, setFeedback } = useCreationDraft();
   const [form] = Form.useForm();
   const { token } = theme.useToken();
@@ -33,7 +32,6 @@ function ComposerForm({ data, compact }: { data: ApiData; compact: boolean }) {
     ...(new URLSearchParams(location.search).has('scenario') ? { scenario: data.selectedScenario || 'general' } : {}) }));
   const [expanded, setExpanded] = useState(!compact);
   const [pickingTemplate, setPickingTemplate] = useState(false);
-  const focusAfterOpen = useRef<(string | number)[] | null>(null);
   const advancedTriggerRef = useRef<HTMLButtonElement>(null);
   const watched = Form.useWatch(values => values, form);
   const values = { ...initial, ...watched };
@@ -137,7 +135,8 @@ function ComposerForm({ data, compact }: { data: ApiData; compact: boolean }) {
     <Space wrap><Button disabled={pending || packageLoading} onClick={() => setPickingTemplate(true)}>浏览模板包</Button><Button size="small" icon={<ReloadOutlined aria-hidden />} loading={packageLoading} disabled={pending} onClick={() => setRefresh(value => value + 1)}>刷新模板包</Button><a href="/global-master-templates?tab=packages" target="_blank" rel="noopener">管理模板包</a></Space>
     {packageError ? <Alert className="page-error" type="error" title={packageError} /> : !packageLoading && !packages.length ? <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="暂无已发布模板包" /> : <p className="subtle">参考模板包规划大纲，使用 SVG 绘制。</p>}
   </div>;
-  const advanced = <div id="creationAdvanced" className={compact ? 'composer-advanced' : undefined} hidden={!compact && !expanded}>
+  const advanced = <div id="creationAdvanced" className={compact ? 'composer-advanced' : undefined} hidden={!expanded}
+    onKeyDown={event => { if (event.key === 'Escape' && !event.defaultPrevented && !(event.target as HTMLElement).closest('.ant-select-open')) { event.preventDefault(); setExpanded(false); advancedTriggerRef.current?.focus({ preventScroll: true }); } }}>
     <div className="create-field-grid">
       {select('scenario', '场景', (data.scenarios?.length ? data.scenarios : [{ id: 'general', name: '通用' }]).map((item: ApiData) => ({ value: item.id, label: item.name })))}
       {select('audience_type', '目标受众', audienceOptions.map(value => ({ value, label: value })))}
@@ -151,17 +150,21 @@ function ComposerForm({ data, compact }: { data: ApiData; compact: boolean }) {
       {select('render_mode', '页面绘制方式', choices([['html', 'HTML（默认）'], ['svg', 'SVG（实验）']]), fast)}
     </div>
     <div className="create-extra-settings">
-      {check('network_mode', '联网深度研究')}
-      <p className="subtle create-research-help">联网研究需先在 <a href="/ai-config">系统配置</a> 填写 Tavily Key / SearXNG 地址。<a href="/research">查看研究状态</a></p>
-      <Collapse items={[{ key: 'pages', label: '章节与页码', children: <>{check('include_transition_pages', '章节过渡页')}{check('include_page_numbers', '页码 / Footer')}</> },
-        ...(data.user?.is_admin ? [{ key: 'unattended', label: '无人值守', children: <>
-          {check('unattended_mode', '开启无人值守')}
-          <p className="subtle">自动执行到所选阶段，无需人工确认。</p>
+      <div className="create-option-row">
+        {check('network_mode', '联网深度研究')}
+        <Tooltip title={<>联网研究需先在系统配置填写 Tavily Key / SearXNG 地址。</>}><a className="create-research-help" href="/research" aria-label="查看研究状态"><InfoCircleOutlined aria-hidden /></a></Tooltip>
+        {check('include_transition_pages', '章节过渡页')}{check('include_page_numbers', '页码 / Footer')}
+        {data.user?.is_admin && check('unattended_mode', '无人值守')}
+      </div>
+      {data.user?.is_admin && values.unattended_mode && <div className="create-unattended">
+        <p className="subtle">自动执行到所选阶段，无需人工确认。</p>
+        <div className="create-field-grid">
           {select('stop_at_stage', '停止阶段', stages)}
           {select('unattended_template_mode', '无人值守模板', choices([['auto', '使用我的默认模板'], ['global', '指定已有模板'], ['free', '自由模板（AI 按大纲生成）']]))}
           {values.unattended_template_mode === 'global' && <Form.Item name="unattended_template_id" label="选择模板"><Select aria-label="选择模板" placeholder="暂无可用模板" options={(data.templateOptions || []).map((item: ApiData) => ({ value: String(item.id), label: item.name + (item.is_default ? '（默认）' : '') }))} /></Form.Item>}
-          {check('unattended_notify_in_app', '系统通知')}{check('unattended_notify_email', '邮件通知')}
-        </> }] : [])]} />
+        </div>
+        <div className="create-option-row">{check('unattended_notify_in_app', '系统通知')}{check('unattended_notify_email', '邮件通知')}</div>
+      </div>}
     </div>
   </div>;
   const errorAlert = error && <Alert className="page-error" type="error" title={error} description={redirect ? <span>项目已创建，可<a href={redirect}>前往看板</a>手动确认需求，避免重复创建。</span> : undefined} showIcon />;
@@ -173,10 +176,9 @@ function ComposerForm({ data, compact }: { data: ApiData; compact: boolean }) {
     onFinishFailed: ({ errorFields }: { errorFields: { name: (string | number)[] }[] }) => {
       const first = errorFields[0]; if (!first) return;
       if (!['topic', 'requirements', 'content_urls', 'package_version_id'].includes(String(first.name[0]))) {
-        if (compact && !expanded) focusAfterOpen.current = first.name;
         setExpanded(true);
       }
-      requestAnimationFrame(() => { if (mounted.current && !focusAfterOpen.current) form.scrollToField(first.name, { focus: true }); });
+      requestAnimationFrame(() => { if (mounted.current) form.scrollToField(first.name, { focus: true }); });
     } };
   const picker = pickingTemplate && <CreationTemplatePicker onClose={() => setPickingTemplate(false)}>
     <Suspense fallback={<div role="status"><Spin />正在加载模板包…</div>}><TemplatePackages preferred={Number(values.package_version_id) || 0} selecting pickOnly onSelect={selectPackage} /></Suspense>
@@ -195,11 +197,7 @@ function ComposerForm({ data, compact }: { data: ApiData; compact: boolean }) {
         <Flex className="composer-actions" gap={8} align="center">{advancedTrigger}{submitButton}</Flex>
       </Flex>
       {packageField && <div className="composer-package">{packageField}</div>}
-      <Drawer title="高级参数" open={expanded} forceRender size={screens.xs ? '100%' : 520} onClose={() => setExpanded(false)} className="creation-parameters-drawer"
-        afterOpenChange={open => { if (open && focusAfterOpen.current) { form.scrollToField(focusAfterOpen.current, { focus: true }); focusAfterOpen.current = null; } else if (!open) advancedTriggerRef.current?.focus({ preventScroll: true }); }}
-        footer={<Flex justify="space-between" align="center" gap={12}><Typography.Text type="secondary">设置即时保留</Typography.Text><Button type="primary" onClick={() => setExpanded(false)}>完成设置</Button></Flex>}>
-        {advanced}
-      </Drawer>
+      {advanced}
       {picker}
       {errorAlert}
     </Form>

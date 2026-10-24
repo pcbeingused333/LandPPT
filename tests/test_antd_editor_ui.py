@@ -164,7 +164,10 @@ def setup(
     )
     # Retired toolbar nodes are inert/hidden even without React; the native
     # preview remains the controller's visible initialization boundary.
-    page.locator("#slideFrame" if native else ".editor-ant-toolbar").wait_for()
+    # The mounted toolbar is hidden when the merged workspace starts outside editing.
+    page.locator("#slideFrame" if native else ".editor-ant-toolbar").wait_for(
+        state="visible" if native else "attached"
+    )
     return state
 
 
@@ -342,7 +345,9 @@ def test_editor_permission_dependent_actions_keep_visibility(ui_page, restricted
     page, load = ui_page
     state = setup(page, load, restricted=restricted)
     page.get_by_role("button", name="导出", exact=True).click()
-    assert page.get_by_role("radio", name="标准导出 PPTX", exact=True).count() == (
+    menu = page.locator(".editor-export-menu .ant-dropdown-menu")
+    expect(menu).to_be_visible()
+    assert menu.get_by_role("menuitem", name=re.compile("^标准导出 PPTX")).count() == (
         0 if restricted else 1
     )
     page.keyboard.press("Escape")
@@ -530,4 +535,22 @@ def test_editor_ant_select_keeps_visible_value_and_primary_action_light(ui_page)
     expect(dialog).to_be_visible()
     expect(field).to_have_attribute("aria-expanded", "false")
     assert page.locator("#slideFrame").get_attribute("srcdoc") == original
+    assert not state["writes"] and not state["errors"]
+
+
+def test_preview_arrows_move_selection_header_and_assistant_like_a_thumbnail_click(ui_page):
+    page, load = ui_page
+    state = setup(page, load)
+    page.evaluate("setSingleSlideSelection(0)")
+    page.hover(".slide-frame-container")
+    page.locator("#previewNextBtn").click()
+    expect(page.locator(".editor-ant-title")).to_contain_text("第 2 / 2 页")
+    expect(page.locator(".slide-thumbnail.selected")).to_have_attribute("data-slide-index", "1")
+    expect(page.locator(".slide-thumbnail.active")).to_have_attribute("data-slide-index", "1")
+    expect(page.get_by_role("region", name="AI 编辑助手", exact=True)).to_contain_text("第 2 页")
+    assert page.evaluate("document.getElementById('slideFrame').getAttribute('srcdoc') === slidesData[1].html_content")
+    page.hover(".slide-frame-container")
+    page.locator("#previewPrevBtn").click()
+    expect(page.locator(".editor-ant-title")).to_contain_text("第 1 / 2 页")
+    expect(page.locator(".slide-thumbnail.selected")).to_have_attribute("data-slide-index", "0")
     assert not state["writes"] and not state["errors"]

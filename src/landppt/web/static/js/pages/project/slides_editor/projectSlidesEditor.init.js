@@ -48,8 +48,8 @@ function getThumbnailBaseSize(iframe) {
 function applyThumbnailPreviewScale(iframe) {
     if (!iframe) return;
 
-    const preview = iframe.closest('.slide-preview');
-    if (!preview) return;
+    const preview = iframe.parentElement;
+    if (!preview || !preview.classList.contains('slide-preview')) return;
 
     const previewRect = preview.getBoundingClientRect();
     const previewWidth = previewRect.width || preview.clientWidth;
@@ -68,7 +68,8 @@ function applyThumbnailPreviewScale(iframe) {
 }
 
 function applyThumbnailPreviewScaleToAll() {
-    document.querySelectorAll('.slide-preview iframe').forEach((iframe) => {
+    // Editor thumbnails only; generator cards inside the workspace scale their own .slide-document.
+    document.querySelectorAll('.slide-preview > iframe').forEach((iframe) => {
         applyThumbnailPreviewScale(iframe);
     });
 }

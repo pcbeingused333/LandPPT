@@ -1,5 +1,5 @@
 .generator-ant-workspace .slide-card { width: 100%; min-width: 0; max-width: 440px; justify-self: start; overflow: hidden; }
-.generator-ant-workspace .slide-header { height: 48px; min-height: 48px; }
+.generator-ant-workspace .slide-header { height: 40px; min-height: 40px; }
 .generator-ant-workspace .slide-card .ant-card-head-wrapper { gap: 8px; }
 .generator-ant-workspace .slide-title { display: block; }
 .generator-ant-workspace .slide-card .ant-tag { margin-inline-end: 0; }

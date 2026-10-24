@@ -61,7 +61,7 @@ function LandPPT({ initial }: { initial: ShellData & Record<string, any> }) {
   const page = useMemo(() => {
     const Page = view.Page || (data.page === 'error' ? ErrorPage : data.page === 'slides-editor' ? SlidesEditor : data.page === 'home' ? Home : data.page === 'generator-workspace' ? GeneratorChrome : data.page === 'presentation' ? Presentation : data.page === 'todo' ? Todo : pages[data.page as keyof typeof pages]);
     return <PageBoundary key={view.key}><Suspense fallback={<div className="page-loading" role="status"><Spin /> 正在加载…</div>}>
-      {Page ? <Page data={data} /> : <Result status="404" title="页面不存在" extra={<Button href="/dashboard">返回工作台</Button>} />}
+      {Page ? <Page data={data} /> : <Result status="404" title="页面不存在" extra={<Button href="/dashboard">返回首页</Button>} />}
     </Suspense></PageBoundary>;
   }, [view]);
   return <CreationDraftProvider key={`${data.user?.username || 'guest'}:${!!data.user?.is_admin}`}>{data.page === 'presentation' ? page : <Shell data={data} pending={pending}>{page}</Shell>}</CreationDraftProvider>;

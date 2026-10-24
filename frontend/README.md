@@ -129,7 +129,10 @@ Primary controls use a light fill, dark text and pill corners; panels use 16px
 corners. Slide iframe documents and the login brand illustration own their art.
 
 The workspace mounts the existing editor DOM nodes into three Ant Splitter panels:
-AI, files/documents and preview. Reparenting preserves native listeners and drafts.
+files/documents, preview and AI. Reparenting preserves native listeners and drafts.
+Only the editing view shows the AI rail, expanded by default on entry; other views
+hide its panel and separator to give that space to their content. Switching views
+preserves the native chat draft, and manual collapse lasts until reentering editing.
 The continuous preview reuses `SlideDocument` without rewriting presentation HTML.
 At narrow widths the AI opens in a drawer and the document rail overlays the
 preview. Planning/generation monitors mount only for the active view; the existing

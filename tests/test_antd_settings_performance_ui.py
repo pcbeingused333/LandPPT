@@ -14,7 +14,7 @@ def test_settings_width_matches_dashboard(ui_page, width, height):
     page, load = ui_page
     page.set_viewport_size(dict(width=width, height=height))
     load("pages/project/project_dashboard.html", path="/dashboard")
-    page.get_by_role("heading", name="项目仪表板", exact=True).wait_for()
+    page.get_by_role("heading", name="首页", exact=True).wait_for()
     dashboard = page.locator(".page-heading").bounding_box()
     settings(page, load)
     bounds = page.locator(".settings-page > .page-heading").bounding_box()

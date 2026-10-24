@@ -19,11 +19,13 @@ def test_settings_drawer_retains_fields_and_returns_keyboard_focus(
     page.get_by_role("textbox", name="PPT 主题", exact=True).fill("我的演示草稿")
     trigger = page.get_by_role("button", name="高级参数", exact=True)
     trigger.click()
-    drawer = page.get_by_role("dialog", name="高级参数", exact=True)
+    # The settings tray is inline under the composer, not a dialog.
+    drawer = page.locator("#creationAdvanced")
     expect(drawer).to_be_visible()
+    expect(page.get_by_role("dialog")).to_have_count(0)
     bounds = drawer.bounding_box()
     assert bounds["x"] >= 0 and bounds["x"] + bounds["width"] <= width + 1
-    assert bounds["y"] >= 0 and bounds["y"] + bounds["height"] <= height + 1
+    assert bounds["y"] >= 0
     select(page, "目标受众", "自定义")
     drawer.get_by_role("textbox", name="自定义受众描述", exact=True).fill("产品团队")
     if width <= 600:
@@ -34,17 +36,19 @@ def test_settings_drawer_retains_fields_and_returns_keyboard_focus(
             == "16px"
         )
     select(page, "语言", "English")
-    drawer.get_by_role("button", name="完成设置", exact=True).click()
+    collapse = page.locator(".create-advanced-trigger")
+    collapse.click()
     expect(drawer).not_to_be_visible()
-    expect(trigger).to_be_focused()
+    expect(collapse).to_be_focused()
     expect(page.locator("#creationAdvancedSummary")).to_contain_text("English")
     trigger.click()
     expect(
         drawer.get_by_role("textbox", name="自定义受众描述", exact=True)
     ).to_have_value("产品团队")
+    drawer.get_by_role("textbox", name="自定义受众描述", exact=True).focus()
     page.keyboard.press("Escape")
     expect(drawer).not_to_be_visible()
-    expect(trigger).to_be_focused()
+    expect(collapse).to_be_focused()
     expect(page.get_by_role("textbox", name="PPT 主题", exact=True)).to_have_value(
         "我的演示草稿"
     )

@@ -28,7 +28,7 @@ def test_four_primary_destinations_keep_creation_and_settings_accessible(
         page.get_by_role("button", name="菜单", exact=True).click()
     nav = page.get_by_role("navigation", name="主导航", exact=True)
     assert nav.get_by_role("link").all_text_contents() == [
-        "工作台",
+        "首页",
         "项目",
         "模板",
         "素材",
@@ -92,9 +92,7 @@ def test_draft_files_and_advanced_values_survive_both_creation_presentations(ui_
     page.get_by_role("button", name="高级参数", exact=True).click()
     select(page, "目标受众", "自定义")
     page.get_by_role("textbox", name="自定义受众描述", exact=True).fill("产品团队")
-    page.get_by_role("dialog", name="高级参数", exact=True).get_by_role(
-        "button", name="完成设置", exact=True
-    ).click()
+    page.locator(".create-advanced-trigger").click()
     page.locator(".composer-toolbar .ant-segmented").get_by_text(
         "文件资料", exact=True
     ).click()
@@ -133,9 +131,7 @@ def test_collapsed_required_field_reopens_before_focusing_validation_error(ui_pa
     page.get_by_role("button", name="高级参数", exact=True).click()
     select(page, "目标受众", "自定义")
     select(page, "语言", "English")
-    page.get_by_role("dialog", name="高级参数", exact=True).get_by_role(
-        "button", name="完成设置", exact=True
-    ).click()
+    page.locator(".create-advanced-trigger").click()
     expect(page.locator("#creationAdvancedSummary")).to_have_text(
         "English · AI 智能页数 · 通用风格"
     )

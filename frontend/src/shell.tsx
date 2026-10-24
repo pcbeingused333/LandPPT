@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { App, Button, Drawer, Dropdown, Input, Space, Tooltip } from 'antd';
-import { BellOutlined, MenuOutlined, UserOutlined, SettingOutlined, LogoutOutlined, GithubOutlined, MailOutlined, HeartOutlined, SearchOutlined, AppstoreOutlined, FolderOutlined, PictureOutlined, LayoutOutlined, MenuFoldOutlined, MenuUnfoldOutlined, PlusOutlined, FileTextOutlined } from '@ant-design/icons';
+import { BellOutlined, MenuOutlined, UserOutlined, SettingOutlined, LogoutOutlined, GithubOutlined, MailOutlined, HeartOutlined, SearchOutlined, HomeOutlined, FolderOutlined, PictureOutlined, LayoutOutlined, MenuFoldOutlined, MenuUnfoldOutlined, FileTextOutlined } from '@ant-design/icons';
 import { version } from '../package.json';
 import { modalFocus } from './components/modal-focus';
 import { NotificationDrawer, SiteAnnouncement } from './components/shell-feedback';
@@ -80,7 +80,7 @@ export function Shell({ data, children, pending = '' }: { data: ShellData; child
   }, [data.user?.username]);
   useEffect(() => { setMenuOpen(false); }, [data.page]);
   const links = [
-    ['工作台', '/dashboard', <AppstoreOutlined aria-hidden />], ['项目', '/projects', <FolderOutlined aria-hidden />], ['模板', '/global-master-templates', <LayoutOutlined aria-hidden />], ['素材', '/image-gallery', <PictureOutlined aria-hidden />],
+    ['首页', '/dashboard', <HomeOutlined aria-hidden />], ['项目', '/projects', <FolderOutlined aria-hidden />], ['模板', '/global-master-templates', <LayoutOutlined aria-hidden />], ['素材', '/image-gallery', <PictureOutlined aria-hidden />],
   ];
   const current = (href: string) => location.pathname === href || (href === '/projects' && location.pathname.startsWith('/projects/'));
   const logout = () => modal.confirm({ title: '退出登录', content: '确定要退出登录吗？', okText: '退出', cancelText: '取消', modalRender: modalFocus, onOk: () => { location.href = '/auth/logout'; } });
@@ -98,13 +98,12 @@ export function Shell({ data, children, pending = '' }: { data: ShellData; child
     {!authPage && <aside className="app-sidebar" aria-label="应用侧栏">
       <div className="sidebar-brand-row"><a className="app-brand" href="/home" aria-label="LandPPT 首页"><span className="brand-symbol" aria-hidden /><span className="sidebar-wordmark">LandPPT</span></a><Button type="text" aria-label={collapsed ? '展开导航' : '收起导航'} aria-expanded={!collapsed} icon={collapsed ? <MenuUnfoldOutlined aria-hidden /> : <MenuFoldOutlined aria-hidden />} onClick={() => setCollapsed(value => !value)} /></div>
       {collapsed ? <Tooltip title="搜索项目" placement="right"><Button type="text" aria-label="搜索项目" href="/projects" icon={<SearchOutlined aria-hidden />} /></Tooltip> : searchForm}
-      <Tooltip title={collapsed ? '创建 PPT' : undefined} placement="right"><Button type="primary" className="sidebar-create" href="/create" aria-label="创建 PPT" icon={<PlusOutlined aria-hidden />}><span className="app-nav-label">创建 PPT</span></Button></Tooltip>
       {navigation}{data.page !== 'home' && recentProjects}
-      <div className="sidebar-bottom">{data.creditsEnabled && <a className="sidebar-credits" href="/credits"><span>◈</span><span className="app-nav-label">我的积分</span></a>}<a href="/ai-config" aria-label="系统配置"><SettingOutlined aria-hidden /><span className="app-nav-label">系统配置</span></a>{(sponsorsEnabled || data.user?.is_admin) && <a id="navSponsorLink" href="/sponsors"><HeartOutlined aria-hidden /><span className="app-nav-label">{sponsorsEnabled ? '赞助感谢' : '赞助预览'}</span></a>}</div>
+      <div className="sidebar-bottom">{data.creditsEnabled && <a className="sidebar-credits" href="/credits" aria-current={location.pathname === '/credits' ? 'page' : undefined}><span aria-hidden>◈</span><span className="app-nav-label">我的积分</span></a>}<a href="/ai-config" aria-label="系统配置"><SettingOutlined aria-hidden /><span className="app-nav-label">系统配置</span></a>{(sponsorsEnabled || data.user?.is_admin) && <a id="navSponsorLink" href="/sponsors"><HeartOutlined aria-hidden /><span className="app-nav-label">{sponsorsEnabled ? '赞助感谢' : '赞助预览'}</span></a>}</div>
     </aside>}
     <div className="app-body"><header className="app-header">
       {!authPage && <Button ref={menuTrigger} className="mobile-menu" type="text" aria-label="菜单" aria-expanded={menuOpen} icon={<MenuOutlined aria-hidden />} onClick={() => setMenuOpen(true)} />}
-      <a className="app-brand mobile-brand" href="/home">LandPPT</a><span className="app-location">{({ dashboard: '工作台', projects: '项目库', templates: '模板库', 'image-gallery': '素材库', 'slides-editor': '创作工作区', 'project-detail': '创作工作区', todo: '创作工作区', 'generator-workspace': '创作工作区' } as Record<string, string>)[data.page] || 'LandPPT'}</span>
+      <a className="app-brand mobile-brand" href="/home">LandPPT</a><span className="app-location">{({ dashboard: '首页', projects: '项目库', templates: '模板库', 'image-gallery': '素材库', 'slides-editor': '创作工作区', 'project-detail': '创作工作区', todo: '创作工作区', 'generator-workspace': '创作工作区' } as Record<string, string>)[data.page] || 'LandPPT'}</span>
       {authPage ? <Button className="app-account" href="/home">返回首页</Button> : <Space size={8} className="app-account">
         <Tooltip title="系统配置" trigger={['hover', 'focus']}><Button className="app-settings" type="text" href="/ai-config" aria-label="系统配置" icon={<SettingOutlined aria-hidden />} /></Tooltip>
         {data.user ? <><Button type="text" id="navNotificationBell" aria-label="通知" icon={<BellOutlined aria-hidden />}><span id="navNotificationBadge" hidden>0</span></Button>

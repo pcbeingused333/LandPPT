@@ -81,7 +81,7 @@ def test_dashboard_overview_and_tasks_are_usable_without_overflow(
         recent_projects=[] if scene == "empty" else [project],
         active_todo_boards=boards,
     )
-    page.get_by_role("heading", name="项目仪表板", exact=True).wait_for()
+    page.get_by_role("heading", name="首页", exact=True).wait_for()
     overview = page.get_by_role("navigation", name="项目概览")
     assert [a.get_attribute("href") for a in overview.get_by_role("link").all()] == [
         "/projects",

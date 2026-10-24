@@ -693,58 +693,20 @@ function applyMainFrameScale() {
 }
 
 // Preview navigation
+// Arrows act like a plain thumbnail click: single-select the page, then go through
+// selectSlide so the check mark, React header and AI assistant all follow.
 function navigatePreviewSlide(direction) {
     if (!hasSlidesData) {
         return;
     }
 
     const newIndex = currentSlideIndex + direction;
-
-    if (newIndex >= 0 && newIndex < slidesData.length) {
-        // 先更新currentSlideIndex
-        currentSlideIndex = newIndex;
-
-        // 显式更新侧边栏缩略图选中状态（放在最前面确保执行）
-        const thumbnails = document.querySelectorAll('.slide-thumbnail');
-
-        thumbnails.forEach((thumb, i) => {
-            if (i === newIndex) {
-                thumb.classList.add('active');
-                thumb.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-            } else {
-                thumb.classList.remove('active');
-            }
-        });
-
-        // 更新预览和编辑器
-        if (slidesData[newIndex]) {
-            const slideFrame = document.getElementById('slideFrame');
-            const codeEditor = document.getElementById('codeEditor');
-
-            if (slideFrame) {
-                slideFrame.style.opacity = '0.8';
-                slideFrame.style.transition = 'opacity 0.2s ease';
-                setSafeIframeContent(slideFrame, slidesData[newIndex].html_content);
-                setTimeout(() => {
-                    slideFrame.style.opacity = '1';
-                    forceReinitializeIframeJS(slideFrame);
-                }, 150);
-            }
-
-            if (codeEditor) {
-                if (codeMirrorEditor && isCodeMirrorInitialized) {
-                    codeMirrorEditor.setValue(slidesData[newIndex].html_content);
-                } else {
-                    codeEditor.value = slidesData[newIndex].html_content;
-                }
-            }
-        }
-
-        updatePreviewNavButtons();
-        updateAICurrentSlideInfo();
-        clearAIMessagesForSlideSwitch();
-        clearImageSelection();
+    if (newIndex < 0 || newIndex >= slidesData.length) {
+        return;
     }
+
+    setSingleSlideSelection(newIndex);
+    selectSlide(newIndex);
 }
 
 function updatePreviewNavButtons() {
