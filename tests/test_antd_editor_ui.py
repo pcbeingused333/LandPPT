@@ -162,8 +162,15 @@ def setup(
         narration_video_tools_enabled=not restricted,
         enable_auto_layout_repair=not restricted,
     )
-    # Retired toolbar nodes are inert/hidden even without React; the native
-    # preview remains the controller's visible initialization boundary.
+    # Native-only tests deliberately bypass the application's startup gate to
+    # exercise specialized engines without mounting the React workspace.
+    if native:
+        page.locator(".editor-container").evaluate(
+            "node => node.removeAttribute('data-editor-staged')"
+        )
+        page.locator(".main-editor").evaluate(
+            "node => { node.dataset.workspaceView = 'slides'; node.dataset.continuous = 'false'; }"
+        )
     # The mounted toolbar is hidden when the merged workspace starts outside editing.
     page.locator("#slideFrame" if native else ".editor-ant-toolbar").wait_for(
         state="visible" if native else "attached"

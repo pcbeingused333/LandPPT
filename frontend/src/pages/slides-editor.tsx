@@ -16,6 +16,7 @@ import { EditorDocumentSidebar } from '../components/editor-document-sidebar';
 import { createEditorController } from '../controllers/editor-controller';
 import { ProjectAgent } from '../components/project-agent';
 import { ContinuousPreview } from '../components/continuous-preview';
+import { EditorStartup } from '../components/editor-startup';
 import '../components/native-surfaces.css';
 import './slides-editor.css';
 
@@ -96,7 +97,8 @@ export default function SlidesEditor({ data }: { data: ApiData }) {
   const nativeContainer = useMemo(() => [document.querySelector('.editor-container')!], []);
   const nativeSidebar = useMemo(() => [document.getElementById('slidesSidebar')!], []);
   const nativeEditor = useMemo(() => [document.querySelector('.main-editor')!], []);
-  const desktop = !!screens.lg && window.innerWidth >= 1024;
+  const [ready, setReady] = useState(false);
+  const desktop = (screens.lg ?? window.innerWidth >= 1024) && window.innerWidth >= 1024;
   const editing = view === 'slides';
   const assistantVisible = desktop && editing && state.aiOpen;
   const wasDesktop = useRef(desktop);
@@ -163,6 +165,21 @@ export default function SlidesEditor({ data }: { data: ApiData }) {
     if (!editing) controller.call('closeAIEditSidebar');
     else if (desktop) controller.call('openAIEditSidebar', { focus: false });
   }, [editing, desktop, controller]);
+  useEffect(() => {
+    // NativeNodes has adopted the original nodes. Reveal only after the splitter
+    // has a measurable preview pane; do not wait for remote artwork resources.
+    let frame = 0;
+    const reveal = () => {
+      const pane = nativeEditor[0].parentElement;
+      if (!pane?.clientWidth || !pane.clientHeight) { frame = requestAnimationFrame(reveal); return; }
+      controller.call('applyMainFrameScale');
+      controller.call('applyThumbnailPreviewScaleToAll');
+      nativeContainer[0].removeAttribute('data-editor-staged');
+      setReady(true);
+    };
+    frame = requestAnimationFrame(reveal);
+    return () => { cancelAnimationFrame(frame); nativeContainer[0].setAttribute('data-editor-staged', ''); };
+  }, [controller, nativeContainer, nativeEditor]);
   useLayoutEffect(() => {
     const resize = () => {
       const quickToolbar = document.getElementById('quickEditToolbar');
@@ -213,7 +230,10 @@ export default function SlidesEditor({ data }: { data: ApiData }) {
     </Space>
   </div>;
   return <>
-    <NativeNodes nodes={nativeContainer} className="workspace-native-root" />
+    <div className="editor-mount" aria-busy={!ready}>
+      {!ready && <EditorStartup />}
+      <NativeNodes nodes={nativeContainer} className="workspace-native-root" />
+    </div>
     {createPortal(<Splitter className={`project-splitter${desktop ? ' is-desktop' : ''}`} onResize={sizes => setRailSizes([sizes[2], sizes[0]])} onCollapse={(collapsed, sizes) => { setRailSizes([sizes[2], sizes[0]]); if (editing && collapsed[2] !== !state.aiOpen) call(collapsed[2] ? 'closeAIEditSidebar' : 'openAIEditSidebar'); if (collapsed[0] !== !state.sidebar) call('toggleSidebar'); }}>
       <Splitter.Panel size={desktop && state.sidebar ? railSizes[1] || 240 : 0} min={desktop && state.sidebar ? 200 : 0} max="38%" resizable={desktop} collapsible>
         <NativeNodes nodes={nativeSidebar} className="workspace-files-host" />

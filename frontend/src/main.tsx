@@ -6,6 +6,7 @@ import { landpptTheme } from './theme';
 import { NavigationPending, Shell, type ShellData } from './shell';
 import { useSectionNavigation, type SectionLoaders } from './navigation';
 import { CreationDraftProvider } from './components/creation-draft';
+import { EditorStartup } from './components/editor-startup';
 import '../../src/landppt/web/static/css/shared/design-tokens.css';
 import './styles.css';
 import './workspace.css';
@@ -60,7 +61,7 @@ function LandPPT({ initial }: { initial: ShellData & Record<string, any> }) {
   const data = view.data as typeof initial;
   const page = useMemo(() => {
     const Page = view.Page || (data.page === 'error' ? ErrorPage : data.page === 'slides-editor' ? SlidesEditor : data.page === 'home' ? Home : data.page === 'generator-workspace' ? GeneratorChrome : data.page === 'presentation' ? Presentation : data.page === 'todo' ? Todo : pages[data.page as keyof typeof pages]);
-    return <PageBoundary key={view.key}><Suspense fallback={<div className="page-loading page-placeholder" role="status" aria-label="正在打开页面"><span /><span /><span /></div>}>
+    return <PageBoundary key={view.key}><Suspense fallback={data.page === 'slides-editor' ? <EditorStartup /> : <div className="page-loading page-placeholder" role="status" aria-label="正在打开页面"><span /><span /><span /></div>}>
       {Page ? <Page data={data} /> : <Result status="404" title="页面不存在" extra={<Button href="/dashboard">返回首页</Button>} />}
     </Suspense></PageBoundary>;
   }, [view]);

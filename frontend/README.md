@@ -58,6 +58,16 @@ settings and other private page responses are not cached. Startup and Suspense
 use quiet placeholders without the former LandPPT loading message; the dashboard
 topic example is “人工智能的未来结局”, with an empty input value.
 
+The editor keeps its native nodes staged outside document flow while scripts and
+the React workspace load. Server HTML, Suspense and the layout handoff share a
+quiet workspace skeleton. The original nodes become visible after adoption and
+the splitter has a measurable preview pane, without waiting for remote slide
+images/fonts or adding an artificial minimum delay. Classic editor scripts use
+`defer` to download concurrently and execute in dependency order. Resource
+failures offer an explicit refresh action. Native-only controller tests expose
+the staged nodes deliberately; normal startup never displays that partial layout.
+See `tests/test_antd_editor_startup_ui.py` for delayed-asset and failure checks.
+
 Home, dashboard, projects, creation, templates, images, configuration, project
 details, accounts, research and administration reuse the shell, React runtime
 and loaded modules when switching pages. Each switch

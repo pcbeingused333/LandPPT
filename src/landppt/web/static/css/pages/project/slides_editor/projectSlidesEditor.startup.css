@@ -1,0 +1,47 @@
+/* Stage the native nodes outside document flow until the workspace owns them.
+   Keep their dimensions available to the existing iframe/editor engines. */
+.landppt-editor .editor-container[data-editor-staged] {
+    visibility: hidden !important;
+    pointer-events: none !important;
+}
+.landppt-editor > .editor-container[data-editor-staged] {
+    position: fixed;
+    inset: 0;
+}
+.editor-mount { position: relative; min-width: 0; }
+.editor-mount > .editor-startup { position: absolute; inset: 0; z-index: 1; }
+.editor-startup {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    height: calc(100dvh - 60px);
+    min-width: 0;
+    overflow: hidden;
+    background: var(--lp-bg);
+}
+#antdRoot > .editor-startup { height: 100dvh; padding: 12px; }
+.editor-startup-heading, .editor-startup-files, .editor-startup-main, .editor-startup-assistant {
+    min-width: 0;
+    overflow: hidden;
+    border: 1px solid var(--lp-border);
+    border-radius: var(--lp-radius-panel);
+    background: var(--lp-surface);
+    padding: 12px;
+}
+.editor-startup-heading { display: flex; align-items: center; justify-content: space-between; gap: 24px; min-height: 56px; flex-shrink: 0; }
+.editor-startup span { display: block; background: var(--lp-elevated); border-radius: 6px; height: 14px; }
+.editor-startup-heading > span:first-child { width: 38%; }
+.editor-startup-heading > span:last-child { width: 22%; }
+.editor-startup-panels { display: grid; grid-template-columns: 240px minmax(0, 1fr) 340px; gap: 6px; flex: 1; min-height: 0; }
+.editor-startup-files, .editor-startup-assistant { display: flex; flex-direction: column; gap: 16px; }
+.editor-startup-files > span { aspect-ratio: 16 / 9; height: auto; flex-shrink: 0; }
+.editor-startup-main { display: flex; flex-direction: column; gap: 24px; }
+.editor-startup-main > span { width: 68%; height: 24px; flex-shrink: 0; }
+.editor-startup-main > div { width: 100%; aspect-ratio: 16 / 9; background: var(--lp-elevated); border-radius: 6px; }
+.editor-startup-assistant > span:first-child { width: 56%; }
+.editor-startup-assistant > span:last-child { height: 72px; margin-top: auto; }
+@media (min-width: 1024px) { .editor-startup { height: calc(100dvh - 46px); } }
+@media (max-width: 1023px) {
+    .editor-startup-panels { grid-template-columns: minmax(0, 1fr); }
+    .editor-startup-files, .editor-startup-assistant { display: none; }
+}
