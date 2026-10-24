@@ -167,6 +167,12 @@ button, input, textarea { font: inherit; }
 .skip-link { position: fixed; top: -100px; left: 16px; background: var(--lp-surface); padding: 8px; z-index: 2000; }
 .skip-link:focus { top: 4px; }
 .page-loading { min-height: 240px; display: flex; align-items: center; justify-content: center; gap: 12px; }
+.app-startup, .page-placeholder { display: grid; align-content: start; justify-content: stretch; gap: 16px; }
+.app-startup { max-width: 1100px; margin: 64px auto; padding: 24px; }
+body:has(#antdRoot > .app-startup) { background: var(--lp-bg); }
+.app-startup > span, .page-placeholder > span { display: block; height: 14px; border-radius: 6px; background: var(--lp-elevated); }
+.app-startup > span:first-child, .page-placeholder > span:first-child { width: 32%; height: 24px; }
+.app-startup > span:last-child, .page-placeholder > span:last-child { width: 72%; height: 120px; }
 .page-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 16px; }
 .page-heading h1 { font-size: 20px; line-height: 1.4; margin: 0; font-weight: 650; }
 .page-heading p { font-size: 13px; color: var(--lp-secondary); margin: 4px 0 0; }

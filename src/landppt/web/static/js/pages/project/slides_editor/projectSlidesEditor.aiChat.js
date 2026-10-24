@@ -972,6 +972,9 @@ async function buildSidebarAgentPayload(message, chatHistoryForContext) {
     let slideScreenshot = null;
     if (visionModeEnabled) {
         slideScreenshot = await captureSlideScreenshot();
+        if (!slideScreenshot) {
+            throw new Error('当前页截图失败，请重试或关闭视觉模式后发送');
+        }
     }
 
     return {

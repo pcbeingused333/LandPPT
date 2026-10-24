@@ -202,6 +202,35 @@ class DatabaseMigration:
             "down": self._migration_020_down,
         })
 
+        self.migrations.append({
+            "version": "021",
+            "name": "add_managed_provider_reasoning",
+            "description": "Persist per-user managed provider reasoning settings",
+            "up": self._migration_021_up,
+            "down": self._migration_021_down,
+        })
+
+    async def _migration_021_up(self, session: AsyncSession):
+        from .models import ManagedAIProvider, UserAIProviderConfig
+
+        connection = await session.connection()
+        for model in (ManagedAIProvider, UserAIProviderConfig):
+            await connection.run_sync(
+                lambda conn, table=model.__table__: table.create(conn, checkfirst=True)
+            )
+        for name, definition in (
+            ("enable_reasoning", "BOOLEAN NOT NULL DEFAULT FALSE"),
+            ("reasoning_effort", "VARCHAR(20) NOT NULL DEFAULT 'medium'"),
+        ):
+            if not await self._column_exists(session, "user_ai_provider_configs", name):
+                await session.execute(text(
+                    f"ALTER TABLE user_ai_provider_configs ADD COLUMN {name} {definition}"
+                ))
+
+    async def _migration_021_down(self, session: AsyncSession):
+        # Keep saved user choices when rolling back application code.
+        raise RuntimeError("Migration 021 contains user preferences; automatic rollback is disabled")
+
     async def _migration_020_up(self, session: AsyncSession):
         from .models import ProjectLibraryPreference
 

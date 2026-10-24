@@ -309,8 +309,15 @@ async def test_both_guidance_modes_pass_actual_page_plan_to_html(tmp_path, per_s
     )
     assert result[:2] == ("STYLE", "GLOBAL")
     assert ("SINGLE" if per_slide else "TYPE") in result[2]
-    assert '"layout_family": "流程"' in result[2]
+    assert "layout_family" not in result[2]
     assert slide["composition_brief"] == PLAN[1]["composition_brief"]
+    from landppt.services.prompts.design_prompts import DesignPrompts
+
+    prompt = DesignPrompts.get_single_slide_html_prompt(
+        slide, {}, 2, 2, "", result[0],
+        global_constitution=result[1], current_page_brief=result[2],
+    )
+    assert prompt.count("'layout_family': '流程'") == 1
     if per_slide:
         passed = service._generate_slide_creative_guide.call_args.kwargs["slide_data"]
         assert passed["composition_brief"] == PLAN[1]["composition_brief"]
@@ -343,6 +350,26 @@ def test_runtime_requirement_cache_does_not_affect_guidance_identity():
         {"topic": "A", "_cached_selected_global_template": object()}
     )
     assert guidance_fingerprint({"topic": "A"}) != guidance_fingerprint({"topic": "B"})
+
+
+@pytest.mark.asyncio
+async def test_guidance_revision_invalidates_memory_and_file_cache(tmp_path, monkeypatch):
+    from landppt.services.slide import composition_planning_service as planning
+
+    current_version = planning.GUIDANCE_VERSION
+    monkeypatch.setattr(planning, "GUIDANCE_VERSION", "composition-v1")
+    service = CreativeDesignService(make_owner(tmp_path))
+    service._generate_global_constitution = AsyncMock(return_value="LEGACY_RULES")
+    assert await service._get_or_generate_global_constitution("project") == "LEGACY_RULES"
+
+    monkeypatch.setattr(planning, "GUIDANCE_VERSION", current_version)
+    service._generate_global_constitution = AsyncMock(return_value="NEW_SYSTEM")
+    assert await service._get_or_generate_global_constitution("project") == "NEW_SYSTEM"
+    service._generate_global_constitution.assert_awaited_once()
+    reloaded = CreativeDesignService(make_owner(tmp_path))
+    reloaded._generate_global_constitution = AsyncMock(side_effect=AssertionError("cache miss"))
+    assert await reloaded._get_or_generate_global_constitution("project") == "NEW_SYSTEM"
+    reloaded._generate_global_constitution.assert_not_awaited()
 
 
 def test_composition_prompt_preserves_all_points_and_rejects_padding():

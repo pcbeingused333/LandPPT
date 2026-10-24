@@ -3,6 +3,7 @@ import { Alert, Button, Card, Checkbox, Divider, Empty, Flex, Form, Input, Input
 import { ArrowRightOutlined, DownOutlined, FontSizeOutlined, InboxOutlined, InfoCircleOutlined, LinkOutlined, PaperClipOutlined, ReloadOutlined, SlidersOutlined } from '@ant-design/icons';
 import { errorText, request, type ApiData } from '../api';
 import { useCreationDraft } from './creation-draft';
+import { readCreationConfiguration } from '../creation-config';
 import { modalFocus } from './modal-focus';
 import { useTemplateModalFocus } from './templates';
 import { contentSource, sourceExtensions as extensions } from './source-materials';
@@ -103,7 +104,7 @@ function ComposerForm({ data, compact }: { data: ApiData; compact: boolean }) {
   </div>;
   const modeOptions = choices([['freeform', '自由设计'], ['package', '快速模式（模板包）']]);
   const topicField = <Form.Item name="topic" label={compact ? undefined : 'PPT 主题'} rules={[{ required: true, whitespace: true, message: '请先填写 PPT 主题' }]}>
-    <Input aria-label="PPT 主题" size={compact ? 'large' : undefined} variant={compact ? 'borderless' : undefined} className={compact ? 'composer-topic' : undefined} placeholder={compact ? '演示主题，例如：2026 年度产品发布会' : '给这份演示起一个主题'} onPressEnter={event => { if (!event.nativeEvent.isComposing && !event.ctrlKey && !event.metaKey) { event.preventDefault(); form.getFieldInstance('requirements')?.focus(); } }} />
+    <Input aria-label="PPT 主题" size={compact ? 'large' : undefined} variant={compact ? 'borderless' : undefined} className={compact ? 'composer-topic' : undefined} placeholder={compact ? '演示主题，例如：人工智能的未来结局' : '给这份演示起一个主题'} onPressEnter={event => { if (!event.nativeEvent.isComposing && !event.ctrlKey && !event.metaKey) { event.preventDefault(); form.getFieldInstance('requirements')?.focus(); } }} />
   </Form.Item>;
   const requirementsField = <Form.Item name="requirements" label={compact ? undefined : '具体需求（选填）'}><Input.TextArea aria-label="具体需求" variant={compact ? 'borderless' : undefined} autoSize={{ minRows: compact ? 2 : 4, maxRows: 10 }} placeholder={compact ? '补充重点内容、章节思路、数据或风格偏好（选填）' : '重点内容、章节思路、数据素材、风格偏好…'} /></Form.Item>;
   const fileSource = <Upload.Dragger multiple disabled={pending} accept={extensions.map(ext => '.' + ext).join(',')} beforeUpload={addFile} showUploadList={false}>
@@ -236,12 +237,8 @@ export default function CreateComposer({ data, compact = false }: { data: ApiDat
   useEffect(() => {
     if (data.page === 'create-project') return;
     const controller = new AbortController(); setError('');
-    fetch('/create', { credentials: 'same-origin', cache: 'no-store', signal: controller.signal, headers: { Accept: 'text/html' } })
-      .then(async response => {
-        if (!response.ok) throw new Error('暂时无法加载创建设置');
-        const doc = new DOMParser().parseFromString(await response.text(), 'text/html');
-        const value = JSON.parse(doc.getElementById('antdData')?.textContent || 'null');
-        if (value?.page !== 'create-project' || value.user?.username !== data.user?.username || !!value.user?.is_admin !== !!data.user?.is_admin) throw new Error('创建设置不可用，请刷新页面重试');
+    readCreationConfiguration(data, controller.signal)
+      .then(value => {
         if (!controller.signal.aborted) setConfiguration(value);
       }).catch(reason => { if (!controller.signal.aborted) setError(reason.message); });
     return () => controller.abort();

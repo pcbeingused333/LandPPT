@@ -4,6 +4,7 @@ import base64
 import hashlib
 import ipaddress
 import uuid
+from typing import Literal
 from urllib.parse import urlsplit, urlunsplit
 
 from cryptography.fernet import Fernet, InvalidToken
@@ -101,6 +102,10 @@ class UserProviderInput(BaseModel):
     api_key: str | None = Field(default=None, max_length=4096)
     model: str = Field(default="", max_length=200)
     confirmed_base_url: str = Field(max_length=1000)
+    enable_reasoning: bool = False
+    reasoning_effort: Literal[
+        "none", "minimal", "low", "medium", "high", "xhigh", "max"
+    ] = "medium"
 
 
 def _cipher():
@@ -124,6 +129,8 @@ def provider_dict(provider, config=None):
         result.update(
             has_api_key=bool(config.encrypted_api_key),
             model=config.model,
+            enable_reasoning=config.enable_reasoning,
+            reasoning_effort=config.reasoning_effort,
             requires_confirmation=config.accepted_base_url != provider.base_url,
             configured=bool(config.encrypted_api_key)
             and config.accepted_base_url == provider.base_url
@@ -133,6 +140,8 @@ def provider_dict(provider, config=None):
         result.update(
             has_api_key=False,
             model=provider.default_model,
+            enable_reasoning=False,
+            reasoning_effort="medium",
             requires_confirmation=False,
             configured=False,
         )
@@ -140,7 +149,14 @@ def provider_dict(provider, config=None):
 
 
 def runtime_config(
-    provider, config, *, api_key=None, model=None, confirmed_base_url=None
+    provider,
+    config,
+    *,
+    api_key=None,
+    model=None,
+    confirmed_base_url=None,
+    enable_reasoning=None,
+    reasoning_effort=None,
 ):
     if provider is None or not provider.is_active:
         raise ManagedProviderError(
@@ -161,13 +177,18 @@ def runtime_config(
     key = supplied_key or (_decrypt(config.encrypted_api_key) if config else "")
     if not key:
         raise ManagedProviderError("请先为所选 AI 提供商配置 API Key")
+    if enable_reasoning is None:
+        enable_reasoning = bool(config.enable_reasoning) if config else False
+    if reasoning_effort is None:
+        reasoning_effort = config.reasoning_effort if config else "medium"
     return {
         "provider_name": PREFIX + provider.id,
         "api_key": key,
         "base_url": provider.base_url,
         "model": model or (config.model if config else "") or provider.default_model,
         "use_responses_api": provider.use_responses_api,
-        "enable_reasoning": False,
+        "enable_reasoning": enable_reasoning,
+        "reasoning_effort": reasoning_effort,
     }
 
 
@@ -240,13 +261,21 @@ class ManagedProviderService:
         provider = await self.get(provider_id)
         config = await self.user_config(user_id, provider_id)
         # Validate the new destination before decrypting or sending any saved key.
-        runtime_config(provider, config, **data.model_dump())
+        resolved = runtime_config(
+            provider, config, **data.model_dump(exclude_unset=True)
+        )
         if config is None:
             config = UserAIProviderConfig(user_id=user_id, provider_id=provider_id)
             self.session.add(config)
         if data.api_key:
             config.encrypted_api_key = _cipher().encrypt(data.api_key.encode()).decode()
-        config.model = data.model or provider.default_model
+        config.model = (
+            data.model or provider.default_model
+            if "model" in data.model_fields_set
+            else resolved["model"]
+        )
+        config.enable_reasoning = resolved["enable_reasoning"]
+        config.reasoning_effort = resolved["reasoning_effort"]
         config.accepted_base_url = provider.base_url
         await self.session.commit()
         return provider_dict(provider, config)

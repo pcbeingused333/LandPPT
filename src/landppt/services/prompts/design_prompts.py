@@ -48,25 +48,18 @@ class DesignPrompts:
     def _finalize_prompt(prompt: str, confirmed_requirements: Dict[str, Any] = None) -> str:
         return apply_page_number_prompt_filter(prompt, confirmed_requirements)
 
-    # -- 核心约束块（合并原先的 fixed_canvas_strategy + html_guardrails + layout_priority）--
+    # -- 单页生成器负责尺寸与布局，上游只提供视觉规范和表达意图 --
     @staticmethod
     def _build_canvas_system_context() -> str:
         return """
 **固定画布系统**
-- 1280×720 外框约束先行；仅画布根容器与安全裁切层使用 overflow:hidden，不要给每个卡片默认 overflow:hidden；三段式骨架（页眉/主体/页脚），页眉页脚不可压缩。
-- 先做高度预算再设计；间距用 gap/百分比/clamp()，避免大号固定 padding/margin 硬顶。
-- 锚点区稳定，主内容区 flex:1 / grid minmax(0,1fr)，所有 flex/grid item 显式 min-height:0; min-width:0。
-- 溢出时优先删减/分组/限高，不挤压锚点区；正文容器禁止用 ellipsis / line-clamp 截断关键信息，装不下就减字或改布局。
-- 版面取舍：优先守住完整容纳和锚点稳定，再决定装饰强度与版式复杂度。
-
-**高度分配与内容偏少处理**
-- 主舞台可用 flex:1 占据剩余高度；但舞台内的内容卡片/步骤块/模块默认按内容定高，禁止被 stretch 成等高空壳。
-- 禁止用 margin-top:auto 或 justify-content:space-between 把短文案与底部标签拉开制造中空。
-- 多列卡片仅在每卡内容量接近且阅读关系适合时等高；不要因内容少就把所有模块缩在舞台顶部。
-- 内容偏少时，先判断是否适合焦点式构图，再调整主体字号、尺度与位置，最后考虑将已有关系转成流程或示意图。
-- 先安排主体与辅助信息的空间关系，再分配间距；不要靠扩大卡片、拉大间距或添加装饰填空。
-- 留白应围绕焦点、分组或阅读动线；结论页和引言页可以简洁，不设统一填充率或字数门槛。
-- 只有现有资料提供依据时才补充说明或绘制数据图表；禁止为凑满页面编造事实、数字或例证。
+- 1280×720 固定画布，无滚动条；使用 border-box，仅根容器与安全裁切层使用 overflow:hidden，不能靠裁切隐藏正文。
+- 先确定主体的列宽，再估算文字换行、行高和高度；可用高度扣除实际锚点区、安全边距和间距。纵向堆叠计算高度总和，并列区域取各列高度的最大值，计入 padding、gap，为换行误差留余量。
+- Flex/Grid 子项设置 min-width:0、min-height:0；由内容关系决定行列和对齐，不强制等高卡片或三段式骨架。
+- 未指定字号时，正文优先 22–28px，辅助文字不低于 14px；正文不靠缩成小字来容纳内容。
+- 内容少：放大核心文字或视觉主体，让内容组在可用区域内居中或围绕焦点布局；内容适中：用一个主视觉组织辅助信息。
+- 内容多：先调整分组、列宽和版式，再压缩冗余表述，保留关键事实、数字及限定条件；不用 ellipsis / line-clamp 截断关键信息。
+- 扩大外层容器不等于扩大主体。留白服务于焦点和阅读顺序，不设统一填充率或字数门槛；禁止为凑满页面编造事实、数字或例证。
 """.strip()
 
     # -- 内容与设计质量（合并原先 content_quality + slide_generation_principles）--
@@ -74,19 +67,9 @@ class DesignPrompts:
     def _build_design_quality_context() -> str:
         return """
 **内容与设计质量**
-- 信息密度与主题复杂度相称：先建立事实和层次，再加入装饰。
-- 留白服务于分组和节奏，不替代内容；背景、数据、结论形成有区分度的前后层次。
-- 先为页面建立清晰的第一视觉落点，再展开阅读动线。
-- 通过分组、对比、层叠、方向变化或留白张力建立主次关系——即使内容项数量对等，也通过尺寸、位置、色彩重量的差异制造视觉层次。
-- 当内容偏多时，优先换一种更合适的组织方式，再考虑压缩细节。
-
-**组件一致性**
-- 同级步骤/节点的标记形态统一：全数字，或「数字+同构小图标」；禁止同一序列内有的纯图标、有的纯数字。
-- 全页只保留 1 个主强调（强调色或焦点卡）；次强调最多 1 处且视觉权重明显更弱。
-- 一页只用一套编号体系；若必须并列两条序列，第二条改用不同标记形态（如 ①②③ 或 P1–P5）。
-- 流程/流水线必须有方向信息（箭头、连接线或明确递进），禁止仅并列卡片。
-- 指标数字带对比对象或口径（如「较 X 方案 ≈10×」），避免孤立的「更快更省」。
-- 字体只写实际会生效的字体栈（系统字体或模板已提供的 @font-face），不写未加载的 web font 名。
+- 明确本页最值得记住的信息，围绕它安排视觉焦点和阅读顺序；按已有的流程、对比、主从等关系组织内容，不按要点数量机械套卡片。
+- 保留原始事实和必要说明；图表、因果和对比关系必须有材料依据，不能把缺失信息补成事实。
+- 同级元素保持标记一致，流程表达方向，指标保留单位和口径；装饰服务于信息层级。
 """.strip()
 
     # -- 模板理解方向 --
@@ -94,19 +77,13 @@ class DesignPrompts:
     def _build_template_guidance_context() -> str:
         return """
 **模板理解方向**
-把模板 HTML 原文当作视觉母语和边界参考，优先继承其中稳定的配色、字体、材质、组件气质与锚点关系。
-普通内容页更适合把变化放在主内容区，让标题区、页码区继续沿着模板里的结构与位置关系展开。
-如果需要新的间距、体量或强调方式，尽量从模板原文和内容逻辑中推导，让结果既有变化也仍然像同一套设计系统。
+模板提供配色、字体、组件风格和稳定锚点；主体布局由本页内容决定，不照搬示例的内容密度、分栏或卡片数量。
 """.strip()
 
-    # -- 创意思考方向（正面引导替代禁令）--
     @staticmethod
     def _build_creative_direction_context() -> str:
-        return """
-**创意方向**
-先明确这一页的核心任务（聚焦/展开/对比/总结/转场），再确定视觉重心和阅读路径，最后决定空间组织和装饰策略。
-装饰和点缀放大构图，但不能替代构图。
-""".strip()
+        """Shared with the SVG prompt, whose generation contract stays separate."""
+        return "先确定本页的核心信息和阅读顺序，再按已有信息关系选择构图。"
 
     # -- HTML输出格式 --
     @staticmethod
@@ -124,37 +101,31 @@ class DesignPrompts:
 图片服务于内容重点，不喧宾夺主。根据实际用途决定位置、裁切与样式，按需使用蒙版或边框。
 """.strip()
 
-    # -- 生成自检（精简为两个关键问题）--
+    # -- 生成自检 --
     @staticmethod
     def _build_generation_self_check_context() -> str:
         return """
 **输出前自检**
-- 若提供 composition_brief，是否表达了其中的信息关系与视觉焦点？推荐版式可按内容调整，但不要退回无差别卡片排列。
-- 主体是否过小或偏在局部？留白是否服务于当前页面意图，是否靠空心容器或装饰假装充实？
-- 主内容区是否围绕当前页任务重新组织，而不是直接沿用模板骨架？
-- 标题区、页码区等锚点是否来自模板原文，调整时能否在模板或内容逻辑中说清依据？
-- 本页是否只有一条主叙事？是否出现两套相同编号体系（如两组 01–05）？
-- 是否存在被 stretch 的空心卡片（短文案 + 底部标签 + 中间大片空白）？有则改为按内容定高。
-- 同级步骤标记形态是否统一？流程是否有方向？主强调是否只有一个？
-- CSS 中的字体是否都是系统字体或已实际加载的字体？
-""".strip()
-
-    # -- 版式工具箱（仅在 Layer 1/2 级别使用，单页生成不再注入）--
-    @staticmethod
-    def _build_layout_mastery_context() -> str:
-        return """
-**版式参考工具箱（帮助推理，不做硬性要求）**
-- 栅格与空间：版心、天头/地脚、水槽、模块化栅格、分栏网格、基线网格、安全边界
-- 视觉动线：古腾堡图表、F型、Z型、第一落幅/视觉锚点、引导线、格式塔分组
-- 版式结构：三分法、非对称平衡、砌体/瀑布流、满版全画幅、对角线构图、黄金比例、时间线
-- 对齐与微排版：悬挂缩进、孤寡行控制、视觉边界补偿、层级跃升
-- 破局手法：破格、叠层、截断感、跨栏延展、留白张力、色彩重量倾斜
+检查关键信息完整、文字可读且无越界遮挡；实际文字/图表/图片是否形成舒展的主体，而非内容挤在局部、外层空壳撑满。直接修正 HTML，无需输出检查报告或布局注释。
 """.strip()
 
     # -- 资源可达性与性能约束（系统级，注入到关键 prompt 中）--
     @staticmethod
     def _build_resource_context() -> str:
         return SystemPrompts.get_resource_performance_prompt()
+
+    @staticmethod
+    def _build_design_system_spec() -> str:
+        return """只输出以下五项，每项 1–2 行，总计不超过 500 字：
+- palette：背景、正文、弱化文字、强调色，写出 CSS 色值及用途。
+- typography：实际可用的字体栈；标题、正文、辅助文字的字号和行高，用 px/倍数表达。
+  面向投影阅读选择字号，不机械照搬模板小字；默认正文 22–28px、辅助文字至少 14px。
+- spacing：画布安全边距、常用间距，给出 px 值。
+- anchors：普通内容页标题区的位置和预留空间；首尾页、目录页的例外。
+- components：边框、圆角、材质等可复用特征，简短列出。
+页码启用时，在 anchors 中补充页码位置；首页和尾页不显示页码。
+从模板提取稳定值；未提供模板或未定义的值由你选择，并标记为默认值。未加载的字体使用系统字体栈。
+只负责整套视觉规范，不指定单页分栏、卡片数量、模块高度或填充率，不复述布局原则。"""
 
     # ================================================================
     # 二、项目简报构建
@@ -271,7 +242,7 @@ class DesignPrompts:
         project_brief = DesignPrompts._build_project_brief(confirmed_requirements)
         template_context = DesignPrompts._build_template_html_context(template_html)
 
-        prompt = f"""请为一套 {total_pages} 页的 PPT 输出"全局视觉宪法"——只定规则，不涉及任何具体页面的布局。
+        prompt = f"""为一套 {total_pages} 页的 PPT 提炼一份紧凑的整套设计系统，供所有页面共享。
 
 **项目简报**
 {project_brief}
@@ -279,31 +250,8 @@ class DesignPrompts:
 **参考模板 HTML 原文**
 {template_context}
 
-{DesignPrompts._build_template_guidance_context()}
-
-{DesignPrompts._build_canvas_system_context()}
-
-{DesignPrompts._build_layout_mastery_context()}
-
-请按以下结构输出：
-
-1. **整册视觉气质**
-   - 核心风格方向、色彩策略、装饰语言
-   - 首页与普通内容页的气质差异
-
-2. **固定画布规则**
-   - 1280×720 画布下的锚点预算策略
-   - 首页和尾页不显示页码；其他页面的页码锚点规则
-
-3. **给单页生成器的执行原则**
-   - 涵盖：布局选择、层级建立、配色使用、内容版式组织、模板边界
-
-要求：
-- 只输出全局规则，不涉及具体某一页
-- 规则要可执行，不要空泛形容
-- 给出方向和关系，让单页生成器根据内容自行推导具体值
-
-{DesignPrompts._build_resource_context()}"""
+画布：1280×720。用户明确要求优先于模板示例。
+{DesignPrompts._build_design_system_spec()}"""
         return DesignPrompts._finalize_prompt(prompt, confirmed_requirements)
 
     # ================================================================
@@ -351,24 +299,16 @@ class DesignPrompts:
 **页面类型概览**
 {page_type_overview}
 
-{DesignPrompts._build_layout_mastery_context()}
-
 **你的任务**
-按页面类型归纳指导，同类型只输出一次，共享方向、节奏和边界。
-变化空间写进"节奏与变化"或"弹性调节"；用弹性表达给单页生成器留空间。
-给出方向和关系而非具体数值。
+按页面类型归纳表达任务，同类型只输出一次，每种类型最多三行。
+不重复视觉规范，不规定模块尺寸或默认卡片数量；具体布局由单页生成器决定。
 
 请严格按以下结构输出，每种类型只输出一次，沿用上方概览里的 TYPE 键名：
 
 ## TYPE: cover
-- **适用页面**：覆盖哪些页面
-- **页面角色**：在整套 PPT 里的作用
-- **设计概念**：适合的高级排版/信息设计方向
-- **视觉焦点**：观众第一眼应该看到什么
-- **构图倾向**：适合怎样的空间关系和主次节奏
-- **节奏与变化**：同类型页面之间如何避免雷同
-- **创意边界**：哪些克制，哪些可以大胆
-- **弹性调节**：内容过多或过少时优先如何调整
+- 任务：这类页面应帮助观众理解什么。
+- 焦点：应突出哪类已有信息，以及适用的信息关系。
+- 节奏：与前后页如何呼应，哪些连续比较应保持一致。
 
 首页、目录页、尾页属于特殊页面，可相对自由地处理锚点关系。
 只输出页面类型指导，不附加解释。"""
@@ -394,6 +334,7 @@ class DesignPrompts:
 保持配色、字体和模板锚点一致；主内容区的变化服务于表达和整套阅读节奏。
 相邻页面避免无理由地重复，但连续比较页可保持相同结构以方便比较。
 layout_family 是建议，允许后续生成器根据实际内容调整，不是固定模板轮换表。
+每个字段尽量只写一句具体建议，不重复配色、字体等整套视觉规范，不指定模块尺寸。
 内容少可采用焦点构图和有意图的留白，不要求补字数、填充率或强制图表。
 证据不足标记 missing_evidence，并在 intent 中指出缺口；保留已有内容，不补事实、不合并或增删页面。
 
@@ -428,10 +369,7 @@ composition_brief 的六个字段均为非空字符串：
         slides_summary = slides_summary or "(未提供大纲摘要)"
         template_context = DesignPrompts._build_template_html_context(template_html)
 
-        prompt = f"""请为整套 PPT 生成一份"项目级创意设计指导"。
-
-输出全局可迁移的设计策略，而非某一页的局部答案。
-先阅读模板 HTML 原文判断可继承的视觉边界，再定义整体气质，最后扩展为页面家族系统和跨页节奏。
+        prompt = f"""为整套 PPT 提炼共享设计系统；单页生成器负责具体构图。
 
 **项目简报**
 {project_brief}
@@ -444,31 +382,8 @@ composition_brief 的六个字段均为非空字符串：
 **模板 HTML 原文**
 {template_context}
 
-{DesignPrompts._build_template_guidance_context()}
-
-{DesignPrompts._build_design_quality_context()}
-
-{DesignPrompts._build_canvas_system_context()}
-
-{DesignPrompts._build_layout_mastery_context()}
-
-请按以下结构输出：
-
-**A. 整体叙事与视觉主张**
-**B. 模板继承边界与全局风格系统**
-**C. 首页/封面首屏锚点策略**
-**D. 跨页节奏与空间原则**
-**E. 普通内容页与特殊页面的分工**
-**F. 图像、图标与数据可视化原则**
-**G. 风险与禁区**
-**H. 给单页生成器的执行原则**
-
-要求：
-- 具体、专业、可操作，给出方向和关系而非固定数值
-- 如果模板与项目语义冲突，说明如何受控修正
-- 不要直接代写任何页面的 HTML
-
-{DesignPrompts._build_resource_context()}"""
+画布：1280×720。用户明确要求优先于模板示例。
+{DesignPrompts._build_design_system_spec()}"""
         return DesignPrompts._finalize_prompt(prompt, confirmed_requirements)
 
     @staticmethod
@@ -482,9 +397,7 @@ composition_brief 的六个字段均为非空字符串：
         images_context = DesignPrompts._build_slide_images_context(slide_data)
         template_context = DesignPrompts._build_template_html_context(template_html)
 
-        prompt = f"""请为第 {page_number} 页生成"单页创意设计指导"。
-
-延续整套风格，让当前页拥有明确角色和合适变化。聚焦当前页，不要写泛泛原则。
+        prompt = f"""为第 {page_number} 页提供简短的表达意图，供单页生成器决定具体布局。
 
 **项目简报**
 {project_brief}
@@ -500,37 +413,65 @@ composition_brief 的六个字段均为非空字符串：
 **模板 HTML 原文**
 {template_context}
 
-{DesignPrompts._build_template_guidance_context()}
-
-{DesignPrompts._build_design_quality_context()}
-
-{DesignPrompts._build_canvas_system_context()}
-
-{DesignPrompts._build_layout_mastery_context()}
 {images_context}
 
-**额外要求**
-- 若当前页数据包含 composition_brief，先落实其中的页面意图、信息关系、焦点和跨页节奏；版式建议可按内容调整。
-- 根据标题长度、要点数量、是否含图表/表格/时间线等，判断适合放大焦点、保持均衡还是压缩收敛
-- 从版式工具箱中选择最合适的方法，转化为可执行建议
-- 即使内容项数量对等，也主动建立视觉层次
-- 给出方向和关系，让生成器根据内容自行推导
-
-请按以下结构输出：
-
-**A. 当前页角色判断**
-**B. 视觉焦点与布局方向**（标题区、主体区、页码区的空间预算）
-**C. 内容呈现策略**（内容偏少/适中/偏多时如何调节）
-**D. 色彩、组件与图像处理**
-**E. 与前后页面的呼应和差异化**
-**F. 风险与避坑**
-
-{DesignPrompts._build_resource_context()}"""
+最多输出四行，总计不超过 200 字：任务、关系、焦点、节奏，每行给出当前页特有的信息。
+若已有 composition_brief，仅补充它未覆盖的必要说明，不重复计划；无必要补充时只写“无额外补充”。
+关系和焦点必须来自本页材料；不能因为要点数量相同就套用等分卡片，也不能编造主次或数据。
+不复述整套视觉规范，不规定字号、分栏、模块高度或填充率；这些由生成器结合实际换行决定。"""
         return DesignPrompts._finalize_prompt(prompt, confirmed_requirements)
 
     # ================================================================
     # 六、HTML 生成提示词（单页）
     # ================================================================
+
+    @staticmethod
+    def _build_slide_html_prompt(
+        slide_data: Dict[str, Any], template_html: str, slide_title: str,
+        slide_type: str, page_number: int, total_pages: int,
+        project_brief: str, context_info: str, style_genes: str,
+        global_constitution: str, current_page_brief: str,
+    ) -> str:
+        """Both HTML entry points share one contract; legacy genes are a fallback."""
+        template_context = DesignPrompts._build_template_html_context(template_html)
+        locked_zones = DesignPrompts._build_locked_zones_context(
+            template_html, page_number, total_pages, slide_type, slide_title)
+        design_system = (global_constitution or "").strip() or (style_genes or "").strip()
+        if not design_system:
+            design_system = "从模板提取配色、字体和稳定锚点；无模板时建立简洁一致的视觉规范。"
+        brief_block = f"**页面表达补充**\n{current_page_brief}" if current_page_brief else ""
+        images_info = ""
+        if _is_image_service_enabled() and 'images_summary' in slide_data:
+            images_info = DesignPrompts._build_image_usage_context()
+
+        return f"""为第 {page_number} / {total_pages} 页生成完整 PPT HTML：{slide_title}（{slide_type}）。
+
+**项目要求**
+{project_brief}
+
+**整套设计系统**
+{design_system}
+
+**模板 HTML 原文**
+{template_context}
+{DesignPrompts._build_template_guidance_context()}
+{locked_zones}
+
+**本页内容与构图计划**
+{slide_data}
+{images_info}
+{brief_block}
+{context_info}
+
+**职责与取舍**
+用户明确要求优先；整套设计系统负责视觉规范，composition_brief 负责本页意图、已有信息关系和跨页节奏，具体布局由你决定。版式建议可调整，关键事实不可丢失。
+
+{DesignPrompts._build_design_quality_context()}
+{DesignPrompts._build_canvas_system_context()}
+{DesignPrompts._build_resource_context()}
+{DesignPrompts._build_generation_self_check_context()}
+{DesignPrompts._build_html_output_context()}
+"""
 
     @staticmethod
     def get_creative_template_context_prompt(
@@ -544,68 +485,19 @@ composition_brief 的六个字段均为非空字符串：
         current_page_brief: str = "",
         include_page_numbers: bool = True,
     ) -> str:
-        template_context = DesignPrompts._build_template_html_context(template_html)
-        locked_zones = DesignPrompts._build_locked_zones_context(
-            template_html, page_number, total_pages, slide_type, slide_title)
-        images_info = ""
-        if _is_image_service_enabled() and 'images_summary' in slide_data:
-            images_info = "\n\n" + DesignPrompts._build_image_usage_context()
-
-        constitution_block = f"**全局设计规则**\n{global_constitution}" if global_constitution else ""
-        brief_block = f"**当前页面指导**\n{current_page_brief}" if current_page_brief else ""
-
-        prompt = f"""为第{page_number}页生成完整 PPT HTML。
-
-**核心目标**
-把模板当作视觉语言系统来创作，而不是换字。主内容区围绕当前页使命重新建立空间秩序。
-
-**页面信息**
-- 标题：{slide_title}
-- 类型：{slide_type}
-- 第 {page_number} 页 / 共 {total_pages} 页
-
-**页面数据**
-{slide_data}{images_info}
-
-**模板 HTML 原文**
-{template_context}
-
-{DesignPrompts._build_template_guidance_context()}
-{locked_zones}
-
-{DesignPrompts._build_design_quality_context()}
-
-{DesignPrompts._build_creative_direction_context()}
-
-**项目背景**
-- 主题：{project_topic}
-- 类型：{project_type}
-- 受众：{project_audience}
-- 风格：{project_style}
-
-**设计基因**
-{style_genes}
-
-{constitution_block}
-{brief_block}
-
-{DesignPrompts._build_canvas_system_context()}
-
-{context_info}
-
-{DesignPrompts._build_generation_self_check_context()}
-
-**富文本**
-可按需使用 MathJax、Prism.js、Chart.js、ECharts.js、D3.js。
-
-{DesignPrompts._build_resource_context()}
-
-{DesignPrompts._build_html_output_context()}
-"""
-        return DesignPrompts._finalize_prompt(
-            prompt,
-            {"include_page_numbers": include_page_numbers},
+        requirements = {
+            "topic": project_topic,
+            "type": project_type,
+            "target_audience": project_audience,
+            "ppt_style": project_style,
+            "include_page_numbers": include_page_numbers,
+        }
+        prompt = DesignPrompts._build_slide_html_prompt(
+            slide_data, template_html, slide_title, slide_type, page_number, total_pages,
+            DesignPrompts._build_project_brief(requirements), context_info, style_genes,
+            global_constitution, current_page_brief,
         )
+        return DesignPrompts._finalize_prompt(prompt, requirements)
 
     @staticmethod
     def get_single_slide_html_prompt(
@@ -616,60 +508,15 @@ composition_brief 的六个字段均为非空字符串：
         global_constitution: str = "",
         current_page_brief: str = "",
     ) -> str:
-        slide_type = slide_data.get("slide_type", "content") if isinstance(slide_data, dict) else "content"
-        slide_title = slide_data.get("title", "") if isinstance(slide_data, dict) else ""
-        template_context = DesignPrompts._build_template_html_context(template_html)
-        locked_zones = DesignPrompts._build_locked_zones_context(
-            template_html, page_number, total_pages, slide_type, slide_title)
-        images_info = ""
-        if _is_image_service_enabled() and 'images_summary' in slide_data:
-            images_info = "\n\n" + DesignPrompts._build_image_usage_context()
-
-        constitution_block = f"**全局设计规则**\n{global_constitution}" if global_constitution else ""
-        brief_block = f"**当前页面指导**\n{current_page_brief}" if current_page_brief else ""
-
-        prompt = f"""为第{page_number}页生成完整 HTML。
-
-**核心目标**
-把内容、模板语言和创意蓝图转译成一个成立的空间体验。
-
-**项目信息**
-- 主题：{confirmed_requirements.get('topic', '')}
-- 受众：{confirmed_requirements.get('target_audience', '')}
-- 补充：{confirmed_requirements.get('description', '无')}
-
-**当前页面**
-{slide_data}{images_info}
-
-**模板 HTML 原文**
-{template_context}
-
-{DesignPrompts._build_template_guidance_context()}
-{locked_zones}
-
-{DesignPrompts._build_design_quality_context()}
-
-{DesignPrompts._build_creative_direction_context()}
-
-**设计基因**
-{style_genes}
-
-{constitution_block}
-{brief_block}
-
-{DesignPrompts._build_canvas_system_context()}
-
-{context_info}
-
-{DesignPrompts._build_generation_self_check_context()}
-
-**富文本**
-可按需使用 MathJax、Prism.js、Chart.js、ECharts.js、D3.js。
-
-{DesignPrompts._build_resource_context()}
-
-{DesignPrompts._build_html_output_context()}
-"""
+        slide_type = slide_data.get("slide_type", "content")
+        slide_title = slide_data.get("title", "")
+        project_brief = DesignPrompts._build_project_brief(confirmed_requirements)
+        if confirmed_requirements.get("description"):
+            project_brief += f"\n- 补充：{confirmed_requirements['description']}"
+        prompt = DesignPrompts._build_slide_html_prompt(
+            slide_data, template_html, slide_title, slide_type, page_number, total_pages,
+            project_brief, context_info, style_genes, global_constitution, current_page_brief,
+        )
         return DesignPrompts._finalize_prompt(prompt, confirmed_requirements)
 
     # ================================================================
@@ -680,20 +527,11 @@ composition_brief 的六个字段均为非空字符串：
     def get_style_gene_extraction_prompt(template_code: str) -> str:
         template_context = DesignPrompts._build_template_html_context(template_code)
 
-        return f"""请直接阅读以下模板 HTML 原文，提炼"可复用设计基因"。
+        return f"""请阅读模板 HTML，提炼可复用的视觉规范，作为缺少整套设计系统时的备用。
 
 {template_context}
 
-请输出：
-1. 色彩系统
-2. 字体系统
-3. 布局与间距特征
-4. 组件与材质语言
-5. 可复用倾向与边界
-
-要求：尽量具体（可写 CSS 值、比例或关键词），聚焦稳定特征，不必复述源码。
-
-{DesignPrompts._build_resource_context()}"""
+{DesignPrompts._build_design_system_spec()}"""
 
     @staticmethod
     def get_style_genes_extraction_prompt(template_code: str) -> str:
@@ -803,20 +641,12 @@ composition_brief 的六个字段均为非空字符串：
 **模板 HTML 原文**
 {template_context}
 
-{DesignPrompts._build_template_guidance_context()}
-
-{DesignPrompts._build_design_quality_context()}
-
-{DesignPrompts._build_canvas_system_context()}
-
-{DesignPrompts._build_layout_mastery_context()}
-
 **任务一：提炼设计基因**
-只总结可跨页复用的稳定规则：色彩、字体、布局、组件/材质、约束。
+画布：1280×720。
+{DesignPrompts._build_design_system_spec()}
 
 **任务二：生成通用设计指导**
-基于设计基因和首页信息，写出整套 PPT 的方向：
-气质、页面家族、内容密度、图片/图表语气、固定画布限制。
+最多三行说明开场、内容展开和收束的叙事节奏。不要重复任务一的视觉规范，具体构图交给单页生成器。
 
 **输出格式**
 
@@ -828,7 +658,5 @@ composition_brief 的六个字段均为非空字符串：
 任务二结果
 ===END_DESIGN_GUIDE===
 
-不要输出其他说明。
-
-{DesignPrompts._build_resource_context()}"""
+不要输出其他说明。"""
         return DesignPrompts._finalize_prompt(prompt, {"include_page_numbers": include_page_numbers})

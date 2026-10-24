@@ -7,7 +7,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}LandPPT{% endblock %}</title>
     <link rel="icon" href="/static/images/favicon.ico">
-    <link rel="stylesheet" href="/static/antd/app.css?v=20261024-settings-tray">
+    <link rel="stylesheet" href="/static/antd/app.css?v=20261024-navigation">
     <link rel="stylesheet" href="/static/css/shared/site_notice.css?v=20261023-workspace">
     <link rel="stylesheet" href="/static/css/shared/notify.css?v=20261023-workspace">
     <link rel="stylesheet" href="/static/css/shared/notification_center.css?v=20261023-workspace">
@@ -20,12 +20,12 @@
         "creditsEnabled": {{ (credits_enabled | default(false)) | tojson }},
         {% block page_data %}{% endblock %}
     }</script>
-    <div id="antdRoot"><p role="status">正在加载 LandPPT…</p></div>
+    <div id="antdRoot"><div class="app-startup" role="status" aria-label="正在打开页面"><span></span><span></span><span></span></div></div>
     <noscript>请启用 JavaScript 后使用 LandPPT。</noscript>
     <script src="/static/js/shared/notify.js?v=20260726"></script>
     <script src="/static/js/shared/site_notice.js?v=20260322"></script>
     <script src="/static/js/shared/notification_center.js?v=20261012-antd"></script>
-    <script type="module" src="/static/antd/app.js?v=20261024-settings-tray"></script>
+    <script type="module" src="/static/antd/app.js?v=20261024-navigation"></script>
     {% block extra_js %}{% endblock %}
 </body>
 </html>

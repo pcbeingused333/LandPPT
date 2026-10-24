@@ -2,6 +2,7 @@
 
 import json
 import re
+from pathlib import Path
 from urllib.parse import urlsplit
 
 import pytest
@@ -11,6 +12,7 @@ from test_app_ui import browser, ui_page  # noqa: F401
 
 SIZES = [(1440, 900), (1024, 768), (390, 844), (320, 568), (844, 390)]
 TITLE = "设计流程与跨部门协作：从内容到演示"
+OUT = Path("artifacts/viewer-theme-20261024")
 
 
 def slide(index):
@@ -152,6 +154,20 @@ def test_viewer_geometry_and_unchanged_slide_documents(ui_page, width, height, s
             exact=True,
         )
         expect(panel).to_be_visible()
+        if scene == "thumbnails":
+            selected = panel.locator('[aria-current="page"]')
+            expect(selected).to_have_css("background-color", "rgb(31, 31, 34)")
+            expect(selected).to_have_css("border-top-color", "rgb(245, 245, 245)")
+            expect(selected.locator(".presentation-thumbnail-label")).to_have_css(
+                "color", "rgb(161, 161, 170)"
+            )
+        else:
+            expect(panel.locator("kbd").first).to_have_css(
+                "background-color", "rgb(31, 31, 34)"
+            )
+            expect(panel.locator("kbd").first).to_have_css(
+                "color", "rgb(236, 236, 238)"
+            )
         assert panel.bounding_box()["width"] <= width
         if scene == "shortcuts":
             escape = panel.get_by_text("Esc", exact=True)
@@ -171,6 +187,20 @@ def test_viewer_geometry_and_unchanged_slide_documents(ui_page, width, height, s
         )
     frame = page.locator(".slide-frame.visible")
     assert frame.get_attribute("srcdoc") == state["slides"][0]["html_content"]
+    expect(page.locator("body")).to_have_css("background-color", "rgb(11, 11, 12)")
+    for toolbar in page.locator(".presentation-toolbar").all():
+        expect(toolbar).to_have_css("background-color", "rgb(22, 22, 24)")
+        expect(toolbar).to_have_css("color", "rgb(236, 236, 238)")
+    expect(page.get_by_role("status", name="当前页", exact=True)).to_have_css(
+        "color", "rgb(161, 161, 170)"
+    )
+    expect(frame.content_frame.locator("body")).to_have_css(
+        "background-color", "rgb(238, 231, 212)"
+    )
+    expect(frame.content_frame.locator("body")).to_have_css("color", "rgb(39, 35, 28)")
+    if scene in ["owned", "shared"]:
+        OUT.mkdir(parents=True, exist_ok=True)
+        page.screenshot(path=str(OUT / f"presentation-{scene}-{width}x{height}.png"))
     rect = frame.bounding_box()
     canvas = page.locator(".slide-display").bounding_box()
     assert abs(rect["width"] / rect["height"] - 16 / 9) < 0.01
@@ -512,6 +542,9 @@ def test_empty_and_single_slide_never_start_invalid_navigation(ui_page, count):
             expect(page.get_by_role("button", name=label, exact=True)).to_be_disabled()
     else:
         expect(page.get_by_text("暂无可放映的页面", exact=True)).to_be_visible()
+        expect(page.locator(".presentation-empty .ant-result")).to_have_css(
+            "background-color", "rgb(22, 22, 24)"
+        )
         assert page.get_by_role("status", name="当前页").count() == 0
     assert not state["errors"] and not state["reads"]
 

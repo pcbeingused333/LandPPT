@@ -37,10 +37,12 @@ jobs:
             tests: >-
               tests/test_antd_editor_ui.py tests/test_antd_editor_lifecycle_ui.py tests/test_antd_images_ui.py tests/test_antd_editor_export_ui.py
               tests/test_antd_editor_export_chooser_ui.py
+              tests/test_editor_vision_capture_ui.py
               tests/test_antd_artifact_library_ui.py
               tests/test_antd_artifact_preview_ui.py
               tests/test_antd_source_library_ui.py
               tests/test_antd_navigation_ui.py tests/test_antd_home_generator_ui.py tests/test_antd_generator_lifecycle_ui.py tests/test_antd_template_wizard_ui.py tests/test_antd_workspace_stages_ui.py tests/test_antd_quick_edit_ui.py
+              tests/test_navigation_startup_ui.py
               tests/test_antd_ui.py tests/test_antd_settings_performance_ui.py tests/test_antd_speech_dialog_mount_ui.py
           - shard: ui-3
             tests: >-
@@ -92,3 +94,5 @@ jobs:
             artifacts/source-library-20261022/
             artifacts/editor-outline-overview-20261023/
             artifacts/project-agent-20261023/
+            artifacts/vision-capture-20261024/
+            artifacts/navigation-20261024/

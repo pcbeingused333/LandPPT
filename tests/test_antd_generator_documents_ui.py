@@ -1,10 +1,14 @@
 """Built Ant preview cards and fullscreen documents, with isolated generation APIs."""
 
+from pathlib import Path
+
 import pytest
 from playwright.sync_api import expect
 
 from test_app_ui import browser, ui_page  # noqa: F401
 from test_antd_home_generator_ui import ORIGINAL, send, setup_workspace, slide, start
+
+OUT = Path("artifacts/viewer-theme-20261024")
 
 
 @pytest.mark.parametrize(
@@ -28,6 +32,16 @@ def test_native_fullscreen_fits_and_pages_only_through_received_documents(
     expect(dialog.get_by_role("button", name="上一页")).to_be_disabled()
     frame = page.get_by_title("幻灯片全屏预览", exact=True)
     expect(frame).to_have_attribute("srcdoc", ORIGINAL)
+    # Only the scaled document is a white-backed canvas. Letterboxing follows
+    # the dark app even when the modal's aspect ratio differs from the slide.
+    expect(dialog.locator(".slide-document")).to_have_css(
+        "background-color", "rgb(11, 11, 12)"
+    )
+    expect(frame).to_have_css("background-color", "rgb(255, 255, 255)")
+    expect(frame).to_have_css("color-scheme", "light")
+    expect(frame.content_frame.locator("body")).to_have_css(
+        "background-color", "rgb(238, 231, 212)"
+    )
     box = frame.bounding_box()
     assert 0 <= box["x"] and box["x"] + box["width"] <= width + 1
     assert 0 <= box["y"] and box["y"] + box["height"] <= height + 1
@@ -35,6 +49,8 @@ def test_native_fullscreen_fits_and_pages_only_through_received_documents(
     for name in ["上一页", "下一页"]:
         button = dialog.get_by_role("button", name=name)
         assert button.bounding_box()["height"] >= (44 if width <= 600 else 32)
+    OUT.mkdir(parents=True, exist_ok=True)
+    page.screenshot(path=str(OUT / f"preview-{width}x{height}.png"))
     dialog.get_by_role("button", name="下一页").click()
     dialog = page.get_by_role("dialog", name="第 3 页 · 第 3 页", exact=True)
     expect(dialog).to_be_visible()
@@ -48,6 +64,38 @@ def test_native_fullscreen_fits_and_pages_only_through_received_documents(
     expect(frame).to_have_count(0)
     expect(origin).to_be_focused()
     assert not errors and not state["writes"]
+
+
+@pytest.mark.parametrize(
+    "html,background,foreground",
+    [
+        (
+            "<html><body>Default canvas</body></html>",
+            "rgba(0, 0, 0, 0)",
+            "rgb(0, 0, 0)",
+        ),
+        (
+            '<html><body style="background:#17263e;color:#fafafa">Dark artwork</body></html>',
+            "rgb(23, 38, 62)",
+            "rgb(250, 250, 250)",
+        ),
+    ],
+)
+def test_preview_preserves_transparent_and_dark_documents(
+    ui_page, html, background, foreground
+):
+    page, load = ui_page
+    state = setup_workspace(page, load)
+    start(page)
+    send(page, type="slide", slide_data={**slide(1), "html_content": html})
+    page.get_by_role("button", name="全屏查看第 1 页", exact=True).click()
+    frame = page.get_by_title("幻灯片全屏预览", exact=True)
+    expect(frame).to_have_attribute("srcdoc", html)
+    expect(frame).to_have_css("background-color", "rgb(255, 255, 255)")
+    body = frame.content_frame.locator("body")
+    expect(body).to_have_css("background-color", background)
+    expect(body).to_have_css("color", foreground)
+    assert not state["writes"]
 
 
 def test_status_updates_and_adjacent_replacement_do_not_reload_a_saved_document(

@@ -11,11 +11,11 @@
     <!-- CodeMirror CSS -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/dracula.min.css">
-    <link rel="stylesheet" href="/static/antd/app.css?v=20261024-settings-tray">
+    <link rel="stylesheet" href="/static/antd/app.css?v=20261024-navigation">
 </head>
 
 <body class="landppt-generator">
-    <div id="antdRoot"><p role="status">正在加载生成工作区…</p></div>
+    <div id="antdRoot"><div class="app-startup" role="status" aria-label="正在打开页面"><span></span><span></span><span></span></div></div>
     {% import "components/project/workspace_state.html" as ws with context %}
     <script id="antdData" type="application/json">{
         "page": "generator-workspace",
@@ -35,7 +35,7 @@
             "status": {{ (project.status if project else 'draft') | tojson }}
         }
     }</script>
-    <script type="module" src="/static/antd/app.js?v=20261024-settings-tray"></script>
+    <script type="module" src="/static/antd/app.js?v=20261024-navigation"></script>
     <!-- CodeMirror JS -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/xml/xml.min.js"></script>

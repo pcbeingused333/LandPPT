@@ -50,11 +50,25 @@ application entry from HTTP cache after a UI update. Loader, manifest, hashed
 entry, CSS and chunks must be deployed together; failed discovery offers a
 refresh action instead of silently showing an older interface.
 
+Startup preloads the current page's module and static dependencies from that same
+validated manifest before importing the app. The dashboard's required `/create`
+read starts alongside JS and is handed to its first composer once, preserving
+the account/role validation, cancellation and retry behavior. Completed creation
+settings and other private page responses are not cached. Startup and Suspense
+use quiet placeholders without the former LandPPT loading message; the dashboard
+topic example is “人工智能的未来结局”, with an empty input value.
+
 Home, dashboard, projects, creation, templates, images, configuration, project
 details, accounts, research and administration reuse the shell, React runtime
 and loaded modules when switching pages. Each switch
 reads the existing authenticated HTML route with no data cache; only its public
 page payload and inert settings/community catalogues are used. Fetched scripts never run.
+Navigation progress and `aria-busy` update independently of the memoized shell,
+so waiting does not rerender its sidebar, menus and notifications. Recent projects
+refresh once after a committed page change, including same-page refreshes, rather
+than at both the start and end of a pending navigation. Background module warming
+pauses while an actual navigation is waiting. Current content remains mounted
+until the destination data and component are ready.
 The current link cancels pending navigation; later clicks abort earlier reads.
 Browser history, page titles, menu closure and focus are maintained. The server's
 root redirect opens `/home`; that page stays on the showcase even for users with
@@ -127,6 +141,11 @@ the shared tokens reserve a light palette via `data-theme="light"`. Surface
 levels, borders and readable secondary text replace the old light overrides.
 Primary controls use a light fill, dark text and pill corners; panels use 16px
 corners. Slide iframe documents and the login brand illustration own their art.
+
+Presentation toolbars, thumbnail selection, shortcut hints and preview letterboxing
+use the same application tokens. White canvas backing and the default light color
+scheme belong on the iframe, so transparent or unstyled slides remain readable
+without adding white bands outside the slide. Explicit document colors are preserved.
 
 The workspace mounts the existing editor DOM nodes into three Ant Splitter panels:
 files/documents, preview and AI. Reparenting preserves native listeners and drafts.
@@ -445,6 +464,17 @@ keeps resize/minimize preferences, expands its input instead of leaving blank
 space, and fits its minimum height to visible controls so old sizes cannot clip
 Apply. It follows toolbar/viewport bounds and respects reduced motion. Escape
 closes it locally, retains the selection/draft and returns focus to its trigger.
+
+Visual mode captures the selected page's rendered continuous iframe, or the main
+preview in single/split view. Code view uses a temporary offscreen 1280×720 frame;
+it never captures a hidden 0×0 editor. The shared document-scoped html2canvas 1.4.1
+loader uses the locally bundled MIT distribution and also serves Quick AI element
+screenshots. Captures keep existing load handlers, clean up temporary frames and
+reject page changes while capturing. A failed capture leaves visual mode off;
+failure to recapture an enabled visual request blocks sending it without an image.
+`tests/test_editor_vision_capture_ui.py` uses the real local renderer and pixel
+checks with external CDNs blocked, without AI calls or project writes.
+
 The toolbar export action opens a native Ant Drawer organized by the intended
 use: editable PPTX, preserved-layout PPTX, PDF reading/printing, or an HTML ZIP.
 The chooser explains editability and format, shows the whole-deck page count,
@@ -627,6 +657,19 @@ full list without replacing custom names. Visible fields open on successful
 refresh; a late result never focuses an inactive tab. Lists keep virtual scroll,
 keyboard selection and free input where the original field allows it. Provider
 changes invalidate role lists, including roles that follow the default provider.
+
+Managed OpenAI-compatible provider dialogs also save `enable_reasoning` and
+`reasoning_effort` for each user/provider pair. Connection tests use the current
+draft; generation and document processing use the saved values. Chat Completions
+receives `reasoning_effort`, while Responses receives `reasoning.effort`. Disabling
+the switch omits these parameters and follows the remote service defaults;
+selecting `none` explicitly requests no reasoning when the selected model supports
+it. Supported effort values depend on the model. Existing configurations retain
+their values when older clients omit these fields. Startup migration `021` adds
+the columns with reasoning disabled and effort `medium`, preserving saved keys.
+Restart both web and worker processes when deploying the change. Regression
+coverage is in `tests/test_managed_providers.py` and
+`tests/test_antd_managed_providers_ui.py`.
 
 Image settings hide the whole detail card when its source or the image service
 is disabled. Source switches stay together; active details and provider credentials

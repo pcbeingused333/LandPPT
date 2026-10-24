@@ -1,94 +1,94 @@
+"""Both HTML entry points share one design system without dropping user inputs."""
+
+import copy
+
+import pytest
+
 from landppt.services.prompts import design_prompts as prompts_module
 
 
-def test_project_design_guide_prompt_includes_current_structure():
-    prompt = prompts_module.DesignPrompts.get_project_design_guide_prompt(
-        confirmed_requirements={"topic": "年度经营汇报"},
-        slides_summary="- 第1页：封面\n- 第2页：业务概览\n- 第3页：行动计划",
-        total_pages=3,
-        first_slide_data={"title": "年度经营汇报", "slide_type": "cover"},
-        template_html="<div class='page'><header></header><main></main><footer></footer></div>",
-    )
-
-    assert "**模板理解方向**" in prompt
-    assert "**内容与设计质量**" in prompt
-    assert "**固定画布系统**" in prompt
-    assert "版面取舍：优先守住完整容纳和锚点稳定" in prompt
-    assert "**E. 普通内容页与特殊页面的分工**" in prompt
-    assert "**H. 给单页生成器的执行原则**" in prompt
-
-
-def test_single_slide_html_prompt_includes_template_guidance_and_self_check(monkeypatch):
+@pytest.fixture(params=["single", "template"])
+def build_prompt(request, monkeypatch):
     monkeypatch.setattr(prompts_module, "_is_image_service_enabled", lambda: False)
 
+    def build(**overrides):
+        common = dict(
+            slide_data={"title": "报告", "content_points": ["收入 42 万元（未审计）"]},
+            template_html="<main>REFERENCE</main>", page_number=2, total_pages=5,
+            context_info="PAGE_ROLE", style_genes="LEGACY_GENES",
+            global_constitution="DESIGN_SYSTEM", current_page_brief="PAGE_INTENT",
+        )
+        include_page_numbers = overrides.pop("include_page_numbers", True)
+        common.update(overrides)
+        if request.param == "single":
+            return prompts_module.DesignPrompts.get_single_slide_html_prompt(
+                **common, confirmed_requirements={
+                    "topic": "PROJECT_TOPIC", "target_audience": "AUDIENCE",
+                    "include_page_numbers": include_page_numbers,
+                })
+        return prompts_module.DesignPrompts.get_creative_template_context_prompt(
+            **common, slide_title=common["slide_data"]["title"], slide_type="content",
+            project_topic="PROJECT_TOPIC", project_audience="AUDIENCE",
+            include_page_numbers=include_page_numbers)
+    return build
+
+
+def test_one_authoritative_design_system_and_intact_inputs(build_prompt):
+    slide = {
+        "title": "报告", "content_points": ["收入 42 万元（未审计）"],
+        "composition_brief": {"focal": "UNIQUE_FOCUS", "relation": "UNIQUE_RELATION"},
+        "images_summary": "https://example.test/image.png",
+    }
+    original = copy.deepcopy(slide)
+    prompt = build_prompt(slide_data=slide)
+    for value in (
+        "DESIGN_SYSTEM", "PAGE_INTENT", "PAGE_ROLE", "REFERENCE", "PROJECT_TOPIC",
+        "AUDIENCE", "收入 42 万元（未审计）", "UNIQUE_FOCUS", "UNIQUE_RELATION",
+        "https://example.test/image.png",
+    ):
+        assert prompt.count(value) == 1
+    assert "LEGACY_GENES" not in prompt
+    assert slide == original
+    assert prompt.count("**整套设计系统**") == 1
+    assert prompt.count("**固定画布系统**") == 1
+    assert "用户明确要求优先" in prompt
+    assert len(prompt) < 2200
+
+
+@pytest.mark.parametrize("system", ["", "   "])
+def test_legacy_genes_are_used_when_design_system_missing(build_prompt, system):
+    prompt = build_prompt(global_constitution=system)
+    assert prompt.count("LEGACY_GENES") == 1
+
+
+def test_no_guidance_or_template_still_produces_complete_prompt(build_prompt):
+    prompt = build_prompt(global_constitution="", style_genes="", template_html="", current_page_brief="")
+    assert "无模板时建立简洁一致的视觉规范" in prompt
+    assert "1280×720" in prompt
+    assert "<!DOCTYPE html>" in prompt
+    assert "收入 42 万元（未审计）" in prompt
+
+
+def test_page_number_opt_out_keeps_layout_and_content_constraints(build_prompt):
+    prompt = build_prompt(
+        include_page_numbers=False,
+        context_info="页码沿用模板位置。",
+        global_constitution="DESIGN_SYSTEM\n页码放在右下角。",
+        template_html="<main>REFERENCE</main>\n<footer>{{ current_page_number }}</footer>",
+    )
+    for token in ("页码", "Footer", "footer", "current_page_number"):
+        assert token not in prompt
+    assert "DESIGN_SYSTEM" in prompt
+    assert "收入 42 万元（未审计）" in prompt
+    assert "1280×720" in prompt
+    assert "先确定主体的列宽" in prompt
+    assert "<!DOCTYPE html>" in prompt
+
+
+def test_single_entry_preserves_custom_requirements(monkeypatch):
+    monkeypatch.setattr(prompts_module, "_is_image_service_enabled", lambda: False)
     prompt = prompts_module.DesignPrompts.get_single_slide_html_prompt(
-        slide_data={"title": "业务概览", "content_points": ["增长", "效率", "成本"]},
-        confirmed_requirements={"topic": "年度经营汇报", "target_audience": "管理层"},
-        page_number=2,
-        total_pages=10,
-        context_info="",
-        style_genes="- 深色标题\n- 轻量卡片",
-        template_html="<div class='page'><header></header><main></main><footer></footer></div>",
-    )
-
-    assert "**模板 HTML 原文**" in prompt
-    assert "**模板理解方向**" in prompt
-    assert "**稳定区域理解方向**" in prompt
-    assert "**内容与设计质量**" in prompt
-    assert "**固定画布系统**" in prompt
-    assert "**输出前自检**" in prompt
-    assert "**设计基因**" in prompt
-
-
-def test_slide_context_prompt_for_regular_page_uses_directional_guidance():
-    prompt = prompts_module.DesignPrompts.get_slide_context_prompt(
-        slide_data={"title": "业务策略", "slide_type": "content"},
-        page_number=2,
-        total_pages=8,
-    )
-
-    assert "**普通内容页**" in prompt
-    assert "标题区和页码区作为母板锚定区" in prompt
-    assert "吸收页面指导的方向建议" in prompt
-    assert "在单一主任务前提下展开要点" in prompt
-
-
-def test_design_prompts_omit_footer_page_number_guidance_when_disabled(monkeypatch):
-    monkeypatch.setattr(prompts_module, "_is_image_service_enabled", lambda: False)
-
-    prompt = prompts_module.DesignPrompts.get_single_slide_html_prompt(
-        slide_data={"title": "业务概览", "content_points": ["增长", "效率"]},
-        confirmed_requirements={
-            "topic": "年度经营汇报",
-            "target_audience": "管理层",
-            "include_page_numbers": False,
-        },
-        page_number=2,
-        total_pages=10,
-        context_info="普通内容页：页码锚点优先跟随模板原有位置。",
-        style_genes="- 保持页码锚点",
-        template_html="<div class='page'><header></header><main></main><footer>{{ current_page_number }}</footer></div>",
-    )
-
-    assert "页码" not in prompt
-    assert "Footer" not in prompt
-    assert "footer" not in prompt
-    assert "current_page_number" not in prompt
-
-
-def test_combined_style_prompt_includes_current_structure(monkeypatch):
-    monkeypatch.setattr(prompts_module, "_is_image_service_enabled", lambda: False)
-
-    prompt = prompts_module.DesignPrompts.get_combined_style_genes_and_guide_prompt(
-        template_code="<div class='page'><header></header><main></main><footer></footer></div>",
-        slide_data={"title": "封面", "subtitle": "项目启动"},
-        page_number=1,
-        total_pages=8,
-    )
-
-    assert "**模板理解方向**" in prompt
-    assert "**内容与设计质量**" in prompt
-    assert "**固定画布系统**" in prompt
-    assert "版面取舍：优先守住完整容纳和锚点稳定" in prompt
-    assert "===STYLE_GENES===" in prompt
-    assert "===DESIGN_GUIDE===" in prompt
+        {"title": "报告"}, {"custom_style_prompt": "CUSTOM_STYLE", "description": "REQUIREMENT"},
+        2, 5, "", "")
+    assert "CUSTOM_STYLE" in prompt
+    assert "REQUIREMENT" in prompt

@@ -146,7 +146,9 @@ async def clear_user_provider(
 async def _probe_config(session, user_id, provider_id, data):
     try:
         return await ManagedProviderService(session).resolve(
-            user_id, provider_id, **(data.model_dump() if data else {})
+            user_id,
+            provider_id,
+            **(data.model_dump(exclude_unset=True) if data else {}),
         )
     except ManagedProviderError as exc:
         raise HTTPException(400, str(exc)) from None

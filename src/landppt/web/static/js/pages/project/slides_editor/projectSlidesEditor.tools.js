@@ -447,27 +447,26 @@
         }
 
         // 视觉模式切换功能
+        let visionCaptureError = '';
         async function toggleVisionMode() {
             const nextEnabled = !visionModeEnabled;
             const visionBtn = document.getElementById('aiVisionToggleBtn');
-            if (!visionBtn) return;
+            if (!visionBtn || visionBtn.disabled) return;
 
             if (nextEnabled) {
-                visionModeEnabled = true;
-                visionBtn.classList.add('active');
-                visionBtn.title = '关闭视觉模式 - AI将不再看到当前幻灯片';
+                visionBtn.disabled = true;
                 showNotification('视觉模式启用中：正在捕获当前幻灯片…', 'info');
-
-                // 立即尝试捕获一次，确保视觉模式真的可用（常见失败原因：外链图片跨域导致 canvas 导出失败）
-                const screenshot = await captureSlideScreenshot();
+                let screenshot;
+                try { screenshot = await captureSlideScreenshot({ force: true }); }
+                finally { visionBtn.disabled = false; }
                 if (!screenshot) {
-                    visionModeEnabled = false;
-                    visionBtn.classList.remove('active');
-                    visionBtn.title = '启用视觉模式 - AI将能看到当前幻灯片';
-                    showNotification('视觉模式启用失败：无法捕获幻灯片截图（可能是跨域图片/资源导致）', 'warning');
+                    showNotification(`视觉模式启用失败：${visionCaptureError || '当前页截图失败，请稍后重试'}`, 'warning');
                     return;
                 }
 
+                visionModeEnabled = true;
+                visionBtn.classList.add('active');
+                visionBtn.title = '关闭视觉模式 - AI将不再看到当前幻灯片';
                 showNotification('视觉模式已启用 - AI现在可以看到当前幻灯片', 'success');
                 return;
             }
@@ -480,76 +479,30 @@
         }
 
         // 捕获当前幻灯片截图
-        async function captureSlideScreenshot() {
-            if (!visionModeEnabled) {
+        async function captureSlideScreenshot({ force = false } = {}) {
+            if (!visionModeEnabled && !force) {
                 return null;
             }
 
+            visionCaptureError = '';
             try {
-                const slideFrame = document.getElementById('slideFrame');
-                if (!slideFrame) {
-                    return null;
-                }
-
-                // 等待iframe内容加载完成
-                await new Promise(resolve => {
-                    if (slideFrame.contentDocument && slideFrame.contentDocument.readyState === 'complete') {
-                        resolve();
-                    } else {
-                        slideFrame.onload = resolve;
-                        setTimeout(resolve, 1000); // 超时保护
-                    }
+                if (!slidesData[currentSlideIndex]) throw new Error('请先选择一个幻灯片');
+                return await withSlideCaptureFrame(currentSlideIndex, async (renderer, doc) => {
+                    const canvas = await renderer(doc.body, {
+                        width: 1280, height: 720, windowWidth: 1280, windowHeight: 720,
+                        scrollX: 0, scrollY: 0, x: 0, y: 0, scale: 1,
+                        useCORS: true, allowTaint: false, backgroundColor: '#ffffff', logging: false
+                    });
+                    return canvas.toDataURL('image/jpeg', 0.8);
                 });
-
-                // 获取iframe内容
-                const iframeDoc = slideFrame.contentDocument || slideFrame.contentWindow.document;
-                if (!iframeDoc) {
-                    return null;
-                }
-
-                // 使用html2canvas捕获iframe内容
-                if (typeof html2canvas === 'undefined') {
-                    await loadHtml2Canvas();
-                }
-
-                const canvas = await html2canvas(iframeDoc.body, {
-                    width: 1280,
-                    height: 720,
-                    scale: 1,
-                    useCORS: true,
-                    allowTaint: true,
-                    backgroundColor: '#ffffff'
-                });
-
-                // 转换为base64
-                const dataURL = canvas.toDataURL('image/jpeg', 0.8);
-                return dataURL;
-
             } catch (error) {
                 console.error('captureSlideScreenshot failed:', error);
-                try {
-                    showNotification('捕获幻灯片截图失败：请检查是否存在跨域图片/资源', 'warning');
-                } catch (_) {
-                    // ignore
-                }
+                visionCaptureError = error?.name === 'SecurityError'
+                    ? '当前页包含无法读取的资源，请检查图片权限后重试'
+                    : /截图组件|当前页尚未就绪|页面已切换|请先选择/.test(error?.message || '')
+                        ? error.message : '当前页截图失败，请稍后重试';
                 return null;
             }
-        }
-
-        // 动态加载html2canvas库
-        async function loadHtml2Canvas() {
-            return new Promise((resolve, reject) => {
-                if (typeof html2canvas !== 'undefined') {
-                    resolve();
-                    return;
-                }
-
-                const script = document.createElement('script');
-                script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
-                script.onload = resolve;
-                script.onerror = reject;
-                document.head.appendChild(script);
-            });
         }
 
 

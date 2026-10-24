@@ -139,6 +139,8 @@ class RuntimeConfigService:
             base_url = managed_config['base_url']
             model = model or managed_config.get('model')
             use_responses_api = managed_config.get('use_responses_api', False)
+            enable_reasoning = bool(managed_config.get('enable_reasoning'))
+            reasoning_effort = str(managed_config.get('reasoning_effort') or 'medium')
         if provider == 'openai':
             api_key = user_config.get('openai_api_key')
             base_url = user_config.get('openai_base_url')

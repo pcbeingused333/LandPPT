@@ -947,10 +947,23 @@ class NarrationService:
                 tmp_dir = tempfile.mkdtemp(prefix="landppt_tts_", dir=base_dir)
                 try:
                     tmp_path = os.path.join(tmp_dir, filename)
+                    import aiohttp
                     import edge_tts
 
                     communicate = edge_tts.Communicate(text=text, voice=voice, rate=rate)
-                    await communicate.save(tmp_path)
+                    try:
+                        await communicate.save(tmp_path)
+                    except aiohttp.WSServerHandshakeError as exc:
+                        # The exception includes the complete signed WebSocket URL.
+                        # Keep it out of task errors shown in the narration dialog.
+                        logger.warning("Edge-TTS handshake failed (HTTP %s)", exc.status)
+                        message = f"Edge-TTS 连接失败（HTTP {exc.status}），请稍后重试。"
+                        if exc.status == 403:
+                            message = (
+                                "Edge-TTS 连接被拒绝（HTTP 403）。请将 edge-tts 升级至 "
+                                "7.3.1 或更高版本并重启服务；若已更新，请检查网络或稍后重试。"
+                            )
+                        raise RuntimeError(message) from None
                     if not os.path.exists(tmp_path) or os.path.getsize(tmp_path) == 0:
                         raise RuntimeError("TTS produced empty audio output")
                     try:

@@ -63,6 +63,8 @@ def catalogue(page, *, admin=False, records=None):
                 has_api_key=True,
                 requires_confirmation=False,
                 model=body["model"],
+                enable_reasoning=body["enable_reasoning"],
+                reasoning_effort=body["reasoning_effort"],
             )
             route.fulfill(json={"success": True})
         else:
@@ -160,7 +162,11 @@ def test_user_configuration_retains_key_and_lists_models(ui_page, width, height)
     dialog.get_by_role("button", name="保存配置", exact=True).click()
     expect(dialog).not_to_be_visible()
     assert writes[-1][2] == dict(
-        api_key=None, model="beta", confirmed_base_url=PROVIDERS[0]["base_url"]
+        api_key=None,
+        model="beta",
+        confirmed_base_url=PROVIDERS[0]["base_url"],
+        enable_reasoning=False,
+        reasoning_effort="medium",
     )
     assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
     assert not errors
@@ -181,6 +187,60 @@ def test_changed_address_requires_explicit_confirmation(ui_page):
     dialog.get_by_role("button", name="保存配置", exact=True).click()
     expect(dialog).not_to_be_visible()
     assert len(writes) == 1 and writes[0][2]["api_key"] is None
+    assert not errors
+
+
+@pytest.mark.parametrize("width,height", [(1440, 900), (320, 568)])
+def test_reasoning_settings_are_used_for_probe_saved_and_restored(
+    ui_page, width, height
+):
+    page, load = ui_page
+    page.set_viewport_size(dict(width=width, height=height))
+    rows = deepcopy(PROVIDERS)
+    rows[0].update(enable_reasoning=True, reasoning_effort="low")
+    _, writes, errors = catalogue(page, records=rows)
+    settings(page, load)
+    first = page.locator(".managed-provider-card").first
+    first.get_by_role("button", name="配置使用", exact=True).click()
+    dialog = page.get_by_role("dialog", name="配置 服务商 1")
+    switch = dialog.get_by_role("switch", name="启用思考", exact=True)
+    effort = dialog.get_by_role("combobox", name="思考强度", exact=True)
+    expect(switch).to_be_checked()
+    switch.click()
+    expect(effort).to_be_disabled()
+    switch.click()
+    effort.click()
+    page.locator(".ant-select-dropdown:visible").get_by_text(
+        "高（high）", exact=True
+    ).click()
+    dialog.get_by_role("button", name="测试连接", exact=True).click()
+    expect(dialog.get_by_role("button", name="保存配置", exact=True)).to_be_enabled()
+    assert writes[-1][0].endswith("/test")
+    assert writes[-1][2]["enable_reasoning"] is True
+    assert writes[-1][2]["reasoning_effort"] == "high"
+    dialog.get_by_role("button", name="保存配置", exact=True).click()
+    expect(dialog).not_to_be_visible()
+    assert writes[-1][0].endswith("/config")
+    assert writes[-1][2]["reasoning_effort"] == "high"
+    first.get_by_role("button", name="配置使用", exact=True).click()
+    expect(switch).to_be_checked()
+    expect(dialog.get_by_text("高（high）", exact=True)).to_be_visible()
+    effort.scroll_into_view_if_needed()
+    Path("artifacts/ai-providers").mkdir(parents=True, exist_ok=True)
+    dialog.screenshot(path=f"artifacts/ai-providers/reasoning-{width}.png")
+    switch.click()
+    dialog.get_by_role("button", name="保存配置", exact=True).click()
+    expect(dialog).not_to_be_visible()
+    assert writes[-1][2]["enable_reasoning"] is False
+    page.locator(".managed-provider-card").nth(1).get_by_role(
+        "button", name="配置使用", exact=True
+    ).click()
+    expect(
+        page.get_by_role("dialog", name="配置 服务商 2").get_by_role(
+            "switch", name="启用思考", exact=True
+        )
+    ).not_to_be_checked()
+    assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
     assert not errors
 
 

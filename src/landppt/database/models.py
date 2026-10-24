@@ -774,6 +774,12 @@ class UserAIProviderConfig(Base):
     provider_id: Mapped[str] = mapped_column(ForeignKey("managed_ai_providers.id"), nullable=False)
     encrypted_api_key: Mapped[str] = mapped_column(Text, nullable=False, default="")
     model: Mapped[str] = mapped_column(String(200), nullable=False, default="")
+    enable_reasoning: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default=false()
+    )
+    reasoning_effort: Mapped[str] = mapped_column(
+        String(20), nullable=False, default="medium", server_default="medium"
+    )
     accepted_base_url: Mapped[str] = mapped_column(String(1000), nullable=False, default="")
     updated_at: Mapped[float] = mapped_column(Float, default=time.time, onupdate=time.time, nullable=False)
     __table_args__ = (UniqueConstraint("user_id", "provider_id", name="uq_user_ai_provider"),)

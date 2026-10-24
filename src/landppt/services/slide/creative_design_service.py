@@ -1054,12 +1054,12 @@ class CreativeDesignService:
             current_entry = next((p for p in page_creative_briefs if p.get("page") == page_number), None)
             current_page_brief = str((current_entry or {}).get("creative_brief") or "").strip()
 
-        brief = await self._apply_composition_brief(
+        await self._apply_composition_brief(
             project_id, slide_data, page_number, total_pages,
             confirmed_requirements, all_slides, template_html,
         )
-        if brief:
-            current_page_brief += "\n\n**本页构图计划（composition_brief）**\n" + json.dumps(brief, ensure_ascii=False)
+        # The plan already travels in slide_data for HTML and SVG generation.
+        # Appending it to the prose guide duplicates the same instructions.
         return style_genes, global_constitution, current_page_brief
 
     async def _extract_style_genes_and_guide(
@@ -1264,77 +1264,18 @@ class CreativeDesignService:
         page_number: int,
         total_pages: int,
     ) -> str:
-        """Generate a deterministic fallback guide when AI guidance is unavailable."""
-        slide_type = slide_data.get("slide_type", "content")
-        content_points = slide_data.get("content_points", [])
-        title = slide_data.get("title", "")
-
-        guides = ["**A. 页面定位与创意策略**"]
+        """Keep fallback guidance limited to page intent, without inventing content."""
         if page_number == 1:
-            guides.extend(
-                [
-                    "- 开场页面：可以使用大胆的视觉冲击力，设置演示基调",
-                    "- 标题排版：尝试非对称布局、创意字体层次、动态视觉元素",
-                    "- 背景色保持统一：可以微小调整背景图案或渐变方向",
-                ]
-            )
+            intent = "开场：突出已有主题和副标题，建立视觉焦点。"
         elif page_number == total_pages:
-            guides.extend(
-                [
-                    "- 结尾页面：设计总结性视觉框架，呼应开头元素",
-                    "- 行动号召：使用突出的视觉引导，如按钮、箭头等",
-                    "- 联系信息：创新的信息展示方式",
-                ]
-            )
+            intent = "收束：突出已有结论，呼应开场；材料未提供的行动号召或联系方式不补写。"
         else:
-            guides.extend(
-                [
-                    "- 内容页面：根据信息重心和内容量选择更合适的空间组织方式，不要默认沿用同一种骨架。",
-                    "- 信息密度：每个要点应展开为标题+说明的双层结构，避免只放单行短句",
-                    "- 视觉丰富度：至少组合 2 种视觉手法（卡片、图标、色块、数据高亮、进度条等）",
-                    "- 背景层次：叠加细微纹理或装饰元素，建立空间纵深",
-                    "- 渐进变化：在保持模板基因一致性的基础上，按页面角色切换空间重心和节奏",
-                ]
-            )
-
-        guides.append("\n**B. 内容驱动的设计建议**")
-        if slide_type == "title":
-            guides.extend(
-                [
-                    "- 视觉组件：使用大型标题卡片、品牌标识、装饰性图形元素",
-                    "- 布局建议：采用居中对称布局，突出主标题的重要性",
-                ]
-            )
-        elif slide_type == "content":
-            if len(content_points) > 5:
-                guides.extend(
-                    [
-                        "- 视觉组件：考虑分栏布局、卡片式设计或折叠展示",
-                        "- 布局建议：使用网格布局或多列布局优化空间利用",
-                    ]
-                )
-            elif len(content_points) <= 3:
-                guides.extend(
-                    [
-                        "- 视觉组件：可以使用大型图标、插图或图表增强视觉效果",
-                        "- 布局建议：采用宽松布局，增加字体大小和留白空间",
-                    ]
-                )
-            guides.append("- 内容组织：尝试时间线、流程图、对比表格等创新方式")
-
-        guides.append("\n**C. 视觉元素与交互体验**")
-        guides.extend(
-            [
-                "- 视觉元素：根据内容主题选择合适的图标和色彩搭配",
-                "- 色彩建议：保持与整体设计基因一致的色彩方案",
-                "- 交互体验：确保信息层次清晰，便于快速阅读和理解",
-            ]
+            intent = "展开：围绕本页核心信息组织阅读顺序，按实际关系分组。"
+        return (
+            intent
+            + "\n内容少时放大焦点并调整内容组位置；内容多时调整分组与列宽，再精简冗余表述。"
+            + "\n遵循已有 composition_brief；关系、图表和说明均以材料为依据，具体尺寸由单页生成器决定。"
         )
-
-        if any(keyword in title.lower() for keyword in ["数据", "统计", "分析", "data", "analysis"]):
-            guides.append("- 数据可视化：推荐使用柱状图、饼图或折线图展示数据")
-
-        return "\n".join(guides)
 
     def _build_slide_context(self, slide_data: Dict[str, Any], page_number: int, total_pages: int) -> str:
         include_page_numbers = True

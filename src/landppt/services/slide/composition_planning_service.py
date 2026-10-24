@@ -11,7 +11,7 @@ from ..prompts import prompts_manager
 from ...core.config import ai_config, resolve_timeout_seconds
 
 logger = logging.getLogger(__name__)
-GUIDANCE_VERSION = "composition-v1"
+GUIDANCE_VERSION = "design-system-v2"
 COMPOSITION_FIELDS = (
     "intent",
     "relation",

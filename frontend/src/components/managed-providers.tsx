@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Alert, App, Avatar, Button, Card, Checkbox, Empty, Form, Input, Modal, Radio, Space, Tag } from 'antd';
+import { Alert, App, Avatar, Button, Card, Checkbox, Empty, Form, Input, Modal, Radio, Select, Space, Switch, Tag } from 'antd';
 import { ApiOutlined, ArrowRightOutlined, ReloadOutlined } from '@ant-design/icons';
 import { request, type ApiData } from '../api';
 import { modalFocus } from './modal-focus';
@@ -41,6 +41,8 @@ export default function ManagedProviders({ catalogue, current, chooseDefault, bu
   const { message, modal } = App.useApp();
   const [selected, setSelected] = useState<ManagedProvider | null>(null);
   const [key, setKey] = useState(''); const [model, setModel] = useState('');
+  const [enableReasoning, setEnableReasoning] = useState(false);
+  const [reasoningEffort, setReasoningEffort] = useState('medium');
   const [confirmed, setConfirmed] = useState(false);
   const [options, setOptions] = useState<Field['options'] | undefined>();
   const [pending, setPending] = useState(''); const [error, setError] = useState('');
@@ -48,6 +50,7 @@ export default function ManagedProviders({ catalogue, current, chooseDefault, bu
   useEffect(() => () => active.current?.abort(), []);
   function open(provider: ManagedProvider) {
     setSelected(provider); setKey(''); setModel(provider.model || provider.default_model || '');
+    setEnableReasoning(!!provider.enable_reasoning); setReasoningEffort(provider.reasoning_effort || 'medium');
     setOptions(undefined); setConfirmed(!provider.requires_confirmation); setError('');
   }
   async function run(kind: string) {
@@ -56,7 +59,7 @@ export default function ManagedProviders({ catalogue, current, chooseDefault, bu
     lock.current = true; setPending(kind); setError('');
     const controller = new AbortController(); active.current = controller;
     try {
-      const body = { api_key: key.trim() || null, model: model.trim(), confirmed_base_url: selected.base_url };
+      const body = { api_key: key.trim() || null, model: model.trim(), confirmed_base_url: selected.base_url, enable_reasoning: enableReasoning, reasoning_effort: reasoningEffort };
       const result = await request(`/api/managed-providers/${selected.id}/${kind === 'save' ? 'config' : kind}`, kind === 'save' ? 'PUT' : 'POST', body, controller.signal);
       if (controller.signal.aborted) return;
       if (kind === 'models') { setOptions((result.models || []).map((value: string) => ({ label: value, value }))); message.success(`已获取 ${result.models?.length || 0} 个模型`); }
@@ -91,6 +94,13 @@ export default function ManagedProviders({ catalogue, current, chooseDefault, bu
         {selected.requires_confirmation && <Form.Item><Checkbox checked={confirmed} onChange={event => setConfirmed(event.target.checked)}>我已确认新的 API 地址，允许向此服务发送密钥和生成内容</Checkbox></Form.Item>}
         <Form.Item label="API Key" htmlFor="managed-api-key" extra={selected.has_api_key ? '已保存密钥，留空保留；填写新密钥可替换。' : '请填写你在此服务申请的 API Key。'}><Input.Password id="managed-api-key" value={key} onChange={event => setKey(event.target.value)} autoComplete="new-password" /></Form.Item>
         <Form.Item label="模型" htmlFor="field-managed_provider_model"><div className="model-control"><ModelPicker field={field} value={model} options={options || field.options} fetched={options} disabled={!!pending} change={(_, value) => setModel(String(value))} /><Button aria-label="获取提供商模型列表" icon={<ReloadOutlined aria-hidden />} loading={pending === 'models'} disabled={!!pending && pending !== 'models'} onClick={() => run('models')} /></div></Form.Item>
+        <Form.Item label="启用思考" htmlFor="managed-enable-reasoning" extra="关闭时不发送思考参数，使用提供商默认设置。"><Switch id="managed-enable-reasoning" checked={enableReasoning} onChange={setEnableReasoning} /></Form.Item>
+        <Form.Item label="思考强度" htmlFor="managed-reasoning-effort" extra="支持的强度取决于提供商和模型；none 用于请求关闭思考。"><Select id="managed-reasoning-effort" value={reasoningEffort} onChange={setReasoningEffort} disabled={!enableReasoning || !!pending} style={{ width: '100%' }} options={[
+          { value: 'none', label: '不思考（none）' }, { value: 'minimal', label: '极低（minimal）' },
+          { value: 'low', label: '低（low）' }, { value: 'medium', label: '中（medium）' },
+          { value: 'high', label: '高（high）' }, { value: 'xhigh', label: '极高（xhigh）' },
+          { value: 'max', label: '最高（max）' },
+        ]} /></Form.Item>
         <p className="subtle">调用费用由此服务按你的账号计费。</p>
       </Form>}
     </Modal>

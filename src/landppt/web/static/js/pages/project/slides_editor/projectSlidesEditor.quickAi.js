@@ -97,39 +97,6 @@ async function captureQuickAiElementScreenshot(element) {
         const iframeDoc = slideFrame.contentDocument || iframeWindow?.document;
         if (!iframeWindow || !iframeDoc) return null;
 
-        async function ensureHtml2CanvasInIframe() {
-            if (iframeWindow.html2canvas) return;
-
-            // 如果主页面已加载 html2canvas，仍需在 iframe 内加载一份，避免跨 document 节点渲染异常/空白
-            return new Promise((resolve, reject) => {
-                try {
-                    if (iframeWindow.html2canvas) {
-                        resolve();
-                        return;
-                    }
-
-                    const existing = iframeDoc.getElementById('html2canvasInjectedScript');
-                    if (existing) {
-                        existing.addEventListener('load', () => resolve(), { once: true });
-                        existing.addEventListener('error', () => reject(new Error('html2canvas iframe load failed')), { once: true });
-                        // 超时保护
-                        setTimeout(() => resolve(), 1500);
-                        return;
-                    }
-
-                    const script = iframeDoc.createElement('script');
-                    script.id = 'html2canvasInjectedScript';
-                    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
-                    script.onload = () => resolve();
-                    script.onerror = () => reject(new Error('html2canvas iframe load failed'));
-                    (iframeDoc.head || iframeDoc.documentElement || iframeDoc.body).appendChild(script);
-                    setTimeout(() => resolve(), 1500);
-                } catch (e) {
-                    reject(e);
-                }
-            });
-        }
-
         // 等待 iframe 文档与资源尽可能加载完毕，避免截图模糊/比例异常（图片/字体未就绪）
         await new Promise(resolve => {
             if (iframeDoc.readyState === 'complete') {
@@ -184,7 +151,7 @@ async function captureQuickAiElementScreenshot(element) {
         }
 
         // 确保在 iframe 内有 html2canvas，避免跨 document 捕获出现“只剩背景/空白”
-        await ensureHtml2CanvasInIframe();
+        await loadHtml2Canvas(iframeWindow);
         if (!iframeWindow.html2canvas) {
             return null;
         }
@@ -226,7 +193,7 @@ async function captureQuickAiElementScreenshot(element) {
             const elementCanvas = await iframeWindow.html2canvas(element, {
                 scale: scaleFactor,
                 useCORS: true,
-                allowTaint: true,
+                allowTaint: false,
                 backgroundColor: '#ffffff',
                 logging: false,
                 windowWidth: Math.max(1, Math.round(iframeWindow.innerWidth || 1280)),
@@ -281,7 +248,7 @@ async function captureQuickAiElementScreenshot(element) {
             windowHeight: slideHeight,
             scale: scaleFactor,
             useCORS: true,
-            allowTaint: true,
+            allowTaint: false,
             backgroundColor: '#ffffff',
             logging: false,
             scrollX: -(iframeWindow.scrollX || 0),

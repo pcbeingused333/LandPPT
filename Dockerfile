@@ -7,6 +7,7 @@ WORKDIR /frontend
 COPY frontend/package.json frontend/package-lock.json ./
 RUN npm ci --no-audit --no-fund
 COPY frontend/ ./
+COPY src/landppt/web/static/css/shared/ /src/landppt/web/static/css/shared/
 RUN npm run build
 
 # Build stage

@@ -1,72 +1,36 @@
+"""The layout contract covers both overflow and undersized content."""
+
+import pytest
+
 from landppt.services.prompts import design_prompts as prompts_module
 
 
-def test_project_design_guide_prompt_includes_layout_priority_context():
-    prompt = prompts_module.DesignPrompts.get_project_design_guide_prompt(
-        confirmed_requirements={"topic": "年度战略汇报"},
-        slides_summary="- 第1页：封面\n- 第2页：业务总览",
-        total_pages=2,
-        first_slide_data={"title": "年度战略汇报", "slide_type": "cover"},
-        template_html="<div class='page'><header></header><main></main><footer></footer></div>",
-    )
-
-    assert "版面取舍：优先守住完整容纳和锚点稳定" in prompt
-    assert "**模板理解方向**" in prompt
-    assert "**E. 普通内容页与特殊页面的分工**" in prompt
-    assert "**H. 给单页生成器的执行原则**" in prompt
-
-
-def test_slide_design_guide_prompt_includes_page_type_guidance(monkeypatch):
+@pytest.mark.parametrize("entry", ["single", "template"])
+@pytest.mark.parametrize("points", [["结论"], ["详细事实" * 25 + str(i) for i in range(8)]])
+def test_html_entry_points_preserve_content_and_layout_contract(monkeypatch, entry, points):
     monkeypatch.setattr(prompts_module, "_is_image_service_enabled", lambda: False)
-
-    prompt = prompts_module.DesignPrompts.get_slide_design_guide_prompt(
-        slide_data={"title": "业务分析", "content_points": ["现状", "问题", "机会"]},
-        confirmed_requirements={"topic": "年度战略汇报", "target_audience": "管理层"},
-        slides_summary="- 第1页：封面\n- 第2页：业务分析\n- 第3页：行动方案",
-        page_number=2,
-        total_pages=3,
-        template_html="<div class='page'><header></header><main></main><footer></footer></div>",
+    common = dict(
+        slide_data={"title": "分析", "content_points": points},
+        page_number=2, total_pages=5, context_info="", style_genes="",
+        template_html="<main>REFERENCE</main>",
     )
-
-    assert "**模板理解方向**" in prompt
-    assert "**A. 当前页角色判断**" in prompt
-    assert "**B. 视觉焦点与布局方向**" in prompt
-    assert "**F. 风险与避坑**" in prompt
-
-
-def test_single_slide_html_prompt_includes_fixed_canvas_guidance(monkeypatch):
-    monkeypatch.setattr(prompts_module, "_is_image_service_enabled", lambda: False)
-
-    prompt = prompts_module.DesignPrompts.get_single_slide_html_prompt(
-        slide_data={"title": "业务总览", "content_points": ["增长", "效率", "成本"]},
-        confirmed_requirements={"topic": "年度战略汇报", "target_audience": "管理层"},
-        page_number=2,
-        total_pages=10,
-        context_info="",
-        style_genes="- 深色标题\n- 轻量卡片",
-        template_html="<div class='page'><header></header><main></main><footer></footer></div>",
-    )
-
-    assert "版面取舍：优先守住完整容纳和锚点稳定" in prompt
-    assert "**固定画布系统**" in prompt
-    assert "1280×720" in prompt
-    assert "overflow:hidden" in prompt
-    assert "flex/grid item" in prompt
-    assert "自行识别标题区、页码区和其他稳定锚点" in prompt
-
-
-def test_combined_style_prompt_includes_canvas_priority(monkeypatch):
-    monkeypatch.setattr(prompts_module, "_is_image_service_enabled", lambda: False)
-
-    prompt = prompts_module.DesignPrompts.get_combined_style_genes_and_guide_prompt(
-        template_code="<div class='page'><header></header><main></main><footer></footer></div>",
-        slide_data={"title": "封面", "subtitle": "项目启动"},
-        page_number=1,
-        total_pages=8,
-    )
-
-    assert "版面取舍：优先守住完整容纳和锚点稳定" in prompt
-    assert "**内容与设计质量**" in prompt
-    assert "**固定画布系统**" in prompt
-    assert "===STYLE_GENES===" in prompt
-    assert "===DESIGN_GUIDE===" in prompt
+    if entry == "single":
+        prompt = prompts_module.DesignPrompts.get_single_slide_html_prompt(
+            **common, confirmed_requirements={})
+    else:
+        prompt = prompts_module.DesignPrompts.get_creative_template_context_prompt(
+            **common, slide_title="分析", slide_type="content")
+    assert all(point in prompt for point in points)
+    for rule in (
+        "1280×720", "无滚动条", "border-box", "min-width:0", "min-height:0",
+        "先确定主体的列宽", "文字换行", "纵向堆叠计算高度总和",
+        "并列区域取各列高度的最大值", "padding、gap", "为换行误差留余量",
+        "放大核心文字或视觉主体", "关键事实、数字及限定条件",
+        "不用 ellipsis / line-clamp 截断", "不设统一填充率",
+        "禁止为凑满页面编造事实", "<!DOCTYPE html>", "</html>",
+    ):
+        assert rule in prompt
+    assert "75%" not in prompt
+    assert "justify-content:space-between" not in prompt
+    assert "margin-top:auto" not in prompt
+    assert "内容卡片/步骤块/模块默认按内容定高" not in prompt

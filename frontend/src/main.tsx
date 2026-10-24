@@ -1,9 +1,9 @@
 import { lazy, Suspense, Component, useMemo, type ReactNode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { App, ConfigProvider, Result, Button, Spin } from 'antd';
+import { App, ConfigProvider, Result, Button } from 'antd';
 import zhCN from 'antd/locale/zh_CN';
 import { landpptTheme } from './theme';
-import { Shell, type ShellData } from './shell';
+import { NavigationPending, Shell, type ShellData } from './shell';
 import { useSectionNavigation, type SectionLoaders } from './navigation';
 import { CreationDraftProvider } from './components/creation-draft';
 import '../../src/landppt/web/static/css/shared/design-tokens.css';
@@ -60,11 +60,11 @@ function LandPPT({ initial }: { initial: ShellData & Record<string, any> }) {
   const data = view.data as typeof initial;
   const page = useMemo(() => {
     const Page = view.Page || (data.page === 'error' ? ErrorPage : data.page === 'slides-editor' ? SlidesEditor : data.page === 'home' ? Home : data.page === 'generator-workspace' ? GeneratorChrome : data.page === 'presentation' ? Presentation : data.page === 'todo' ? Todo : pages[data.page as keyof typeof pages]);
-    return <PageBoundary key={view.key}><Suspense fallback={<div className="page-loading" role="status"><Spin /> 正在加载…</div>}>
+    return <PageBoundary key={view.key}><Suspense fallback={<div className="page-loading page-placeholder" role="status" aria-label="正在打开页面"><span /><span /><span /></div>}>
       {Page ? <Page data={data} /> : <Result status="404" title="页面不存在" extra={<Button href="/dashboard">返回首页</Button>} />}
     </Suspense></PageBoundary>;
   }, [view]);
-  return <CreationDraftProvider key={`${data.user?.username || 'guest'}:${!!data.user?.is_admin}`}>{data.page === 'presentation' ? page : <Shell data={data} pending={pending}>{page}</Shell>}</CreationDraftProvider>;
+  return <CreationDraftProvider key={`${data.user?.username || 'guest'}:${!!data.user?.is_admin}`}><NavigationPending.Provider value={pending}>{data.page === 'presentation' ? page : <Shell data={data}>{page}</Shell>}</NavigationPending.Provider></CreationDraftProvider>;
 }
 if (root) {
   const initial = JSON.parse(document.getElementById('antdData')!.textContent!) as ShellData & Record<string, any>;

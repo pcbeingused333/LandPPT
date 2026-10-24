@@ -93,7 +93,7 @@ export function useSectionNavigation(initial: ApiData, loaders: SectionLoaders) 
       const url = sectionURL(link.href);
       if (!url || document.querySelector('.ant-modal-wrap:not([style*="display: none"])')) return;
       event.preventDefault();
-      if (url.href === location.href) { active.current?.abort(); setPending(''); return; }
+      if (url.href === location.href) { active.current?.abort(); active.current = null; setPending(''); return; }
       void navigate(url);
     };
     const back = () => {
@@ -116,6 +116,7 @@ export function useSectionNavigation(initial: ApiData, loaders: SectionLoaders) 
     let idle: number | undefined;
     const warmNext = () => {
       if (disposed || document.hidden) return;
+      if (active.current) { schedule(); return; }
       const page = queue.shift();
       if (page) void loaders[page]().catch(() => {}).finally(schedule);
     };

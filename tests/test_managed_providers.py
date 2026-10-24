@@ -2,13 +2,15 @@
 
 import json
 import os
+from contextlib import asynccontextmanager
 from types import SimpleNamespace
+from unittest.mock import AsyncMock
 
 import httpx
 import pytest
 import pytest_asyncio
 from fastapi import FastAPI, HTTPException, Request
-from sqlalchemy import create_engine, insert, select
+from sqlalchemy import create_engine, insert, select, text
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from sqlalchemy.orm import sessionmaker
@@ -104,12 +106,15 @@ async def create(client, **overrides):
     return response.json()["provider"]
 
 
-async def configure(client, provider, user=2, key="secret-user-2"):
+async def configure(client, provider, user=2, key="secret-user-2", **settings):
     response = await client.put(
         f"/api/managed-providers/{provider['id']}/config",
         headers={"x-test-user": str(user)},
         json=dict(
-            api_key=key, model="user-model", confirmed_base_url=provider["base_url"]
+            api_key=key,
+            model="user-model",
+            confirmed_base_url=provider["base_url"],
+            **settings,
         ),
     )
     assert response.status_code == 200, response.text
@@ -170,6 +175,123 @@ async def test_keys_are_encrypted_and_never_in_catalogue(environment):
 
 
 @pytest.mark.asyncio
+async def test_reasoning_settings_are_isolated_persisted_and_preserved(environment):
+    client, _, _ = environment
+    provider = await create(client)
+    second = await create(client, name="Second relay")
+    await configure(client, provider, enable_reasoning=True, reasoning_effort="xhigh")
+    await configure(
+        client, provider, user=3, enable_reasoning=True, reasoning_effort="low"
+    )
+    await configure(client, second)
+
+    catalogue = (
+        await client.get("/api/managed-providers", headers={"x-test-user": "2"})
+    ).json()["providers"]
+    own = next(row for row in catalogue if row["id"] == provider["id"])
+    other = next(row for row in catalogue if row["id"] == second["id"])
+    assert own["enable_reasoning"] is True and own["reasoning_effort"] == "xhigh"
+    assert other["enable_reasoning"] is False and other["reasoning_effort"] == "medium"
+    assert (await resolve_managed_provider(3, provider["provider"]))[
+        "reasoning_effort"
+    ] == "low"
+
+    # Older clients and model-only updates must not reset saved reasoning choices.
+    response = await client.put(
+        f"/api/managed-providers/{provider['id']}/config",
+        headers={"x-test-user": "2"},
+        json={"model": "changed-model", "confirmed_base_url": provider["base_url"]},
+    )
+    assert response.status_code == 200, response.text
+    resolved = resolve_managed_provider_sync(2, provider["provider"])
+    assert (
+        resolved["enable_reasoning"] is True and resolved["reasoning_effort"] == "xhigh"
+    )
+    assert (
+        resolved["api_key"] == "secret-user-2" and resolved["model"] == "changed-model"
+    )
+
+    response = await client.put(
+        f"/api/managed-providers/{provider['id']}/config",
+        headers={"x-test-user": "2"},
+        json={"enable_reasoning": False, "confirmed_base_url": provider["base_url"]},
+    )
+    assert response.status_code == 200
+    resolved = await resolve_managed_provider(2, provider["provider"])
+    assert (
+        resolved["enable_reasoning"] is False
+        and resolved["reasoning_effort"] == "xhigh"
+    )
+    assert resolved["model"] == "changed-model"
+    assert (await resolve_managed_provider(3, provider["provider"]))[
+        "enable_reasoning"
+    ] is True
+    await client.delete(
+        f"/api/managed-providers/{provider['id']}/config",
+        headers={"x-test-user": "2"},
+    )
+    rows = (
+        await client.get("/api/managed-providers", headers={"x-test-user": "2"})
+    ).json()["providers"]
+    cleared = next(row for row in rows if row["id"] == provider["id"])
+    assert (
+        cleared["enable_reasoning"] is False and cleared["reasoning_effort"] == "medium"
+    )
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("effort", ["unsupported", "", None])
+async def test_invalid_reasoning_efforts_do_not_change_saved_configuration(
+    environment, effort
+):
+    client, _, _ = environment
+    provider = await create(client)
+    await configure(client, provider, enable_reasoning=True, reasoning_effort="high")
+    response = await client.put(
+        f"/api/managed-providers/{provider['id']}/config",
+        headers={"x-test-user": "2"},
+        json={"reasoning_effort": effort, "confirmed_base_url": provider["base_url"]},
+    )
+    assert response.status_code == 422
+    assert (await resolve_managed_provider(2, provider["provider"]))[
+        "reasoning_effort"
+    ] == "high"
+
+
+@pytest.mark.asyncio
+async def test_reasoning_migration_upgrades_existing_credentials_idempotently(
+    environment,
+):
+    client, sessions, _ = environment
+    provider = await create(client)
+    await configure(client, provider)
+    from landppt.database.migrations import DatabaseMigration
+
+    async with sessions() as session:
+        saved_key = await session.scalar(
+            text("SELECT encrypted_api_key FROM user_ai_provider_configs")
+        )
+        for name in ("enable_reasoning", "reasoning_effort"):
+            await session.execute(
+                text(f"ALTER TABLE user_ai_provider_configs DROP COLUMN {name}")
+            )
+        migration = DatabaseMigration()
+        await migration._migration_021_up(session)
+        await migration._migration_021_up(session)
+        await session.commit()
+        row = (
+            (await session.execute(text("SELECT * FROM user_ai_provider_configs")))
+            .mappings()
+            .one()
+        )
+        assert not row["enable_reasoning"] and row["reasoning_effort"] == "medium"
+        assert row["encrypted_api_key"] == saved_key and row["model"] == "user-model"
+    assert (await resolve_managed_provider(2, provider["provider"]))[
+        "api_key"
+    ] == "secret-user-2"
+
+
+@pytest.mark.asyncio
 async def test_multiple_services_default_and_role_configuration(
     environment, monkeypatch
 ):
@@ -218,7 +340,7 @@ async def test_multiple_services_default_and_role_configuration(
 async def test_address_change_requires_confirmation_and_preserves_key(environment):
     client, _, _ = environment
     provider = await create(client)
-    await configure(client, provider)
+    await configure(client, provider, enable_reasoning=True, reasoning_effort="high")
     data = {name: provider[name] for name in ProviderInput.model_fields}
     data["base_url"] = "https://new-relay.example.com/v1"
     response = await client.put("/admin/api/ai-providers/" + provider["id"], json=data)
@@ -364,11 +486,14 @@ def test_document_processing_preserves_provider_identity_without_environment_key
         api_key="own-key",
         base_url="https://relay.example.com/v1",
         use_responses_api=True,
+        enable_reasoning=True,
+        reasoning_effort="high",
     )
     assert model.provider == "custom:relay"
     config = model._build_provider_config()
     assert config["api_key"] == "own-key" and config["use_responses_api"] is True
     assert config["base_url"] == "https://relay.example.com/v1"
+    assert config["enable_reasoning"] is True and config["reasoning_effort"] == "high"
 
 
 @pytest.mark.asyncio
@@ -401,7 +526,7 @@ async def test_runtime_config_and_disabled_services_never_fall_back(
 ):
     client, _, _ = environment
     provider = await create(client, use_responses_api=True)
-    await configure(client, provider)
+    await configure(client, provider, enable_reasoning=True, reasoning_effort="high")
     await db_config.get_db_config_service().update_config(
         {"default_ai_provider": provider["provider"]}, user_id=2
     )
@@ -419,6 +544,14 @@ async def test_runtime_config_and_disabled_services_never_fall_back(
     assert config["llm_provider"] == provider["provider"]
     assert config["api_key"] == "secret-user-2" and config["llm_model"] == "user-model"
     assert config["use_responses_api"] is True
+    assert config["enable_reasoning"] is True and config["reasoning_effort"] == "high"
+    processing = ExecutionContext.from_mapping(
+        "outline", config
+    ).to_processing_config_kwargs()
+    assert (
+        processing["enable_reasoning"] is True
+        and processing["reasoning_effort"] == "high"
+    )
     assert runtime._get_current_ai_config()["llm_provider"] == provider["provider"]
     assert (
         ExecutionContext.from_mapping("outline", config).to_processing_config_kwargs()[
@@ -500,8 +633,11 @@ async def test_model_lookup_uses_only_approved_destination_and_no_redirects(
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "enable_reasoning,effort", [(False, "medium"), (True, "high"), (True, "none")]
+)
 async def test_connection_probe_uses_draft_key_and_redacts_remote_errors(
-    environment, monkeypatch
+    environment, monkeypatch, enable_reasoning, effort
 ):
     client, _, _ = environment
     provider = await create(client)
@@ -519,11 +655,17 @@ async def test_connection_probe_uses_draft_key_and_redacts_remote_errors(
             and config["api_key"] == "draft-key"
             and not use_cache
         )
+        assert config["enable_reasoning"] is enable_reasoning
+        assert config["reasoning_effort"] == effort
         return Fake()
 
     monkeypatch.setattr(AIProviderFactory, "create_provider", create_probe)
     body = dict(
-        api_key="draft-key", model="test-model", confirmed_base_url=provider["base_url"]
+        api_key="draft-key",
+        model="test-model",
+        confirmed_base_url=provider["base_url"],
+        enable_reasoning=enable_reasoning,
+        reasoning_effort=effort,
     )
     response = await client.post(
         f"/api/managed-providers/{provider['id']}/test",
@@ -548,10 +690,106 @@ async def test_connection_probe_uses_draft_key_and_redacts_remote_errors(
 
 
 @pytest.mark.asyncio
-async def test_managed_provider_completions_and_streaming(environment, caplog):
+@pytest.mark.parametrize("draft_model", [None, "draft-model"])
+async def test_probe_without_reasoning_fields_keeps_saved_choices(
+    environment, monkeypatch, draft_model
+):
     client, _, _ = environment
     provider = await create(client)
-    await configure(client, provider)
+    await configure(client, provider, enable_reasoning=True, reasoning_effort="xhigh")
+    from landppt.ai.providers import AIProviderFactory
+
+    def probe(name, config, use_cache):
+        assert config["enable_reasoning"] is True
+        assert config["reasoning_effort"] == "xhigh"
+        assert config["model"] == (draft_model or "user-model")
+        return SimpleNamespace(chat_completion=AsyncMock())
+
+    monkeypatch.setattr(AIProviderFactory, "create_provider", probe)
+    body = (
+        None
+        if draft_model is None
+        else {"model": draft_model, "confirmed_base_url": provider["base_url"]}
+    )
+    response = await client.post(
+        f"/api/managed-providers/{provider['id']}/test",
+        headers={"x-test-user": "2"},
+        json=body,
+    )
+    assert response.status_code == 200, response.text
+    assert (await resolve_managed_provider(2, provider["provider"]))[
+        "model"
+    ] == "user-model"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "enable_reasoning,effort", [(False, "high"), (True, "none"), (True, "high")]
+)
+async def test_managed_responses_requests_use_saved_reasoning_including_streams(
+    environment, enable_reasoning, effort
+):
+    client, _, _ = environment
+    provider = await create(client, use_responses_api=True)
+    await configure(
+        client, provider, enable_reasoning=enable_reasoning, reasoning_effort=effort
+    )
+    from landppt.ai import AIMessage, MessageRole
+    from landppt.ai.providers import AIProviderFactory
+
+    instance = await db_config.get_user_ai_provider(2, provider["provider"])
+    await instance.client.close()
+    calls = []
+
+    async def complete(**kwargs):
+        calls.append(kwargs)
+        return SimpleNamespace(
+            output_text="hello", model="user-model", status="completed", usage=None
+        )
+
+    @asynccontextmanager
+    async def stream(**kwargs):
+        calls.append(kwargs)
+
+        async def events():
+            yield SimpleNamespace(type="response.output_text.delta", delta="hello")
+
+        yield events()
+
+    instance.client = SimpleNamespace(
+        responses=SimpleNamespace(create=complete, stream=stream)
+    )
+    try:
+        messages = [AIMessage(role=MessageRole.USER, content="Hi")]
+        assert (await instance.chat_completion(messages)).content == "hello"
+        assert (
+            "".join([part async for part in instance.stream_chat_completion(messages)])
+            == "hello"
+        )
+        assert len(calls) == 2
+        for body in calls:
+            assert body["model"] == "user-model" and "reasoning_effort" not in body
+            if enable_reasoning:
+                assert body["reasoning"] == {"effort": effort}
+            else:
+                assert "reasoning" not in body
+    finally:
+        AIProviderFactory.clear_cache()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "enable_reasoning,effort",
+    [(False, "high"), (True, "none"), (True, "minimal"), (True, "high"), (True, "max")],
+)
+async def test_managed_provider_completions_and_streaming(
+    environment, caplog, enable_reasoning, effort
+):
+    client, _, _ = environment
+    provider = await create(client)
+    await configure(
+        client, provider, enable_reasoning=enable_reasoning, reasoning_effort=effort
+    )
     from landppt.ai import AIMessage, MessageRole
     import openai
 
@@ -573,6 +811,10 @@ async def test_managed_provider_completions_and_streaming(environment, caplog):
         assert request.headers["Authorization"] == "Bearer secret-user-2"
         assert str(request.url) == provider["base_url"] + "/chat/completions"
         assert body["model"] == "user-model"
+        if enable_reasoning:
+            assert body["reasoning_effort"] == effort
+        else:
+            assert "reasoning_effort" not in body
         if body.get("stream"):
             chunks = [
                 {

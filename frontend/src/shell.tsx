@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { createContext, memo, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import { App, Button, Drawer, Dropdown, Input, Space, Tooltip } from 'antd';
 import { BellOutlined, MenuOutlined, UserOutlined, SettingOutlined, LogoutOutlined, GithubOutlined, MailOutlined, HeartOutlined, SearchOutlined, HomeOutlined, FolderOutlined, PictureOutlined, LayoutOutlined, MenuFoldOutlined, MenuUnfoldOutlined, FileTextOutlined } from '@ant-design/icons';
 import { version } from '../package.json';
@@ -18,7 +18,21 @@ declare global {
   }
 }
 
-export function Shell({ data, children, pending = '' }: { data: ShellData; children: ReactNode; pending?: string }) {
+export const NavigationPending = createContext('');
+
+function NavigationProgress() {
+  const pending = useContext(NavigationPending);
+  return pending ? <div className="navigation-progress" role="status" aria-label="正在打开页面" /> : null;
+}
+
+function ShellMain({ className, children }: { className: string; children: ReactNode }) {
+  const pending = useContext(NavigationPending);
+  return <main id="appMain" tabIndex={-1} aria-busy={!!pending} className={className}>{children}</main>;
+}
+
+// Pending navigation updates only the progress line and main accessibility state.
+// Keep the sidebar, account menus and notification surfaces out of that render.
+export const Shell = memo(function Shell({ data, children }: { data: ShellData; children: ReactNode }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(() => {
     try { const saved = localStorage.getItem('landppt:sidebar-collapsed'); if (saved !== null) return saved === '1'; } catch { /* Use the viewport default when storage is unavailable. */ }
@@ -43,7 +57,7 @@ export function Shell({ data, children, pending = '' }: { data: ShellData; child
       .then(value => { if (!controller.signal.aborted) setRecent(Array.isArray(value?.projects) ? value.projects.slice(0, 8) : []); })
       .catch(() => { /* The navigation remains usable when the project list is unavailable. */ });
     return () => controller.abort();
-  }, [data.user?.username, data.page, pending]);
+  }, [data]);
   useEffect(() => {
     let disposed = false;
     let reading: AbortController | undefined;
@@ -111,7 +125,7 @@ export function Shell({ data, children, pending = '' }: { data: ShellData; child
           : <Button href="/auth/login">登录</Button>}
       </Space>}
     </header>
-    {pending && <div className="navigation-progress" role="status" aria-label="正在打开页面" />}
+    <NavigationProgress />
     <Drawer title="导航" open={menuOpen} onClose={() => setMenuOpen(false)} afterOpenChange={open => { if (!open) menuTrigger.current?.focus(); }} size={280}>
       {searchForm}{navigation}{data.page !== 'home' && recentProjects}<nav aria-label="辅助导航" className="app-nav account-nav"><a href="/create">创建 PPT</a><a href="/home">产品首页</a><a href="/ai-config">系统配置</a>{(sponsorsEnabled || data.user?.is_admin) && <a id="mobileSponsorLink" href="/sponsors">{sponsorsEnabled ? '赞助感谢' : '赞助预览'}</a>}</nav><nav aria-label="账户导航" className="app-nav account-nav">
         {data.user ? <><a href="/auth/profile">个人资料</a>{data.creditsEnabled && <a href="/credits">我的积分</a>}{data.user.is_admin && <a href="/admin">管理后台</a>}<Button type="text" onClick={logout}>退出登录</Button></>
@@ -120,7 +134,7 @@ export function Shell({ data, children, pending = '' }: { data: ShellData; child
     </Drawer>
     <SiteAnnouncement notice={notice} />
     <NotificationDrawer open={notificationOpen} state={notifications} center={center.current} />
-    <main id="appMain" tabIndex={-1} aria-busy={!!pending} className={`app-main${authPage ? ' auth-main' : ''}${data.page === 'home' ? ' home-main' : ''}`}>{children}</main>
+    <ShellMain className={`app-main${authPage ? ' auth-main' : ''}${data.page === 'home' ? ' home-main' : ''}`}>{children}</ShellMain>
     {data.page === 'home' && <footer className="app-footer"><span>LandPPT · v{version}</span><a href="/home">产品首页</a><Tooltip title="GitHub" trigger={['hover', 'focus']}><a className="app-footer-icon" aria-label="GitHub" href="https://github.com/sligter/LandPPT" target="_blank" rel="noreferrer"><GithubOutlined aria-hidden /></a></Tooltip>{(sponsorsEnabled || data.user?.is_admin) && <a id="footerSponsorLink" className="app-footer-sponsor" href="/sponsors"><HeartOutlined aria-hidden />{sponsorsEnabled ? '赞助感谢' : '赞助预览'}</a>}<Tooltip title="商务合作" trigger={['hover', 'focus']}><a className="app-footer-icon" aria-label="商务合作" href="mailto:support@landppt.com"><MailOutlined aria-hidden /></a></Tooltip></footer>}
   </div></div>;
-}
+});
