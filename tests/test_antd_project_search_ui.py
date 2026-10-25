@@ -36,7 +36,8 @@ def test_search_input_button_and_clear_preserve_status_and_fit_page(
     expect(field).to_have_value("old")
     field.fill("  数据 & 50%_ / +  ")
     assert parse_qs(urlsplit(page.url).query)["search"] == ["old"]
-    page.get_by_role("button", name="搜索", exact=True).click()
+    toolbar = page.locator(".projects-toolbar")
+    toolbar.get_by_role("button", name="搜索", exact=True).click()
     page.wait_for_url(
         lambda url: parse_qs(urlsplit(url).query).get("search") == ["数据 & 50%_ / +"]
     )
@@ -44,12 +45,12 @@ def test_search_input_button_and_clear_preserve_status_and_fit_page(
     assert params["status"] == ["draft"] and "page" not in params
     for element in [
         field,
-        page.get_by_role("button", name="搜索", exact=True),
+        toolbar.get_by_role("button", name="搜索", exact=True),
         page.locator(".projects-status-filter"),
     ]:
         box = element.bounding_box()
         assert box["x"] >= 0 and box["x"] + box["width"] <= width + 1
-    search = page.get_by_role("button", name="搜索", exact=True)
+    search = toolbar.get_by_role("button", name="搜索", exact=True)
     assert search.bounding_box()["height"] >= (44 if width <= 600 else 32)
     if width <= 600:
         assert search.bounding_box()["width"] >= 44

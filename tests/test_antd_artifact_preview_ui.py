@@ -164,7 +164,7 @@ def test_real_playback_seek_and_close_release_media_without_writing(
     else:
         page.keyboard.press("Escape")
     expect(dialog).not_to_be_visible()
-    assert page.evaluate(
+    page.wait_for_function(
         "window.closedPreview.paused && !window.closedPreview.getAttribute('src') && window.closedPreview.networkState===0"
     )
     expect(trigger).to_be_focused()
