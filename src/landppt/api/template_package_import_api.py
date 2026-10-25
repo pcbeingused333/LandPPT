@@ -22,8 +22,10 @@ from ..services.template_package.pptx_import import (
     ImportOptions,
     analyze_pptx,
     import_pptx,
+    replicate_pptx,
 )
 from ..services.template_package.pptx_repair import repair_layout
+from ..services.template_package.pptx_style import style_replicate_pptx
 from ..services.template_package.pptx_vision import reconstruct_layout
 from ..services.template_package.service import validate_package
 
@@ -157,11 +159,7 @@ async def import_with_ai_repair(data, settings, service, progress):
                 import_pptx,
                 progress=progress,
                 repair=repair,
-                **(
-                    {"reconstruct": reconstruct}
-                    if settings is not None and settings.mode == "visual"
-                    else {}
-                ),
+                **({"reconstruct": reconstruct} if visual else {}),
             ),
             data,
             settings,
@@ -179,6 +177,7 @@ async def analyze(
     user=Depends(get_current_user_required),
     stream: bool = False,
     vision: bool = False,
+    local: bool = False,
 ):
     data = await upload_bytes(file, MAX_UPLOAD)
 
@@ -187,6 +186,20 @@ async def analyze(
         result = await run_render(
             partial(analyze_pptx, progress=progress, vision=vision), data
         )
+        if local:
+            from ..services.template_package.pptx_replica import automatic_page
+
+            for page in result["slides"]:
+                try:
+                    plan = automatic_page(page["slide"], page["candidates"])
+                    page["family"] = plan.family
+                    for candidate in page["candidates"]:
+                        candidate["suggested"] = plan.bindings[candidate["id"]]
+                        candidate["group"] = plan.groups.get(candidate["id"], "")
+                except ValueError as exc:
+                    page["review_required"] = True
+                    page["warnings"].append(str(exc))
+            return result
         return await classify_analysis(
             result,
             PackageCreationService(
@@ -195,6 +208,70 @@ async def analyze(
             progress,
             vision=vision,
         )
+
+    if stream:
+        return stream_operation(operation)
+    try:
+        return await operation(lambda *_: None)
+    except PackageCreationCreditError as exc:
+        raise HTTPException(exc.status_code, str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(422, str(exc)) from exc
+
+
+@router.post("/api/global-master-templates/packages-pptx/replicate")
+async def replicate(
+    file: UploadFile = File(...),
+    name: str = Form(..., min_length=1, max_length=255),
+    user=Depends(get_current_user_required),
+    stream: bool = False,
+):
+    data = await upload_bytes(file, MAX_UPLOAD)
+    if not name.strip():
+        raise HTTPException(422, "请填写模板包名称")
+
+    async def operation(progress):
+        progress("queued", "正在准备原稿复刻")
+        package, report = await run_render(
+            partial(replicate_pptx, progress=progress),
+            data,
+            name.strip(),
+        )
+        progress("save", "校验完成，正在保存模板包草稿")
+        saved = await PackageCatalog(user.id).create(package)
+        return {"package": saved, **report}
+
+    if stream:
+        return stream_operation(operation)
+    try:
+        return await operation(lambda *_: None)
+    except PackageCreationCreditError as exc:
+        raise HTTPException(exc.status_code, str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(422, str(exc)) from exc
+
+
+@router.post("/api/global-master-templates/packages-pptx/style")
+async def replicate_style(
+    file: UploadFile = File(...),
+    name: str = Form(..., min_length=1, max_length=255),
+    user=Depends(get_current_user_required),
+    stream: bool = False,
+):
+    data = await upload_bytes(file, MAX_UPLOAD)
+    if not name.strip():
+        raise HTTPException(422, "请填写模板包名称")
+
+    async def operation(progress):
+        progress("queued", "正在准备风格复刻")
+        package, report = await run_render(
+            partial(style_replicate_pptx, progress=progress),
+            data,
+            name.strip(),
+        )
+        progress("save", "校验完成，正在保存模板包草稿")
+        saved = await PackageCatalog(user.id).create(package)
+        return {"package": saved, **report}
 
     if stream:
         return stream_operation(operation)

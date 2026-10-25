@@ -7,6 +7,7 @@ import { useSectionNavigation, type SectionLoaders } from './navigation';
 import { CreationDraftProvider } from './components/creation-draft';
 import { EditorStartup } from './components/editor-startup';
 import '../../src/landppt/web/static/css/shared/design-tokens.css';
+import './scrollbars.css';
 import './styles.css';
 import './workspace.css';
 

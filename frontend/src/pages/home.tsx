@@ -48,7 +48,7 @@ export default function Home({ data }: { data: ApiData }) {
         <div className="home-kicker"><span className="home-kicker-dot" aria-hidden /> YOUR IDEAS, WELL PRESENTED</div>
         <h1 id="homeTitle">让想法，<br /><span>成为好演示。</span></h1>
         <p className="home-lead">从第一句灵感，到最后一页呈现。<br />用 AI 整理内容、设计页面，<br className="home-mobile-break" />也为你留下每一步的创作空间。</p>
-        <div className="home-hero-actions"><Button type="primary" href="/create" icon={<ArrowRightOutlined aria-hidden />} iconPlacement="end">开始创建 PPT</Button><a className="home-workspace-link" href="/dashboard">进入首页 <ArrowRightOutlined aria-hidden /></a></div>
+        <div className="home-hero-actions"><Button type="primary" href="/dashboard" icon={<ArrowRightOutlined aria-hidden />} iconPlacement="end">开始创建 PPT</Button><a className="home-workspace-link" href="/dashboard">进入首页 <ArrowRightOutlined aria-hidden /></a></div>
         <p className="home-hero-note"><CheckOutlined aria-hidden /> 内容可编辑 <span aria-hidden>·</span> 风格可选择 <span aria-hidden>·</span> 多格式导出</p>
       </div>
       <figure className="home-showreel" aria-label="演示设计示例">
@@ -80,6 +80,6 @@ export default function Home({ data }: { data: ApiData }) {
       <div className="home-capability-list">{capabilities.map(item => <article key={item.title}><span className="home-capability-icon">{item.icon}</span><div><h3>{item.title}</h3><p>{item.description}</p><span>{item.detail}</span></div></article>)}</div>
     </div></section>
 
-    <section className="home-finale home-wrap" aria-labelledby="homeFinaleTitle"><div><span>THE STAGE IS YOURS</span><h2 id="homeFinaleTitle">下一场精彩，<br />从你的想法开始。</h2><p>把想讲的内容，变成值得分享的作品。</p></div><Button href="/create" icon={<ArrowRightOutlined aria-hidden />} iconPlacement="end">创建我的演示文稿</Button></section>
+    <section className="home-finale home-wrap" aria-labelledby="homeFinaleTitle"><div><span>THE STAGE IS YOURS</span><h2 id="homeFinaleTitle">下一场精彩，<br />从你的想法开始。</h2><p>把想讲的内容，变成值得分享的作品。</p></div><Button href="/dashboard" icon={<ArrowRightOutlined aria-hidden />} iconPlacement="end">创建我的演示文稿</Button></section>
   </div>;
 }

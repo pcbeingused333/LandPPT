@@ -256,7 +256,7 @@ def test_pptx_analyser_ant_slots_keep_import_payload_and_fixed_footer(
     fits(page, dialog.get_by_role("button", name="打开草稿，对照原稿", exact=True))
     assert len(uploads) == 1
     assert (
-        b'"mode":"visual"' in uploads[0]
+        b'"mode":"replica"' in uploads[0]
         and b'"bindings":{"title-1":"title"}' in uploads[0]
     )
     assert not errors, errors

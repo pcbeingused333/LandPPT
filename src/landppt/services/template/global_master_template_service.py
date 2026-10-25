@@ -1251,136 +1251,41 @@ class GlobalMasterTemplateService:
     # PPTX slide screenshot rendering
     # ------------------------------------------------------------------
 
-    @staticmethod
-    def _find_libreoffice_path() -> Optional[str]:
-        """Find LibreOffice executable on the system."""
-        import shutil
-        import platform as _plat
-
-        for cmd in ('soffice', 'libreoffice'):
-            path = shutil.which(cmd)
-            if path:
-                return path
-
-        system = _plat.system().lower()
-        if system == 'windows':
-            candidates = [
-                r'C:\Program Files\LibreOffice\program\soffice.exe',
-                r'C:\Program Files (x86)\LibreOffice\program\soffice.exe',
-            ]
-        elif system == 'darwin':
-            candidates = ['/Applications/LibreOffice.app/Contents/MacOS/soffice']
-        else:
-            candidates = ['/usr/bin/soffice', '/usr/bin/libreoffice',
-                          '/snap/bin/libreoffice']
-        import os as _os
-        for c in candidates:
-            if _os.path.isfile(c):
-                return c
-        return None
-
     async def _render_pptx_slides_to_images(
         self,
         pptx_bytes: bytes,
         max_slides: int = 8,
         dpi: int = 150,
+        *,
+        page_numbers=None,
     ) -> List[Dict[str, Any]]:
-        """Render PPTX slides to PNG images for AI visual reference.
-
-        Pipeline:
-          1. LibreOffice headless → PDF
-          2. PyMuPDF (fitz) → per-page PNG
-        Falls back gracefully if tools are unavailable.
-
-        Returns list of {slide_idx: int, blob: bytes, content_type: str}.
-        """
+        """Use the same isolated renderer as package imports, with source page IDs."""
         import asyncio
-        import tempfile
-        import os
+        import fitz
+        from ..template_package.pptx_render import render_input, render_pdf, sample_pages
 
-        results: List[Dict[str, Any]] = []
-
-        try:
-            import fitz  # PyMuPDF
-        except ImportError:
-            logger.info("PyMuPDF (fitz) not installed – slide screenshots disabled")
-            return results
-
-        with tempfile.TemporaryDirectory(prefix='landppt_render_') as tmpdir:
-            pptx_path = os.path.join(tmpdir, 'input.pptx')
-            with open(pptx_path, 'wb') as f:
-                f.write(pptx_bytes)
-
-            pdf_path = os.path.join(tmpdir, 'input.pdf')
-            pdf_created = False
-
-            # --- Strategy 1: LibreOffice headless → PDF -----------------------
-            lo_path = self._find_libreoffice_path()
-            if lo_path:
-                try:
-                    import subprocess
-                    loop = asyncio.get_event_loop()
-                    proc_result = await loop.run_in_executor(
-                        None,
-                        lambda: subprocess.run(
-                            [lo_path, '--headless', '--norestore',
-                             '--convert-to', 'pdf',
-                             '--outdir', tmpdir, pptx_path],
-                            capture_output=True, timeout=180,
-                        ),
-                    )
-                    if os.path.isfile(pdf_path) and os.path.getsize(pdf_path) > 0:
-                        pdf_created = True
-                    else:
-                        logger.debug(
-                            "LibreOffice did not produce PDF. stderr=%s",
-                            (proc_result.stderr or b'')[:500],
-                        )
-                except Exception as e:
-                    logger.debug(f"LibreOffice PPTX→PDF failed: {e}")
-
-            # --- Strategy 2: Apryse SDK → PDF (fallback) ---------------------
-            if not pdf_created:
-                try:
-                    from ..pdf_to_pptx_converter import get_pdf_to_pptx_converter
-                    converter = get_pdf_to_pptx_converter()
-                    if converter.is_available():
-                        from apryse_sdk.PDFNetPython import PDFDoc, Convert as ApryseConvert
-                        doc = PDFDoc()
-                        ApryseConvert.OfficeToPDF(doc, pptx_path, None)
-                        doc.Save(pdf_path, 0)
-                        doc.Close()
-                        if os.path.isfile(pdf_path) and os.path.getsize(pdf_path) > 0:
-                            pdf_created = True
-                except Exception as e:
-                    logger.debug(f"Apryse PPTX→PDF fallback failed: {e}")
-
-            if not pdf_created:
-                logger.info("No PDF converter available – slide screenshots skipped")
+        def render():
+            from pptx import Presentation
+            total = len(Presentation(BytesIO(pptx_bytes)).slides)
+            numbers = tuple(page_numbers) if page_numbers is not None else sample_pages(total, max_slides)
+            if not numbers:
+                return []
+            pdf, _ = render_pdf(render_input(pptx_bytes, numbers))
+            with fitz.open(stream=pdf, filetype="pdf") as doc:
+                if len(doc) != len(numbers):
+                    raise ValueError("截图页数与采样页不一致，已停止使用错位截图")
+                results = []
+                for number, page in zip(numbers, doc):
+                    # Bound raster size even for very large custom PPT canvases.
+                    zoom = min(dpi / 72.0, 1920 / max(page.rect.width, page.rect.height))
+                    pix = page.get_pixmap(matrix=fitz.Matrix(zoom, zoom), alpha=False)
+                    results.append({
+                        'slide_idx': number, 'blob': pix.tobytes('png'),
+                        'content_type': 'image/png', 'width': pix.width, 'height': pix.height,
+                    })
                 return results
 
-            # --- Render PDF pages to PNG via PyMuPDF --------------------------
-            try:
-                doc = fitz.open(pdf_path)
-                page_count = min(doc.page_count, max_slides)
-                zoom = dpi / 72.0
-                mat = fitz.Matrix(zoom, zoom)
-                for i in range(page_count):
-                    page = doc.load_page(i)
-                    pix = page.get_pixmap(matrix=mat, alpha=False)
-                    png_bytes = pix.tobytes("png")
-                    results.append({
-                        'slide_idx': i + 1,
-                        'blob': png_bytes,
-                        'content_type': 'image/png',
-                        'width': pix.width,
-                        'height': pix.height,
-                    })
-                doc.close()
-            except Exception as e:
-                logger.warning(f"PDF page rendering failed: {e}")
-
-        return results
+        return await asyncio.to_thread(render)
 
     def _is_page_number_like_text(self, text: str) -> bool:
         """Heuristic for page number/footer numbering text in PPTX."""
@@ -1531,7 +1436,10 @@ class GlobalMasterTemplateService:
         except Exception as e:
             raise ValueError(f"当前环境未安装 python-pptx，无法解析PPTX: {e}") from e
 
-        pptx_bytes = self._decode_uploaded_base64_file(reference_pptx.get("data", ""))
+        from ..template_package.pptx_import import _emu_box, normalize_pptx, walk_shapes
+        from ..template_package.pptx_render import sample_pages
+
+        pptx_bytes = normalize_pptx(self._decode_uploaded_base64_file(reference_pptx.get("data", "")))
         if not pptx_bytes:
             raise ValueError("PPTX文件为空")
 
@@ -1569,20 +1477,8 @@ class GlobalMasterTemplateService:
 
         # --- Decide which slides to sample (diverse selection) ---------------
         all_slides = list(prs.slides)
-        max_sample = min(slide_count, 8)
-        if slide_count <= max_sample:
-            sampled_slides = all_slides
-        else:
-            # Always include first and last; spread rest evenly
-            indices = [0, slide_count - 1]
-            step = max(1, (slide_count - 2) // (max_sample - 2))
-            for i in range(1, slide_count - 1, step):
-                if len(indices) >= max_sample:
-                    break
-                if i not in indices:
-                    indices.append(i)
-            indices = sorted(set(indices))[:max_sample]
-            sampled_slides = [all_slides[i] for i in indices]
+        sampled_numbers = sample_pages(slide_count, 8)
+        sampled_slides = [all_slides[number - 1] for number in sampled_numbers]
 
         # --- Counters --------------------------------------------------------
         font_counter: Counter = Counter()
@@ -1597,14 +1493,12 @@ class GlobalMasterTemplateService:
 
         # Images to upload: list of {blob, content_type, filename, role, slide_idx, bbox_desc}
         images_to_upload: List[Dict[str, Any]] = []
-        best_picture = None
-        best_picture_area = 0
 
         # Dedup image blobs to avoid re-uploading identical resources
         _seen_image_hashes: set = set()
         import hashlib as _hl
 
-        for slide_idx, slide in enumerate(sampled_slides, start=1):
+        for slide_idx, slide in zip(sampled_numbers, sampled_slides):
             text_box_count = 0
             picture_count = 0
             vector_shape_count = 0
@@ -1638,7 +1532,7 @@ class GlobalMasterTemplateService:
                 if rId:
                     blob_info = self._resolve_bg_image_blob(slide.part, rId)
                     if blob_info:
-                        img_hash = _hl.md5(blob_info['blob'][:4096]).hexdigest()
+                        img_hash = _hl.sha256(blob_info['blob']).hexdigest()
                         if img_hash not in _seen_image_hashes:
                             _seen_image_hashes.add(img_hash)
                             images_to_upload.append({
@@ -1657,16 +1551,17 @@ class GlobalMasterTemplateService:
                 background_summaries.append(f"第{slide_idx}页背景：{bg_desc}")
 
             # --- Shapes (recursive into groups) --------------------------------
-            all_shapes = list(self._iter_shapes_recursive(slide.shapes))
+            all_shapes = [(shape, transform) for shape, transform, _ in walk_shapes(slide.shapes)
+                          if shape.shape_type != MSO_SHAPE_TYPE.GROUP]
             shape_count = len(all_shapes)
 
-            for shape in all_shapes:
+            for shape, transform in all_shapes:
                 try:
                     shape_type = getattr(shape, "shape_type", None)
-                    left = int(getattr(shape, "left", 0) or 0)
-                    top = int(getattr(shape, "top", 0) or 0)
-                    width = int(getattr(shape, "width", 0) or 0)
-                    height = int(getattr(shape, "height", 0) or 0)
+                    box = _emu_box(shape, transform)
+                    if box is None:
+                        continue
+                    left, top, width, height = box
                     bbox_desc = ""
                     if slide_width and slide_height:
                         bbox_desc = (
@@ -1694,7 +1589,7 @@ class GlobalMasterTemplateService:
                             content_type = getattr(image, "content_type", "") or ""
                             blob = getattr(image, "blob", None)
                             if blob and isinstance(blob, (bytes, bytearray)) and content_type.startswith("image/"):
-                                img_hash = _hl.md5(blob[:4096]).hexdigest()
+                                img_hash = _hl.sha256(blob).hexdigest()
                                 if img_hash not in _seen_image_hashes:
                                     _seen_image_hashes.add(img_hash)
                                     images_to_upload.append({
@@ -1705,14 +1600,6 @@ class GlobalMasterTemplateService:
                                         'slide_idx': slide_idx,
                                         'bbox_desc': bbox_desc,
                                     })
-                                if area > best_picture_area:
-                                    best_picture_area = area
-                                    best_picture = {
-                                        "blob": bytes(blob),
-                                        "content_type": content_type,
-                                        "filename": getattr(image, "filename", None) or f"slide_{slide_idx}_image",
-                                        "area": area,
-                                    }
                         except Exception:
                             pass
 
@@ -2026,9 +1913,11 @@ class GlobalMasterTemplateService:
 
         # --- Render per-slide screenshots --------------------------------------
         slide_screenshots: List[Dict[str, Any]] = []  # {slide_idx, url}
+        reference_warnings: List[str] = []
         try:
             rendered = await self._render_pptx_slides_to_images(
                 pptx_bytes, max_slides=len(sampled_slides), dpi=150,
+                page_numbers=sampled_numbers,
             )
             for rimg in rendered:
                 screenshot_entry: Dict[str, Any] = {
@@ -2050,6 +1939,7 @@ class GlobalMasterTemplateService:
                 slide_screenshots.append(screenshot_entry)
         except Exception as e:
             logger.warning(f"Slide screenshot rendering failed: {e}")
+            reference_warnings.append(f"原稿截图生成失败：{e}；保留结构分析，不将内容图片冒充整页参考。")
 
         # --- Aggregate statistics ----------------------------------------------
         dominant_fonts = [name for name, _ in font_counter.most_common(5)]
@@ -2064,35 +1954,21 @@ class GlobalMasterTemplateService:
         )
 
         # --- Build reference image for multimodal AI ---------------------------
-        # Prefer the first slide screenshot as reference; fall back to best picture
+        # Only full-page screenshots may serve as a visual page reference
         reference_image = None
-        if slide_screenshots and slide_screenshots[0].get('url'):
-            first = slide_screenshots[0]
+        available_screenshots = [s for s in slide_screenshots if s.get("url")]
+        if available_screenshots:
+            first = available_screenshots[0]
             reference_image = {
-                "filename": f"slide1_screenshot.png",
+                "filename": f"slide{first['slide_idx']}_screenshot.png",
                 "size": 0,
                 "type": first.get('content_type', 'image/png'),
                 "data": first['url'],
             }
-        elif best_picture and best_picture.get("blob") and len(best_picture["blob"]) <= 10 * 1024 * 1024:
-            content_type = best_picture.get("content_type") or "image/png"
-            hosted_url = await self._upload_pptx_image_to_hosting(
-                best_picture["blob"],
-                content_type,
-                best_picture.get("filename") or "pptx_reference_image",
-            )
-            if hosted_url:
-                reference_image = {
-                    "filename": best_picture.get("filename") or "pptx_reference_image",
-                    "size": len(best_picture["blob"]),
-                    "type": content_type,
-                    "data": hosted_url,
-                }
-
         # --- Build additional slide images for multimodal AI -------------------
         # Include remaining slide screenshots as extra reference images
         extra_reference_images: List[Dict[str, Any]] = []
-        for ss in slide_screenshots[1:]:  # skip first (already used as reference_image)
+        for ss in available_screenshots[1:]:  # primary is the first successful screenshot
             if ss.get('url'):
                 extra_reference_images.append({
                     "filename": f"slide{ss['slide_idx']}_screenshot.png",
@@ -2108,6 +1984,7 @@ class GlobalMasterTemplateService:
             f"- 文件名：{reference_pptx.get('filename') or 'uploaded.pptx'}",
             f"- 幻灯片总数：{slide_count}（采样{len(sampled_slides)}页）",
         ]
+        summary_parts.extend(f"- 提取提示：{warning}" for warning in reference_warnings)
         if slide_width_px and slide_height_px:
             summary_parts.append(f"- 页面尺寸（像素）：{slide_width_px}x{slide_height_px}")
 
@@ -2182,9 +2059,9 @@ class GlobalMasterTemplateService:
         # Instruction for AI
         summary_parts.append("")
         summary_parts.append("【重要指引】")
-        summary_parts.append("- 你收到的图片消息中包含原始PPTX每页的截图，请**逐页仔细观察**截图中的：")
+        summary_parts.append("- 已附采样页截图时，结合其配色、布局和结构分析提取可复用风格；未附截图时以已提取的结构和样式为依据，不推断未见图案。")
         summary_parts.append("  配色方案、字体大小层级、元素布局位置、背景样式、装饰图形、Logo位置等。")
-        summary_parts.append("- 请在生成的HTML模板中**完整复刻**截图中看到的视觉设计，而非仅依赖文字描述。")
+        summary_parts.append("- 参考可用的原始对象与截图还原可复用的设计语言，不复制原稿主题文案。")
         summary_parts.append("- 如果提取到了Logo/图标/背景图等图片资源URL，请在HTML中使用<img>或CSS background-image直接引用这些URL。")
         summary_parts.append("- 保留页眉/页脚/页码等稳定母版元素的相对位置和视觉风格。")
         summary_parts.append("- 忠实还原原始PPTX的设计语言：配色逻辑、字体层级、空间节奏、装饰元素。")
@@ -2196,6 +2073,8 @@ class GlobalMasterTemplateService:
             "slide_screenshots": slide_screenshots,
             "slide_count": slide_count,
             "sampled_slide_count": len(sampled_slides),
+            "sampled_pages": list(sampled_numbers),
+            "warnings": reference_warnings,
             "stable_master_elements": common_master_summary.get("stable_elements") or [],
             "theme_colors": theme_colors,
             "uploaded_images": uploaded_images,

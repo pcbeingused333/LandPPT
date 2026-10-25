@@ -444,6 +444,86 @@ async def test_pptx_import_without_model_calls_is_free_even_with_zero_balance(
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("stream", [False, True])
+async def test_one_step_replica_needs_no_model_configuration_or_credits(
+    db, monkeypatch, stream
+):
+    from test_pptx_import_resilience import native_source
+    from test_template_package_pptx_import import fake_render
+    from landppt.services.template_package import pptx_import
+
+    await set_balance(db, 0)
+    service, calls = runtime([])
+    app = app_for(service, monkeypatch)
+
+    def no_service(*_):
+        pytest.fail("local replica must not even resolve an AI provider")
+
+    monkeypatch.setattr(import_api, "analysis_service", no_service)
+    monkeypatch.setattr(pptx_import, "render_pdf", fake_render)
+    async with httpx.AsyncClient(
+        transport=httpx.ASGITransport(app=app), base_url="http://test"
+    ) as client:
+        response = await client.post(
+            "/api/global-master-templates/packages-pptx/replicate",
+            params={"stream": stream},
+            files={"file": ("source.pptx", native_source())},
+            data={"name": "Local replica"},
+        )
+    assert response.status_code == 200
+    result = (
+        json.loads(response.text.splitlines()[-1])["result"]
+        if stream
+        else response.json()
+    )
+    assert len(result["package"]["manifest"]["components"]) == 1
+    assert result["methods"] == [{"slide": 1, "method": "replica"}]
+    calls.assert_not_awaited()
+    assert await balance_and_receipts(db) == (0, [])
+    assert len(await PackageCatalog(1, db).list()) == 1
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("stream", [False, True])
+async def test_style_replica_needs_no_model_configuration_or_credits(
+    db, monkeypatch, stream
+):
+    from test_pptx_style import style_source
+    from test_template_package_pptx_import import fake_render
+    from landppt.services.template_package import pptx_import
+
+    await set_balance(db, 0)
+    service, calls = runtime([])
+    app = app_for(service, monkeypatch)
+
+    def no_service(*_):
+        pytest.fail("style replica must not even resolve an AI provider")
+
+    monkeypatch.setattr(import_api, "analysis_service", no_service)
+    monkeypatch.setattr(pptx_import, "render_pdf", fake_render)
+    async with httpx.AsyncClient(
+        transport=httpx.ASGITransport(app=app), base_url="http://test"
+    ) as client:
+        response = await client.post(
+            "/api/global-master-templates/packages-pptx/style",
+            params={"stream": stream},
+            files={"file": ("source.pptx", style_source())},
+            data={"name": "Deck style"},
+        )
+    assert response.status_code == 200
+    result = (
+        json.loads(response.text.splitlines()[-1])["result"]
+        if stream
+        else response.json()
+    )
+    assert len(result["package"]["manifest"]["components"]) == 11
+    assert result["failures"] == []
+    calls.assert_not_awaited()
+    assert await balance_and_receipts(db) == (0, [])
+    assert len(await PackageCatalog(1, db).list()) == 1
+
+
+@pytest.mark.asyncio
 async def test_failed_model_request_is_counted_as_one_actual_call(db):
     service, calls = runtime([RuntimeError("model unavailable")])
     content = ContentService(PackageCreationService(service, 1, "AI 模板包创建"))

@@ -11,7 +11,7 @@
 
 **English** | [中文](README.md)
 
-Current version: **0.4.0**.
+Current version: **0.5.0**.
 
 <div align="center">
   <img src="https://img.pub/p/e810c5680509b4f051a5.png" width="160" alt="LandPPT Logo" />
@@ -149,44 +149,24 @@ See [Quick mode & template packages](#5-quick-mode--template-packages) below and
 
 ## Screenshots
 
-### Main interface
+### Product homepage
 
-![Main interface](https://img.pub/p/3accad83a8b624d7cb19.png)
+![LandPPT product homepage](assets/screenshots/home.png)
 
-### Outline & generation result
+### Dashboard & project creation
 
-![Outline](https://img.pub/p/a31e4f94c5d2bd577d8d.png)
+![Topic input and recent projects on the dashboard](assets/screenshots/dashboard.png)
 
-![Generation result](https://img.pub/p/e6cffa89a2b532a8514b.png)
+### Slide editor & AI assistant
+
+![Slide editing workspace and AI creation assistant](assets/screenshots/editor.png)
 
 <details>
-<summary><b>More screenshots (editor / speech / export / templates)</b></summary>
-
-#### Main interface (alt)
-
-![Main interface 2](https://img.pub/p/7d5c3c1a4b625abeb4c1.png)
-
-#### Generation result (alt)
-
-![Generation result 2](https://img.pub/p/9a38b57c6f5f470ad59b.png)
-
-#### Online editing
-
-![Editor 1](https://img.pub/p/6d357a847626f1a55c13.png)
-
-![Editor 2](https://img.pub/p/42f84b07850f5aa4aebb.png)
-
-![Editor 3](https://img.pub/p/8dccee74d0b85893bd38.png)
-
-![Editor 4](https://img.pub/p/aaf483b2507a57db8b35.png)
+<summary><b>More feature examples (speech)</b></summary>
 
 #### Speech script
 
 ![Speech script](https://img.pub/p/c53b752e0a6833c0ee87.png)
-
-#### Template generation
-
-![Template](https://img.pub/p/892622b3f3cc0d6ad843.png)
 
 </details>
 

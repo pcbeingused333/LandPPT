@@ -45,6 +45,7 @@ jobs:
               tests/test_antd_generator_auth_ui.py
               tests/test_navigation_startup_ui.py
               tests/test_antd_editor_startup_ui.py
+              tests/test_antd_pptx_import_ui.py
               tests/test_antd_ui.py tests/test_antd_settings_performance_ui.py tests/test_antd_speech_dialog_mount_ui.py
           - shard: ui-3
             tests: >-
@@ -100,3 +101,4 @@ jobs:
             artifacts/vision-capture-20261024/
             artifacts/navigation-20261024/
             artifacts/editor-startup-20261024/
+            artifacts/pptx-import-20261025/

@@ -64,7 +64,23 @@ def convert(job):
         staging.replace(job / "result.json")
 
 
+def reap():
+    """As PID 1, collect LibreOffice's orphaned helpers (gpg, gpgconf).
+
+    Without this every conversion leaves zombies until the container's PID
+    limit is reached and soffice can no longer start.
+    """
+    while True:
+        try:
+            pid, _ = os.waitpid(-1, os.WNOHANG)
+        except ChildProcessError:
+            return
+        if not pid:
+            return
+
+
 while True:
+    reap()
     for job in sorted(SPOOL.glob("pptx-*")):
         ready = job / "ready"
         if job.is_symlink() or not ready.is_file():

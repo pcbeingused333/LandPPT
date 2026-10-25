@@ -1,4 +1,4 @@
-"""PPTX -> fixed raster layers and confirmed, editable SVG content slots."""
+"""PPTX -> validated SVG slots with native visuals or confirmed fixed layers."""
 
 from __future__ import annotations
 
@@ -21,7 +21,7 @@ from pptx.enum.shapes import MSO_SHAPE_TYPE
 from pptx.oxml.ns import qn
 from pydantic import Field
 
-from .pptx_render import render_pdf
+from .pptx_render import render_input, render_pdf
 from .schemas import (
     ContentBlock,
     ContractModel,
@@ -122,7 +122,7 @@ class ImportPage(ContractModel):
 class ImportOptions(ContractModel):
     name: str = Field(min_length=1, max_length=255)
     pages: tuple[ImportPage, ...] = Field(min_length=1, max_length=40)
-    mode: Literal["preserve", "visual"] = "preserve"
+    mode: Literal["preserve", "visual", "replica"] = "preserve"
 
 
 def normalize_pptx(data):
@@ -618,6 +618,9 @@ def _candidates(prs, slide, page):
         ]
         if under:
             min(under, key=lambda c: c["box"][1])["suggested"] = "subtitle"
+    from .pptx_replica import assign_regions
+
+    assign_regions(candidates, data["shapes"])
     return candidates, warnings
 
 
@@ -628,7 +631,7 @@ def _analyze(data, progress=None):
     prs = Presentation(BytesIO(normalized))
     if progress:
         progress("render", f"正在渲染原稿，共 {len(prs.slides)} 页")
-    pdf, fonts = render_pdf(normalized)
+    pdf, fonts = render_pdf(render_input(normalized))
     doc = fitz.open(stream=pdf, filetype="pdf")
     if len(doc) != len(prs.slides):
         doc.close()
@@ -679,6 +682,35 @@ def analyze_pptx(data, progress=None, *, vision=False):
     return {"slides": slides, "warnings": warnings, "max_selected": 40}
 
 
+def replicate_pptx(data, name, progress=None, repair=None):
+    """One upload and one source render; no model is needed for initial binding."""
+    from .pptx_replica import automatic_page
+
+    _, prs, original, _ = _analyze(data, progress)
+    try:
+        pages, skipped = [], []
+        for index, slide in enumerate(prs.slides):
+            if slide._element.get("show") == "0":
+                continue
+            if len(pages) == 40:
+                skipped.append({"slide": index + 1, "error": "每次最多导入 40 页"})
+                continue
+            candidates, _ = _candidates(prs, slide, original[index])
+            try:
+                pages.append(automatic_page(index + 1, candidates))
+            except ValueError as exc:
+                skipped.append({"slide": index + 1, "error": str(exc)})
+        if not pages:
+            raise ValueError("没有可复用的文字版式；扫描图片需要先转换为可编辑文字")
+        options = ImportOptions(name=name, mode="replica", pages=pages)
+        package, report = _build_package(prs, original, options, progress, repair)
+        report["failures"] = skipped + report["failures"]
+        report["partial"] = bool(report["failures"])
+        return package, report
+    finally:
+        original.close()
+
+
 def import_pptx(data, options, progress=None, repair=None, reconstruct=None):
     if options.mode == "visual" and reconstruct is None:
         raise ValueError("视觉复刻需要支持图片输入的模板生成模型")
@@ -696,94 +728,139 @@ def _build_package(
         raise ValueError("不能重复选择同一页")
     assets, plans, failures, warnings = {}, [], [], []
     for choice in options.pages:
-        if progress:
-            progress("bind", f"正在绑定原稿第 {choice.slide} 页的内容槽位")
-        if choice.slide > len(prs.slides):
-            raise ValueError("选择的页码不存在")
-        slide = prs.slides[choice.slide - 1]
-        candidates, notes = _candidates(prs, slide, original[choice.slide - 1])
-        lookup = {c["id"]: c for c in candidates}
-        selected = [
-            (lookup[key], role)
-            for key, role in choice.bindings.items()
-            if key in lookup and role not in {"fixed", "remove"}
-        ]
-        if set(choice.bindings) - lookup.keys():
-            raise ValueError(f"第 {choice.slide} 页包含未知槽位")
-        roles = Counter(role for _, role in selected)
-        if (
-            roles["title"] != 1
-            or roles["subtitle"] > 1
-            or (options.mode != "visual" and roles["body"] + roles["heading"] > 40)
-            or roles["image"] > 8
-        ):
-            raise ValueError(
-                f"第 {choice.slide} 页需要一个标题，至多一个副标题、40 个正文框（20 个要点）和 8 张配图"
-            )
-        for candidate, role in selected:
-            if role not in {"title", "subtitle", "heading", "body", "image"} or (
-                role == "image"
-            ) != (candidate["kind"] == "image"):
-                raise ValueError("槽位类型与内容不一致")
-            shape_id = int(candidate["id"].split(":")[0])
-            shape = find_shape(slide, shape_id)
-            if role == "image":
-                # Extract a PNG sample without depending on image-library lifetimes.
-                from PIL import Image
-
-                with Image.open(BytesIO(shape.image.blob)) as image:
-                    out = BytesIO()
-                    image.convert("RGBA").save(out, format="PNG")
-                sample = raster_asset(out.getvalue())
-                assets[sample.id] = sample
-                candidate["sample"] = sample.id
-                shape._element.getparent().remove(shape._element)
-                warnings.append(
-                    f"第 {choice.slide} 页的配图位于底图之上，请检查原稿中的遮罩和边框"
-                )
-            else:
-                shape.text_frame.paragraphs[int(candidate["id"].split(":")[1])].clear()
-        for key, role in choice.bindings.items():
-            if role != "remove":
-                continue
-            candidate = lookup[key]
-            shape_id, _, paragraph = key.partition(":")
-            shape = find_shape(slide, int(shape_id))
-            if candidate["kind"] == "text":
-                shape.text_frame.paragraphs[int(paragraph)].clear()
-            else:
-                shape._element.getparent().remove(shape._element)
-        # A typed-in page number of the source page would repeat on every page.
-        for candidate in candidates:
+        try:
+            if progress:
+                progress("bind", f"正在绑定原稿第 {choice.slide} 页的内容槽位")
+            if choice.slide > len(prs.slides):
+                raise ValueError("选择的页码不存在")
+            slide = prs.slides[choice.slide - 1]
+            candidates, notes = _candidates(prs, slide, original[choice.slide - 1])
+            lookup = {c["id"]: c for c in candidates}
+            selected = [
+                (lookup[key], role)
+                for key, role in choice.bindings.items()
+                if key in lookup and role not in {"fixed", "remove"}
+            ]
+            if set(choice.bindings) - lookup.keys():
+                raise ValueError(f"第 {choice.slide} 页包含未知槽位")
+            roles = Counter(role for _, role in selected)
             if (
-                candidate["kind"] == "text"
-                and candidate["box"][1] > 600
-                and re.fullmatch(r"\d{1,3}(?:\s*/\s*\d{1,3})?", candidate["text"])
-                and choice.bindings.get(candidate["id"], "fixed") == "fixed"
+                roles["title"] != 1
+                or roles["subtitle"] > 1
+                or (
+                    options.mode not in {"visual", "replica"}
+                    and roles["body"] + roles["heading"] > 40
+                )
+                or roles["image"] > 8
             ):
-                shape_id, paragraph = candidate["id"].split(":")
-                shape = find_shape(slide, int(shape_id))
-                shape.text_frame.paragraphs[int(paragraph)].clear()
-        # Remove system fields from slide, layout and master, including inherited fields.
-        for container in (slide, slide.slide_layout, slide.slide_layout.slide_master):
-            for field in list(container._element.xpath(".//a:fld")):
-                if field.get("type", "").startswith(("slidenum", "datetime")):
-                    field.getparent().remove(field)
-        reference = raster_asset(page_png(original[choice.slide - 1]))
-        assets[reference.id] = reference
-        fixed_texts = [
-            c["text"]
-            for c in candidates
-            if c["kind"] == "text" and choice.bindings.get(c["id"], "fixed") == "fixed"
-        ]
-        if options.mode == "visual":
-            from .pptx_vision import merge_visual_groups
+                raise ValueError(
+                    f"第 {choice.slide} 页需要一个标题，至多一个副标题、40 个正文框（20 个要点）和 8 张配图"
+                )
+            for candidate, role in selected:
+                if role not in {"title", "subtitle", "heading", "body", "image"} or (
+                    role == "image"
+                ) != (candidate["kind"] == "image"):
+                    raise ValueError("槽位类型与内容不一致")
+                shape_id = int(candidate["id"].split(":")[0])
+                shape = find_shape(slide, shape_id)
+                if role == "image":
+                    # Extract a PNG sample without depending on image-library lifetimes.
+                    from PIL import Image
 
-            selected = merge_visual_groups(selected, choice.groups)
-        plans.append((choice, selected, reference, fixed_texts))
-        warnings.extend(f"第 {choice.slide} 页：{n}" for n in notes)
+                    with Image.open(BytesIO(shape.image.blob)) as image:
+                        if options.mode == "replica":
+                            width, height = image.size
+                            image = image.crop(
+                                (
+                                    round(width * shape.crop_left),
+                                    round(height * shape.crop_top),
+                                    round(width * (1 - shape.crop_right)),
+                                    round(height * (1 - shape.crop_bottom)),
+                                )
+                            )
+                        out = BytesIO()
+                        image.convert("RGBA").save(out, format="PNG")
+                    sample = raster_asset(out.getvalue())
+                    assets[sample.id] = sample
+                    candidate["sample"] = sample.id
+                    shape._element.getparent().remove(shape._element)
+                    warnings.append(
+                        f"第 {choice.slide} 页的配图位于底图之上，请检查原稿中的遮罩和边框"
+                    )
+                else:
+                    shape.text_frame.paragraphs[
+                        int(candidate["id"].split(":")[1])
+                    ].clear()
+                    region = candidate.get("region")
+                    if (
+                        options.mode == "replica"
+                        and role == "body"
+                        and region
+                        and str(shape_id) != region["id"]
+                        and choice.groups.get(candidate["id"], "").startswith("card-")
+                        and not shape.text.strip()
+                    ):
+                        # A badge whose words joined the card copy must not
+                        # leave an empty colored capsule in the header.
+                        shape.fill.background()
+                        shape.line.fill.background()
+            for key, role in choice.bindings.items():
+                if role != "remove":
+                    continue
+                candidate = lookup[key]
+                shape_id, _, paragraph = key.partition(":")
+                shape = find_shape(slide, int(shape_id))
+                if candidate["kind"] == "text":
+                    shape.text_frame.paragraphs[int(paragraph)].clear()
+                else:
+                    shape._element.getparent().remove(shape._element)
+            # A typed-in page number of the source page would repeat on every page.
+            for candidate in candidates:
+                if (
+                    candidate["kind"] == "text"
+                    and candidate["box"][1] > 600
+                    and re.fullmatch(r"\d{1,3}(?:\s*/\s*\d{1,3})?", candidate["text"])
+                    and choice.bindings.get(candidate["id"], "fixed") == "fixed"
+                ):
+                    shape_id, paragraph = candidate["id"].split(":")
+                    shape = find_shape(slide, int(shape_id))
+                    shape.text_frame.paragraphs[int(paragraph)].clear()
+            # Remove system fields from slide, layout and master, including inherited fields.
+            for container in (
+                slide,
+                slide.slide_layout,
+                slide.slide_layout.slide_master,
+            ):
+                for field in list(container._element.xpath(".//a:fld")):
+                    if field.get("type", "").startswith(("slidenum", "datetime")):
+                        field.getparent().remove(field)
+            reference = raster_asset(page_png(original[choice.slide - 1]))
+            assets[reference.id] = reference
+            fixed_texts = [
+                c["text"]
+                for c in candidates
+                if c["kind"] == "text"
+                and choice.bindings.get(c["id"], "fixed") == "fixed"
+            ]
+            if options.mode == "replica":
+                from .pptx_replica import merge_replica_groups
+
+                selected = merge_replica_groups(selected, choice.groups)
+            elif options.mode == "visual":
+                from .pptx_vision import merge_visual_groups
+
+                selected = merge_visual_groups(selected, choice.groups)
+            plans.append((choice, selected, reference, fixed_texts))
+            warnings.extend(f"第 {choice.slide} 页：{n}" for n in notes)
+        except ValueError as exc:
+            failures.append({"slide": choice.slide, "error": str(exc)})
+    if not plans:
+        raise ValueError(
+            "没有版式可导入："
+            + "；".join(f"第 {f['slide']} 页：{f['error']}" for f in failures)
+        )
     # Render only selected pages, in explicit order; hidden slides are made visible.
-    chosen = [prs.slides[p.slide - 1].slide_id for p in options.pages]
+    chosen = [prs.slides[p.slide - 1].slide_id for p, *_ in plans]
     slide_ids = prs.slides._sldIdLst
     by_id = {int(n.get("id")): n for n in slide_ids}
     for n in list(slide_ids):
@@ -801,7 +878,7 @@ def _build_package(
             progress("background", f"正在渲染 {len(plans)} 页清除示例文字后的底图")
         background_pdf, _ = render_pdf(output.getvalue())
         rendered = fitz.open(stream=background_pdf, filetype="pdf")
-    components, fingerprints = [], set()
+    components, fingerprints, methods = [], set(), []
     with rendered as backgrounds:
         if len(backgrounds) != len(plans):
             raise ValueError("底图页数不匹配，导入已停止")
@@ -824,13 +901,55 @@ def _build_package(
                     prs, choice, selected, reference.id, background.id
                 )
                 repair_error = None
+                if options.mode == "replica":
+                    from .pptx_replica import clean_card_interiors, fit_replica
+
+                    component = clean_card_interiors(component, selected, background)
+                    try:
+                        component = fit_replica(component)
+                    except ValueError as exc:
+                        # Keep the complete source slots for one bounded repair.
+                        repair_error = str(exc)
                 reference_url = (
                     "data:image/png;base64,"
                     + base64.b64encode(page_png(backgrounds[index], 1280)).decode()
                     if options.mode == "visual"
                     else None
                 )
-                for attempt in range(3):
+                native = False
+                if options.mode == "visual":
+                    # Like object-based PPTX importers, preserve supported
+                    # geometry first. Complex objects still use the reference.
+                    from .pptx_native import reconstruct_native
+
+                    try:
+                        candidate, native_assets = reconstruct_native(
+                            prs, prs.slides[index], component
+                        )
+                        combined_assets = {**assets, **{a.id: a for a in native_assets}}
+                        check_capacity(candidate, selected)
+                        checked = _capacity_examples(candidate)
+                        validate_package(
+                            TemplatePackage(
+                                contract_version=2,
+                                package_id="native-check",
+                                version=1,
+                                name=options.name,
+                                components=(checked,),
+                                assets=tuple(combined_assets.values()),
+                            )
+                        )
+                        assets = combined_assets
+                        component, native = checked, True
+                        if progress:
+                            progress(
+                                "validate",
+                                f"第 {choice.slide} 页已按 PPTX 原生对象重建并通过校验",
+                            )
+                    except ValueError as exc:
+                        repair_error = f"原生对象重建需调整：{exc}"
+                attempts = 2 if options.mode == "replica" else 3
+                for attempt in range(0 if native else attempts):
                     try:
                         if options.mode == "visual":
                             if progress:
@@ -872,7 +991,9 @@ def _build_package(
                             )
                         break
                     except ValueError as exc:
-                        if (repair is None and reconstruct is None) or attempt == 2:
+                        if (
+                            repair is None and reconstruct is None
+                        ) or attempt == attempts - 1:
                             raise
                         repair_error = str(exc)
                 signature = hashlib.sha256(
@@ -888,6 +1009,12 @@ def _build_package(
                     warnings.append(f"第 {choice.slide} 页与已有版式相同，已合并")
                     continue
                 components.append(component)
+                methods.append(
+                    {
+                        "slide": choice.slide,
+                        "method": "native" if native else options.mode,
+                    }
+                )
                 fingerprints.add(signature)
             except ValueError as exc:
                 failures.append({"slide": choice.slide, "error": str(exc)})
@@ -912,7 +1039,7 @@ def _build_package(
         description=(
             "从本地 PPTX 视觉复刻；可编辑矢量版式"
             if options.mode == "visual"
-            else "从本地 PPTX 导入；固定底图 + 可编辑内容槽位"
+            else "从本地 PPTX 复刻；原稿装饰层 + 可编辑文字与配图"
         ),
         components=tuple(components),
         assets=tuple(a for key, a in assets.items() if key in used),
@@ -921,6 +1048,7 @@ def _build_package(
         "failures": failures,
         "warnings": warnings,
         "partial": bool(failures),
+        "methods": methods,
     }
 
 
@@ -1059,6 +1187,13 @@ def _component(prs, choice, selected, reference_id, background_id):
                 for c, role in texts
             ]
         )
+        # A standalone short source label is a heading-only point, not a body
+        # paragraph. Keep its real semantics and the existing heading capacity.
+        if choice.groups and any(c.get("replica_label") for c, _ in texts):
+            points = {
+                c["id"]: (role, choice.groups.get(c["id"], c["id"]))
+                for c, role in texts
+            }
         grouped = {}
         for c, _ in texts:
             role, group = points[c["id"]]
@@ -1067,7 +1202,7 @@ def _component(prs, choice, selected, reference_id, background_id):
             (c, points[c["id"]][0] if c["id"] in points else role)
             for c, role in selected
         ]
-        pairs = [(row.get("heading"), row["body"]) for row in grouped.values()]
+        pairs = [(row.get("heading"), row.get("body")) for row in grouped.values()]
     else:
         pairs = pair_blocks(bodies)
     fields = {}
@@ -1077,12 +1212,13 @@ def _component(prs, choice, selected, reference_id, background_id):
             ContentBlock(
                 id=f"b{number}",
                 heading=heading["text"] if heading else "",
-                body=body["text"],
+                body=body["text"] if body else "",
             )
         )
         if heading:
             fields[id(heading)] = f"blocks[{number}].heading"
-        fields[id(body)] = f"blocks[{number}].body"
+        if body:
+            fields[id(body)] = f"blocks[{number}].body"
     for index, (c, role) in enumerate(selected):
         node_id = f"slot-{index}"
         x, y, w, h = c["box"]

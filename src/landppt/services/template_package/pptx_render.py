@@ -4,7 +4,45 @@ import json
 import os
 import tempfile
 import time
+from io import BytesIO
 from pathlib import Path
+
+
+def sample_pages(total, maximum=8):
+    """Source page numbers, including both ends, without relabeling the sample."""
+    count = min(total, maximum)
+    if count < 1:
+        return ()
+    if count == 1:
+        return (1,)
+    return tuple(1 + i * (total - 1) // (count - 1) for i in range(count))
+
+
+def render_input(data, pages=None):
+    """Render an explicit page order, including hidden pages, on a private copy."""
+    from pptx import Presentation
+
+    prs = Presentation(BytesIO(data))
+    numbers = (
+        tuple(pages) if pages is not None else tuple(range(1, len(prs.slides) + 1))
+    )
+    if (
+        not numbers
+        or len(set(numbers)) != len(numbers)
+        or any(not isinstance(n, int) or not 1 <= n <= len(prs.slides) for n in numbers)
+    ):
+        raise ValueError("渲染页码无效")
+    slide_ids = prs.slides._sldIdLst
+    chosen = [slide_ids[n - 1] for n in numbers]
+    for node in list(slide_ids):
+        slide_ids.remove(node)
+    for node in chosen:
+        slide_ids.append(node)
+    for slide in prs.slides:
+        slide._element.set("show", "1")
+    out = BytesIO()
+    prs.save(out)
+    return out.getvalue()
 
 
 def render_pdf(pptx_bytes):

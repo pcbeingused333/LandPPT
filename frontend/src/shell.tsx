@@ -2,6 +2,7 @@ import { createContext, memo, useContext, useEffect, useRef, useState, type Reac
 import { App, Button, Drawer, Dropdown, Input, Space, Tooltip } from 'antd';
 import { BellOutlined, MenuOutlined, UserOutlined, SettingOutlined, LogoutOutlined, GithubOutlined, MailOutlined, HeartOutlined, SearchOutlined, HomeOutlined, FolderOutlined, PictureOutlined, LayoutOutlined, MenuFoldOutlined, MenuUnfoldOutlined, FileTextOutlined } from '@ant-design/icons';
 import { AppearanceToggle } from './components/appearance';
+import { BrandSymbol } from './components/brand-symbol';
 import { version } from '../package.json';
 import { modalFocus } from './components/modal-focus';
 import { NotificationDrawer, SiteAnnouncement } from './components/shell-feedback';
@@ -111,7 +112,7 @@ export const Shell = memo(function Shell({ data, children }: { data: ShellData; 
   return <div className={`app-shell${data.page === 'home' ? ' home-shell' : ''}${authPage ? ' auth-shell' : ''}${collapsed ? ' sidebar-collapsed' : ''}${['slides-editor', 'generator-workspace', 'project-detail', 'todo'].includes(data.page) ? ' workspace-shell' : ''}`}>
     <a className="skip-link" href="#appMain">跳到主内容</a>
     {!authPage && <aside className="app-sidebar" aria-label="应用侧栏">
-      <div className="sidebar-brand-row"><a className="app-brand" href="/home" aria-label="LandPPT 首页"><span className="brand-symbol" aria-hidden /><span className="sidebar-wordmark">LandPPT</span></a><Button type="text" aria-label={collapsed ? '展开导航' : '收起导航'} aria-expanded={!collapsed} icon={collapsed ? <MenuUnfoldOutlined aria-hidden /> : <MenuFoldOutlined aria-hidden />} onClick={() => setCollapsed(value => !value)} /></div>
+      <div className="sidebar-brand-row"><a className="app-brand" href="/home" aria-label="LandPPT 首页"><BrandSymbol /><span className="sidebar-wordmark">LandPPT</span></a><Button type="text" aria-label={collapsed ? '展开导航' : '收起导航'} aria-expanded={!collapsed} icon={collapsed ? <MenuUnfoldOutlined aria-hidden /> : <MenuFoldOutlined aria-hidden />} onClick={() => setCollapsed(value => !value)} /></div>
       {collapsed ? <Tooltip title="搜索项目" placement="right"><Button type="text" aria-label="搜索项目" href="/projects" icon={<SearchOutlined aria-hidden />} /></Tooltip> : searchForm}
       {navigation}{data.page !== 'home' && recentProjects}
       <div className="sidebar-bottom">{data.creditsEnabled && <a className="sidebar-credits" href="/credits" aria-current={location.pathname === '/credits' ? 'page' : undefined}><span aria-hidden>◈</span><span className="app-nav-label">我的积分</span></a>}<a href="/ai-config" aria-label="系统配置"><SettingOutlined aria-hidden /><span className="app-nav-label">系统配置</span></a>{(sponsorsEnabled || data.user?.is_admin) && <a id="navSponsorLink" href="/sponsors"><HeartOutlined aria-hidden /><span className="app-nav-label">{sponsorsEnabled ? '赞助感谢' : '赞助预览'}</span></a>}</div>
@@ -128,7 +129,7 @@ export const Shell = memo(function Shell({ data, children }: { data: ShellData; 
     </header>
     <NavigationProgress />
     <Drawer title="导航" open={menuOpen} onClose={() => setMenuOpen(false)} afterOpenChange={open => { if (!open) menuTrigger.current?.focus(); }} size={280}>
-      {searchForm}{navigation}{data.page !== 'home' && recentProjects}<nav aria-label="辅助导航" className="app-nav account-nav"><a href="/create">创建 PPT</a><a href="/home">产品首页</a><a href="/ai-config">系统配置</a>{(sponsorsEnabled || data.user?.is_admin) && <a id="mobileSponsorLink" href="/sponsors">{sponsorsEnabled ? '赞助感谢' : '赞助预览'}</a>}</nav><nav aria-label="账户导航" className="app-nav account-nav">
+      {searchForm}{navigation}{data.page !== 'home' && recentProjects}<nav aria-label="辅助导航" className="app-nav account-nav"><a href="/dashboard">创建 PPT</a><a href="/home">产品首页</a><a href="/ai-config">系统配置</a>{(sponsorsEnabled || data.user?.is_admin) && <a id="mobileSponsorLink" href="/sponsors">{sponsorsEnabled ? '赞助感谢' : '赞助预览'}</a>}</nav><nav aria-label="账户导航" className="app-nav account-nav">
         {data.user ? <><a href="/auth/profile">个人资料</a>{data.creditsEnabled && <a href="/credits">我的积分</a>}{data.user.is_admin && <a href="/admin">管理后台</a>}<Button type="text" onClick={logout}>退出登录</Button></>
           : <><a href="/auth/login">登录</a><a href="/auth/login?tab=register">注册</a></>}
       </nav>

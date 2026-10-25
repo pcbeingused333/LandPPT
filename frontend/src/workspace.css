@@ -4,8 +4,8 @@
 .app-body { width: calc(100% - var(--lp-sidebar-width)); min-width: 0; margin-left: var(--lp-sidebar-width); }
 .sidebar-brand-row { display: flex; align-items: center; justify-content: space-between; gap: 4px; min-height: 36px; margin-bottom: 12px; }
 .app-brand { color: var(--lp-text); gap: 10px; font-size: 19px; letter-spacing: -.7px; }
-.brand-symbol { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 9px; background: var(--lp-primary); color: var(--lp-on-primary); font-size: 22px; font-weight: 800; }
-.brand-symbol::before { content: 'L'; }
+.brand-symbol { display: grid; place-items: center; flex: 0 0 30px; width: 30px; height: 30px; border-radius: 9px; background: var(--lp-primary); color: var(--lp-on-primary); }
+.brand-symbol > svg { display: block; width: 24px; height: 24px; }
 .sidebar-search .ant-input-affix-wrapper { background: var(--lp-elevated); border-color: transparent; }
 .app-sidebar .app-nav, .ant-drawer .app-nav { display: flex; flex-direction: column; align-items: stretch; gap: 4px; }
 .app-nav a { display: flex; align-items: center; gap: 12px; padding: 10px 12px; min-height: 40px; border-radius: 10px; color: var(--lp-secondary); }

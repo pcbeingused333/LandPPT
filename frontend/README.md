@@ -152,6 +152,17 @@ levels, borders and readable secondary text replace the old light overrides.
 Primary controls use a light fill, dark text and pill corners; panels use 16px
 corners. Slide iframe documents and the login brand illustration own their art.
 
+The sidebar uses `BrandSymbol`, a font-independent SVG LP monogram with an
+angled L terminal and a play-shaped counter in the P. Its 30px tile follows the
+shared primary/on-primary colors and retains its size when navigation collapses.
+The surrounding home link supplies the accessible name; the SVG is decorative.
+
+`scrollbars.css` styles only the app's document scrollbar and recent-project
+lists (desktop rail and mobile drawer): narrow theme-colored thumbs, transparent
+tracks and no native arrow buttons. The rail thumb appears on hover or keyboard
+focus; touch devices retain a visible thumb. Forced-color mode retains system
+scrollbars, and embedded slide documents keep their own styling.
+
 Presentation toolbars, thumbnail selection, shortcut hints and preview letterboxing
 use the same application tokens. White canvas backing and the default light color
 scheme belong on the iframe, so transparent or unstyled slides remain readable
@@ -236,7 +247,10 @@ are removed when leaving the page. Local fonts and SVG/CSS artwork keep it free
 of image/CDN requests, and reduced-motion settings disable the sample transition.
 The root opens `/home`; the home route no longer queries projects or provider
 configuration. Existing authentication and login-to-workspace behavior remain
-intact. Creation and workspace actions use their existing routes and permissions.
+intact. Both home creation calls to action and the mobile navigation's creation
+link open `/dashboard`, where the compact composer starts a presentation. The
+legacy `/create` HTML remains an internal source of authenticated composer
+settings; these links no longer open its separate creation page.
 Responsive layout, example switching, keyboard controls, navigation and routing
 coverage live in `tests/test_antd_home_ui.py` and `tests/test_home_routes.py`.
 The generation workspace subscribes directly to its independent TypeScript

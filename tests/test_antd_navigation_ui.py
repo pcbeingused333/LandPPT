@@ -40,7 +40,6 @@ ROUTES = {
 PATHS = [
     "/home",
     "/projects",
-    "/create",
     "/global-master-templates",
     "/image-gallery",
     "/ai-config",
@@ -246,7 +245,7 @@ def test_navigation_reuses_shell_across_all_main_pages(ui_page, width, height):
         assert page.evaluate(
             "window.navMarker === 'same-document' && window.navHeader === document.querySelector('.app-header')"
         )
-        assert urlsplit(page.url).path in ({"/create", "/scenarios"} if path == "/create" else {path})
+        assert urlsplit(page.url).path == path
         assert (
             page.evaluate(
                 "JSON.parse(document.getElementById('antdData').textContent).page"

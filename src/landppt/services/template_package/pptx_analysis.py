@@ -213,7 +213,25 @@ async def classify_analysis(analysis, service, progress, *, vision=False):
     content = ContentService(service)
     visual_timeout = await llm_timeout(service) if vision else None
     total = len(analysis["slides"])
+    failures = []
+    completed = 0
     for index, slide in enumerate(analysis["slides"]):
+        if not slide["candidates"] or not any(
+            c["kind"] == "text" for c in slide["candidates"]
+        ):
+            problem = "未提取到可编辑文字；扫描图或嵌入图表请先转为普通文本框"
+            slide.update(
+                review_required=True,
+                analysis_error=problem,
+                analysis_method="unavailable",
+            )
+            slide.setdefault("warnings", []).append(problem)
+            failures.append({"slide": slide["slide"], "error": problem})
+            progress(
+                "extract",
+                f"第 {slide['slide']} 页缺少可编辑文字，已保留原图供检查，继续其他页",
+            )
+            continue
         needs_repair = any(c.get("repair_issues") for c in slide["candidates"])
         if needs_repair:
             progress(
@@ -306,6 +324,7 @@ async def classify_analysis(analysis, service, progress, *, vision=False):
                 apply_analysis(slide, result, merge_groups=vision)
                 if vision:
                     slide["analysis_method"] = "vision"
+                completed += 1
                 break
             except PackageCreationCreditError:
                 raise
@@ -321,9 +340,18 @@ async def classify_analysis(analysis, service, progress, *, vision=False):
                 )
                 if attempt == 2:
                     phase = "解析未通过校验" if invalid else "模型请求失败"
-                    raise ValueError(
-                        f"第 {slide['slide']} 页 AI {phase}：{problem}，请重试分析"
-                    ) from exc
+                    message = f"第 {slide['slide']} 页 AI {phase}：{problem}"
+                    slide.update(
+                        review_required=True,
+                        analysis_error=message,
+                        analysis_method="failed",
+                    )
+                    slide.setdefault("warnings", []).append(
+                        message + "；此页未默认选中，可检查用途后手动选择或重试"
+                    )
+                    failures.append({"slide": slide["slide"], "error": message})
+                    progress("ai", message + "，继续分析其他页")
+                    break
                 reason = "识别结果需修正" if invalid else "模型请求失败"
                 progress(
                     "repair" if needs_repair else "ai",
@@ -331,5 +359,9 @@ async def classify_analysis(analysis, service, progress, *, vision=False):
                 )
                 if not invalid:
                     await asyncio.sleep(0.5 * (attempt + 1))
+    if not completed:
+        raise ValueError("没有页面完成识别：" + "；".join(f["error"] for f in failures))
     analysis["analysis_method"] = "vision" if vision else "ai"
+    analysis["failures"] = failures
+    analysis["partial"] = bool(failures)
     return analysis

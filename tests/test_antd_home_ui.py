@@ -96,7 +96,7 @@ def test_design_switcher_supports_keyboard_and_reduced_motion(ui_page):
 
 
 @pytest.mark.parametrize("width,height", [(1440, 900), (390, 844), (320, 568)])
-def test_home_workspace_and_creation_are_distinct_pages_with_one_shell(
+def test_home_creation_actions_open_dashboard_with_one_shell(
     ui_page, width, height
 ):
     page, _ = ui_page
@@ -111,8 +111,12 @@ def test_home_workspace_and_creation_are_distinct_pages_with_one_shell(
     open_navigation(page, "/home")
     expect(page.locator(".home-main")).to_be_visible()
     assert urlsplit(page.url).path == "/home"
+    expect(
+        page.get_by_role("link", name="创建我的演示文稿", exact=True)
+    ).to_have_attribute("href", "/dashboard")
     page.get_by_role("link", name="开始创建 PPT", exact=True).click()
-    expect(page.get_by_role("heading", name="创建 PPT", exact=True)).to_be_visible()
+    expect(page.get_by_role("heading", name="首页", exact=True)).to_be_visible()
+    assert urlsplit(page.url).path == "/dashboard"
     assert page.locator(".home-main").count() == 0
     assert page.evaluate("window.homeHeader===document.querySelector('.app-header')")
     assert sum(read["kind"] == "document" for read in state["reads"]) == 1

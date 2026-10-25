@@ -1,0 +1,74 @@
+/* App chrome only: embedded slide documents keep their own scrollbars. */
+@media (forced-colors: none) {
+  html:has(.app-shell) {
+    --lp-scrollbar-thumb: color-mix(in srgb, var(--lp-secondary) 32%, transparent);
+    --lp-scrollbar-active: color-mix(in srgb, var(--lp-secondary) 58%, transparent);
+    scrollbar-width: thin;
+    scrollbar-color: var(--lp-scrollbar-thumb) transparent;
+  }
+
+  :is(.app-sidebar, .ant-drawer) .sidebar-recent {
+    scrollbar-width: thin;
+    scrollbar-color: transparent transparent;
+  }
+
+  :is(.app-sidebar, .ant-drawer) .sidebar-recent:is(:hover, :focus-within) {
+    scrollbar-color: var(--lp-scrollbar-thumb) transparent;
+  }
+
+  /* Chromium/Safari: remove the native arrow buttons and white track. Using
+     auto here lets the 6px pseudo-element styling take precedence. */
+  @supports selector(::-webkit-scrollbar) {
+    html:has(.app-shell),
+    :is(.app-sidebar, .ant-drawer) .sidebar-recent,
+    :is(.app-sidebar, .ant-drawer) .sidebar-recent:is(:hover, :focus-within) {
+      scrollbar-width: auto;
+      scrollbar-color: auto;
+    }
+
+    html:has(.app-shell)::-webkit-scrollbar,
+    :is(.app-sidebar, .ant-drawer) .sidebar-recent::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+
+    html:has(.app-shell)::-webkit-scrollbar-track,
+    :is(.app-sidebar, .ant-drawer) .sidebar-recent::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    html:has(.app-shell)::-webkit-scrollbar-button,
+    :is(.app-sidebar, .ant-drawer) .sidebar-recent::-webkit-scrollbar-button {
+      display: none;
+      width: 0;
+      height: 0;
+    }
+
+    html:has(.app-shell)::-webkit-scrollbar-thumb {
+      border-radius: 999px;
+      background: var(--lp-scrollbar-thumb);
+    }
+
+    :is(.app-sidebar, .ant-drawer) .sidebar-recent::-webkit-scrollbar-thumb {
+      border-radius: 999px;
+      background: transparent;
+    }
+
+    :is(.app-sidebar, .ant-drawer) .sidebar-recent:is(:hover, :focus-within)::-webkit-scrollbar-thumb {
+      background: var(--lp-scrollbar-thumb);
+    }
+
+    html:has(.app-shell)::-webkit-scrollbar-thumb:hover,
+    :is(.app-sidebar, .ant-drawer) .sidebar-recent::-webkit-scrollbar-thumb:hover {
+      background: var(--lp-scrollbar-active);
+    }
+  }
+
+  @media (hover: none) {
+    :is(.app-sidebar, .ant-drawer) .sidebar-recent { scrollbar-color: var(--lp-scrollbar-thumb) transparent; }
+    @supports selector(::-webkit-scrollbar) {
+      :is(.app-sidebar, .ant-drawer) .sidebar-recent { scrollbar-color: auto; }
+      :is(.app-sidebar, .ant-drawer) .sidebar-recent::-webkit-scrollbar-thumb { background: var(--lp-scrollbar-thumb); }
+    }
+  }
+}

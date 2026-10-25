@@ -14,6 +14,7 @@ from ..slide.svg_page.layout import wrap_text
 from ..slide.svg_page.metrics import get_text_measurer
 from ..slide.svg_page.sanitize import local_name, parse_svg, serialize
 from .schemas import ContractModel, PageComponent
+from .service import MIN_SLOT_CHARS
 
 
 def merge_visual_groups(selected, groups):
@@ -111,9 +112,12 @@ def layout_hints(component):
             "node_id": slot.node_id,
             "field": slot.field,
             "complete_text": fields.get(slot.field, ""),
+            "minimum_replacement_chars": replacement_minimum(slot.field),
             "font_size": 18,
             "minimum_height_by_width": {
-                str(width): text_height(fields.get(slot.field, ""), width, 18, True)
+                str(width): required_text_height(
+                    fields.get(slot.field, ""), slot.field, width, 18, True
+                )
                 for width in (200, 280, 360, 560, 1120)
             },
         }
@@ -122,7 +126,22 @@ def layout_hints(component):
     ]
 
 
-def draw_visual_plan(component, result):
+def replacement_minimum(field):
+    kind = field.rsplit(".", 1)[-1] if field.startswith("blocks[") else field
+    return MIN_SLOT_CHARS.get(kind, 0)
+
+
+def required_text_height(text, field, width, size, bold=False):
+    # Capacity validation uses a conservative CJK writing budget. A short source
+    # label fitting is not evidence that its replacement slot is reusable.
+    need = replacement_minimum(field)
+    probe = "字" * (math.ceil(need / 0.9) + 1) if need else ""
+    return max(
+        text_height(text, width, size, bold), text_height(probe, width, size, bold)
+    )
+
+
+def draw_visual_plan(component, result, *, strict=True):
     plan = VisualPlan.model_validate(result)
     ids = [slot.node_id for slot in plan.slots]
     declared = {slot.node_id: slot for slot in component.slots}
@@ -136,14 +155,20 @@ def draw_visual_plan(component, result):
         if declared[slot.node_id].kind != "text":
             continue
         text = sample.get(declared[slot.node_id].field, "")
+        field = declared[slot.node_id].field
         size = slot.font_size
         while (
             size > 18
-            and max(size * 1.4, text_height(text, slot.width, size, slot.bold))
+            and max(
+                size * 1.4,
+                required_text_height(text, field, slot.width, size, slot.bold),
+            )
             > slot.height
         ):
             size = max(18, size - 2)
-        required = max(size * 1.4, text_height(text, slot.width, size, slot.bold))
+        required = max(
+            size * 1.4, required_text_height(text, field, slot.width, size, slot.bold)
+        )
         # Finish typesetting within the AI's layout. A few missing pixels should
         # not cost another model request when there is unused space in the card.
         # Never move text or extend into another slot, outside a card or canvas.
@@ -175,7 +200,7 @@ def draw_visual_plan(component, result):
             )
         font_sizes[slot.node_id] = size
         heights[slot.node_id] = height
-    if problems:
+    if problems and strict:
         raise ValueError("文字区域不足：" + "；".join(problems))
     ns = "http://www.w3.org/2000/svg"
     root = etree.Element(f"{{{ns}}}svg", nsmap={None: ns}, viewBox="0 0 1280 720")

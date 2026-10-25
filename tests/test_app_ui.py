@@ -690,7 +690,7 @@ def test_primary_controls_share_scale_across_app_shells(
     assert visible_control.bounding_box()["height"] >= (44 if width < 600 else 32)
     assert visible_control.bounding_box()["height"] <= (46 if width < 600 else 42)
     primary = page.locator(button).first
-    assert primary.evaluate("e => getComputedStyle(e).fontSize") == "14px"
+    assert primary.evaluate("e => getComputedStyle(e).fontSize") == "13px"
     assert primary.evaluate("e => getComputedStyle(e).borderRadius") == "999px"
     assert (
         primary.evaluate("e => getComputedStyle(e).backgroundColor")

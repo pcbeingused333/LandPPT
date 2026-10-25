@@ -11,7 +11,7 @@
 
 **中文** | [English](README_EN.md)
 
-当前版本：**0.4.0**。
+当前版本：**0.5.0**。
 
 <div align="center">
   <img src="https://img.pub/p/e810c5680509b4f051a5.png" width="160" alt="LandPPT Logo" />
@@ -149,36 +149,20 @@ LandPPT 将「写大纲 → 做版式 → 配图 → 写讲稿 → 导出」整�
 
 ## 界面预览
 
-### 主界面
+### 产品介绍页
 
-![主界面](https://img.pub/p/3accad83a8b624d7cb19.png)
+![LandPPT 产品介绍页](assets/screenshots/home.png)
 
-### 大纲与生成效果
+### 首页创作与项目
 
-![大纲](https://img.pub/p/a31e4f94c5d2bd577d8d.png)
+![首页主题输入与最近项目](assets/screenshots/dashboard.png)
 
-![生成效果](https://img.pub/p/e6cffa89a2b532a8514b.png)
+### 在线编辑与 AI 助手
+
+![幻灯片编辑工作区与 AI 创作助手](assets/screenshots/editor.png)
 
 <details>
-<summary><b>更多截图（在线编辑 / 讲稿 / 导出 / 模板）</b></summary>
-
-#### 主界面（备选）
-
-![主界面 2](https://img.pub/p/7d5c3c1a4b625abeb4c1.png)
-
-#### 生成效果（备选）
-
-![生成效果 2](https://img.pub/p/9a38b57c6f5f470ad59b.png)
-
-#### 在线编辑
-
-![编辑 1](https://img.pub/p/6d357a847626f1a55c13.png)
-
-![编辑 2](https://img.pub/p/42f84b07850f5aa4aebb.png)
-
-![编辑 3](https://img.pub/p/8dccee74d0b85893bd38.png)
-
-![编辑 4](https://img.pub/p/aaf483b2507a57db8b35.png)
+<summary><b>更多功能示例（讲稿 / 导出）</b></summary>
 
 #### 讲稿生成
 
@@ -187,10 +171,6 @@ LandPPT 将「写大纲 → 做版式 → 配图 → 写讲稿 → 导出」整�
 #### 导出效果
 
 ![导出](https://img.pub/p/62694101810bfa472db9.png)
-
-#### 模板生成
-
-![模板](https://img.pub/p/892622b3f3cc0d6ad843.png)
 
 </details>
 
