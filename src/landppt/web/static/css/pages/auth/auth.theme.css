@@ -1,5 +1,5 @@
 /* Account forms share the app palette; the brand illustration owns its art. */
-body.auth-body { background: var(--lp-bg); color-scheme: dark; }
+body.auth-body { background: var(--lp-bg); }
 .auth-body .form-panel {
   --ink: var(--lp-text);
   --ink-2: var(--lp-text);
@@ -16,6 +16,9 @@ body.auth-body { background: var(--lp-bg); color-scheme: dark; }
   background: var(--lp-surface);
 }
 .auth-body .form-panel :is(input,select,textarea) { background: var(--lp-elevated); color: var(--lp-text); }
+/* Inputs inside a framed .control inherit the frame instead of drawing a second box. */
+.auth-body .form-panel .control { background: var(--lp-elevated); }
+.auth-body .form-panel .control input { background: transparent; }
 .auth-body .form-panel input::placeholder { color: var(--lp-muted); }
 .auth-body .form-panel .btn-primary { background: var(--lp-primary); color: var(--lp-on-primary); border-color: transparent; border-radius: 999px; }
 .auth-body .form-panel .btn-primary:hover { background: var(--lp-text); }

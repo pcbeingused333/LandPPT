@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <meta name="color-scheme" content="dark light">
     <link rel="stylesheet" href="/static/css/shared/design-tokens.css?v=20261023">
+    <script src="/static/js/shared/theme-init.js?v=20261025"></script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>页面生成 - {{ todo_board.title }}</title>
     <script src="/static/js/shared/unattended_monitor.js?v=20261012"></script>
@@ -16,8 +17,11 @@
 
 <body class="landppt-generator">
     <div id="antdRoot"><div class="app-startup" role="status" aria-label="正在打开页面"><span></span><span></span><span></span></div></div>
+    {% set current_user = user if user is defined else (request.state.user if request and request.state and request.state.user else none) %}
     {% import "components/project/workspace_state.html" as ws with context %}
     <script id="antdData" type="application/json">{
+        "user": {% if current_user %}{"username": {{ current_user.username | tojson }}, "is_admin": {{ current_user.is_admin | tojson }}}{% else %}null{% endif %},
+        "creditsEnabled": {{ (credits_enabled | default(false)) | tojson }},
         "page": "generator-workspace",
         "projectId": {{ todo_board.task_id | tojson }},
         "title": {{ todo_board.title | tojson }},

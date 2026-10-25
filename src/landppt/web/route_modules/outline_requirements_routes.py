@@ -68,6 +68,7 @@ async def web_project_todo_editor(
 
         return templates.TemplateResponse(template_name, {
             "request": request,
+            "user": user,
             "todo_board": project.todo_board,
             "project": project,
             "auto_start": auto_start,

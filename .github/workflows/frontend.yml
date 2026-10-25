@@ -42,6 +42,7 @@ jobs:
               tests/test_antd_artifact_preview_ui.py
               tests/test_antd_source_library_ui.py
               tests/test_antd_navigation_ui.py tests/test_antd_home_generator_ui.py tests/test_antd_generator_lifecycle_ui.py tests/test_antd_template_wizard_ui.py tests/test_antd_workspace_stages_ui.py tests/test_antd_quick_edit_ui.py
+              tests/test_antd_generator_auth_ui.py
               tests/test_navigation_startup_ui.py
               tests/test_antd_editor_startup_ui.py
               tests/test_antd_ui.py tests/test_antd_settings_performance_ui.py tests/test_antd_speech_dialog_mount_ui.py
@@ -95,6 +96,7 @@ jobs:
             artifacts/source-library-20261022/
             artifacts/editor-outline-overview-20261023/
             artifacts/project-agent-20261023/
+            artifacts/generator-auth-20261025/
             artifacts/vision-capture-20261024/
             artifacts/navigation-20261024/
             artifacts/editor-startup-20261024/

@@ -279,6 +279,13 @@ below. The editor now has its own application controller and established engine 
 `frontend/tests/generator-controller.test.mjs` exercises state/transport races;
 `tests/test_antd_generator_lifecycle_ui.py` covers the built Ant behavior.
 
+The standalone generator template supplies the shared shell's public identity
+(`username` and `is_admin`) and `creditsEnabled` bootstrap fields. Its route passes
+the authenticated user explicitly; the template also accepts `request.state.user`
+for existing callers. Never serialize the full user model into page data.
+`tests/test_generator_auth_context.py` and `tests/test_antd_generator_auth_ui.py`
+cover the route, safe rendering and responsive account menus for both roles.
+
 The generator's fullscreen view uses Ant Modal with previous/next buttons and
 the received-document count. Navigation follows actual saved page numbers,
 including gaps; pending pages are not represented as completed documents.

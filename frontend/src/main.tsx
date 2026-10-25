@@ -1,8 +1,7 @@
 import { lazy, Suspense, Component, useMemo, type ReactNode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { App, ConfigProvider, Result, Button } from 'antd';
-import zhCN from 'antd/locale/zh_CN';
-import { landpptTheme } from './theme';
+import { App, Result, Button } from 'antd';
+import { AppearanceProvider } from './components/appearance';
 import { NavigationPending, Shell, type ShellData } from './shell';
 import { useSectionNavigation, type SectionLoaders } from './navigation';
 import { CreationDraftProvider } from './components/creation-draft';
@@ -69,5 +68,5 @@ function LandPPT({ initial }: { initial: ShellData & Record<string, any> }) {
 }
 if (root) {
   const initial = JSON.parse(document.getElementById('antdData')!.textContent!) as ShellData & Record<string, any>;
-  createRoot(root).render(<ConfigProvider locale={zhCN} theme={landpptTheme} button={{ autoInsertSpace: false }}><App><LandPPT initial={initial} /></App></ConfigProvider>);
+  createRoot(root).render(<AppearanceProvider><App><LandPPT initial={initial} /></App></AppearanceProvider>);
 }
