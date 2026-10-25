@@ -12,7 +12,7 @@ image:
   # Initial value keeps the current in-cluster local image working.
   # GitHub Actions will update this to ghcr.io/<owner>/landppt on the next source change.
   repository: "ghcr.io/sligter/landppt"
-  tag: "git-43b01e62d50b0b095c956c4d53ca82f2d4583366"
+  tag: "git-78e30df9d45ac280daeda484b895460a2bfe8022"
   pullPolicy: "IfNotPresent"
 
 pptxRenderer:
@@ -20,7 +20,7 @@ pptxRenderer:
   image:
     repository: "ghcr.io/sligter/landppt-pptx-renderer"
     # Bootstrap until CI publishes the first renderer and pins both git tags.
-    tag: "git-43b01e62d50b0b095c956c4d53ca82f2d4583366"
+    tag: "git-78e30df9d45ac280daeda484b895460a2bfe8022"
     pullPolicy: "IfNotPresent"
   spool:
     # This cluster uses single-node local-path storage.
