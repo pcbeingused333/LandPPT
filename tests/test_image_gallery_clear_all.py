@@ -2,10 +2,16 @@ import pytest
 
 
 @pytest.mark.asyncio
-async def test_clear_user_cache_deletes_only_current_user_entries():
+async def test_clear_user_cache_deletes_only_current_user_entries(monkeypatch):
     from landppt.auth.request_context import current_user_id
     from landppt.services.image.image_service import ImageService
     from landppt.services.image.models import ImageCacheInfo
+    from landppt.services import storage
+    from types import SimpleNamespace
+    from unittest.mock import AsyncMock
+
+    delete_artifacts = AsyncMock(return_value=2)
+    monkeypatch.setattr(storage, "get_artifact_service", lambda: SimpleNamespace(delete_artifacts=delete_artifacts))
 
     service = ImageService({"cache": {}})
 
@@ -50,7 +56,8 @@ async def test_clear_user_cache_deletes_only_current_user_entries():
         def _load_cache_index(self):
             return None
 
-        async def remove_from_cache(self, cache_key):
+        async def remove_from_cache(self, cache_key, *, delete_artifact=True):
+            assert delete_artifact is False, "artifact deletion must happen once through the scoped store"
             self.removed.append(cache_key)
             self._cache_index.pop(cache_key, None)
 
@@ -64,6 +71,7 @@ async def test_clear_user_cache_deletes_only_current_user_entries():
         deleted_count = await service.clear_user_cache()
 
         assert deleted_count == 2
+        delete_artifacts.assert_awaited_once_with(artifact_type="image_cache", user_id=1)
         assert service.cache_manager.removed == ["u1_hash1", "u1_hash2"]
         assert sorted(service.cache_manager._cache_index.keys()) == ["public_hash", "u2_hash1"]
     finally:

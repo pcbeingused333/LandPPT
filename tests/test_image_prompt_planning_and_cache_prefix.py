@@ -13,8 +13,10 @@ def test_system_prompt_cache_prefix_is_stable_for_chat_messages():
     normalized = SystemPrompts.normalize_messages_for_cache(messages)
 
     assert normalized[0].role == MessageRole.SYSTEM
-    assert normalized[0].content.startswith("LandPPT 系统提示词 v2")
+    assert normalized[0].content == SystemPrompts.CACHE_STABLE_PREFIX.strip()
     assert normalized[1:] == messages
+    assert SystemPrompts.normalize_messages_for_cache(normalized) == normalized
+    assert len(messages) == 1 and messages[0].role == MessageRole.USER
 
 
 def test_image_requirement_planning_carries_prompt_dimensions_and_keywords():

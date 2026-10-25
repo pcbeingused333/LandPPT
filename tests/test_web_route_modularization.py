@@ -311,7 +311,7 @@ def test_frontend_template_grouping_is_applied_to_route_handlers():
     assert 'pages/settings/ai_config.html' in config_text
 
 
-def test_admin_env_editor_surface_was_removed_but_db_config_routes_remain():
+def test_legacy_env_editor_ui_is_removed_and_admin_config_apis_remain():
     admin_text = _read("src/landppt/web/admin_routes.py")
     admin_body_text = _read("src/landppt/web/templates/components/admin/community/body_1.html")
     admin_script_text = _read("src/landppt/web/templates/components/admin/community/script_1.html")
@@ -324,7 +324,7 @@ def test_admin_env_editor_surface_was_removed_but_db_config_routes_remain():
         '@router.get("/api/system-env-file")',
         '@router.post("/api/system-env-file")',
     ]:
-        assert marker not in admin_text
+        assert marker in admin_text
 
     for marker in [
         '系统环境配置（.env）',
@@ -413,7 +413,12 @@ def test_project_slides_editor_template_uses_extracted_assets():
     assert '/static/js/pages/project/slides_editor/projectSlidesEditor.tools.js' in template_text
     assert '/static/js/pages/project/slides_editor/projectEditorNarration.js' in template_text
 
-    assert "<style>" not in template_text
+    import re
+
+    # The startup fallback hides the JS skeleton when scripting is disabled.
+    without_noscript = re.sub(r"<noscript>.*?</noscript>", "", template_text, flags=re.DOTALL)
+    assert "<style>" not in without_noscript
+    assert '<noscript><style>#antdRoot { display: none; }</style>' in template_text
 
     inline_script_marker = '<script>\n        let currentSlideIndex = 0;'
     assert inline_script_marker not in template_text

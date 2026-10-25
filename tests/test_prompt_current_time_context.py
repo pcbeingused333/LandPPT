@@ -20,7 +20,7 @@ def test_landppt_outline_prompt_zh_includes_current_time_context():
 
     assert "当前时间参考" in prompt
     assert str(datetime.now().year) in prompt
-    assert "当前季度" in prompt
+    assert f"季度：Q{(datetime.now().month - 1) // 3 + 1}" in prompt
 
 
 def test_landppt_outline_prompt_en_includes_current_time_context():
@@ -39,7 +39,7 @@ def test_landppt_outline_prompt_en_includes_current_time_context():
 
     assert "Current Time Reference" in prompt
     assert str(datetime.now().year) in prompt
-    assert "Current quarter" in prompt
+    assert f"quarter: Q{(datetime.now().month - 1) // 3 + 1}" in prompt
 
 
 def test_summeryanyfile_initial_outline_prompt_includes_current_time_context():

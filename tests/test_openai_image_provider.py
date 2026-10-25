@@ -1,9 +1,27 @@
 from pathlib import Path
+import asyncio
 
 import pytest
 
 from landppt.services.image.models import ImageGenerationRequest, ImageProvider
 from landppt.services.image.providers.openai_image_provider import OpenAIImageProvider
+from landppt.services.image.providers.base import BaseImageProvider
+
+
+def test_provider_initialization_and_rate_limit_do_not_require_an_existing_loop():
+    async def close_loop():
+        pass
+
+    asyncio.run(close_loop())
+    provider = OpenAIImageProvider({"api_key": "test-key", "rate_limit": 1})
+
+    async def check_limit():
+        assert await BaseImageProvider._check_rate_limit(provider)
+        assert not await BaseImageProvider._check_rate_limit(provider)
+        provider._last_reset -= 61
+        assert await BaseImageProvider._check_rate_limit(provider)
+
+    asyncio.run(check_limit())
 
 
 def test_openai_image_provider_does_not_send_response_format_by_default():

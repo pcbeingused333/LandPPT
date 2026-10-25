@@ -1,7 +1,3 @@
-import importlib
-import sys
-from contextlib import contextmanager
-
 import pytest
 from sqlalchemy.exc import OperationalError
 
@@ -11,13 +7,12 @@ MAIN_MODULE_NAME = "landppt.main"
 LEGACY_POSTGRES_URL = "postgresql://landppt:landppt@postgres:5432/landppt"
 
 
-def _reload_database_module(monkeypatch, database_url=None):
+def _reload_database_module(monkeypatch, load_isolated_module, database_url=None):
     if database_url is None:
         monkeypatch.delenv("DATABASE_URL", raising=False)
     else:
         monkeypatch.setenv("DATABASE_URL", database_url)
-    sys.modules.pop(DB_MODULE_NAME, None)
-    return importlib.import_module(DB_MODULE_NAME)
+    return load_isolated_module(DB_MODULE_NAME)
 
 
 def test_database_module_defaults_to_sqlite(monkeypatch):
@@ -29,9 +24,9 @@ def test_database_module_defaults_to_sqlite(monkeypatch):
     assert config.database_url == "sqlite:///./landppt.db"
 
 
-def test_should_fallback_for_legacy_postgres_connectivity_error(monkeypatch):
+def test_should_fallback_for_legacy_postgres_connectivity_error(monkeypatch, load_isolated_module):
     monkeypatch.delenv("DATABASE_URL", raising=False)
-    module = _reload_database_module(monkeypatch)
+    module = _reload_database_module(monkeypatch, load_isolated_module)
 
     err = OperationalError(
         "SELECT 1",
@@ -42,9 +37,9 @@ def test_should_fallback_for_legacy_postgres_connectivity_error(monkeypatch):
     assert module._should_fallback_to_sqlite(err, LEGACY_POSTGRES_URL) is True
 
 
-def test_should_not_fallback_for_explicit_custom_postgres_connectivity_error(monkeypatch):
+def test_should_not_fallback_for_explicit_custom_postgres_connectivity_error(monkeypatch, load_isolated_module):
     monkeypatch.delenv("DATABASE_URL", raising=False)
-    module = _reload_database_module(monkeypatch)
+    module = _reload_database_module(monkeypatch, load_isolated_module)
     custom_url = "postgresql://landppt:landppt@db.internal:5432/landppt"
 
     err = OperationalError(
@@ -58,7 +53,6 @@ def test_should_not_fallback_for_explicit_custom_postgres_connectivity_error(mon
 
 @pytest.mark.asyncio
 async def test_startup_initialization_runs_in_order(monkeypatch):
-    sys.modules.pop(MAIN_MODULE_NAME, None)
     import landppt.main as main_module
 
     calls = []

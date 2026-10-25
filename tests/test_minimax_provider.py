@@ -1,313 +1,232 @@
-"""
-Tests for MiniMax provider configuration, factory registration,
-temperature clamping, and reload_ai_config() support.
+"""MiniMax connects through explicit OpenAI-compatible or managed configuration.
+
+The built-in preset was removed during provider consolidation. Exercise the
+supported paths without reviving vendor-specific environment variables.
 """
 
+import json
 import os
-from unittest.mock import AsyncMock, MagicMock, patch
 
+import httpx
+import openai
 import pytest
 
-# ---------------------------------------------------------------------------
-# Unit tests – configuration defaults
-# ---------------------------------------------------------------------------
+from landppt.ai.base import AIMessage, MessageRole
+from landppt.ai.providers import AIProviderFactory, OpenAIProvider
+from landppt.core import config as config_module
+
+BASE_URL = "https://api.minimax.io/v1"
+MODEL = "MiniMax-M2.7"  # Explicit fixture model, not a built-in default.
 
 
-class TestMiniMaxConfigDefaults:
-    """Verify that the AIConfig singleton ships the correct MiniMax defaults."""
-
-    def test_default_base_url(self):
-        from landppt.core.config import AIConfig
-
-        cfg = AIConfig(minimax_api_key="test-key")
-        assert cfg.minimax_base_url == "https://api.minimax.io/v1"
-
-    def test_default_model(self):
-        from landppt.core.config import AIConfig
-
-        cfg = AIConfig(minimax_api_key="test-key")
-        assert cfg.minimax_model == "MiniMax-M2.7"
-
-    def test_custom_model_via_env(self, monkeypatch):
-        monkeypatch.setenv("MINIMAX_MODEL", "MiniMax-M2.5-highspeed")
-        from landppt.core.config import AIConfig
-
-        cfg = AIConfig(minimax_api_key="test-key")
-        assert cfg.minimax_model == "MiniMax-M2.5-highspeed"
-
-    def test_custom_base_url_via_env(self, monkeypatch):
-        monkeypatch.setenv("MINIMAX_BASE_URL", "https://custom.proxy.example/v1")
-        from landppt.core.config import AIConfig
-
-        cfg = AIConfig(minimax_api_key="test-key")
-        assert cfg.minimax_base_url == "https://custom.proxy.example/v1"
+@pytest.fixture
+def compatible_settings(monkeypatch, tmp_path):
+    # reload_ai_config also reads .env; never consume a developer's local file.
+    monkeypatch.chdir(tmp_path)
+    for name, value in {
+        "OPENAI_API_KEY": "test-key",
+        "OPENAI_BASE_URL": BASE_URL,
+        "OPENAI_MODEL": MODEL,
+        "DEFAULT_AI_PROVIDER": "openai",
+    }.items():
+        monkeypatch.setenv(name, value)
+    settings = config_module.AIConfig(
+        temperature=0.7,
+        max_tokens=16384,
+        default_model_provider=None,
+        default_model_name=None,
+    )
+    # Reload tests must not mutate the singleton retained by other services.
+    monkeypatch.setattr(config_module, "ai_config", settings)
+    return settings
 
 
-# ---------------------------------------------------------------------------
-# Unit tests – provider availability
-# ---------------------------------------------------------------------------
-
-
-class TestMiniMaxProviderAvailability:
-    """Provider should be available only when an API key is configured."""
-
-    def test_available_with_api_key(self):
-        from landppt.core.config import AIConfig
-
-        cfg = AIConfig(minimax_api_key="test-key")
-        assert cfg.is_provider_available("minimax") is True
-
-    def test_unavailable_without_api_key(self):
-        from landppt.core.config import AIConfig
-
-        cfg = AIConfig(minimax_api_key=None)
-        assert cfg.is_provider_available("minimax") is False
-
-    def test_appears_in_available_list(self):
-        from landppt.core.config import AIConfig
-
-        cfg = AIConfig(minimax_api_key="test-key")
-        providers = cfg.get_available_providers()
-        assert "minimax" in providers
-
-    def test_absent_from_available_list_without_key(self):
-        from landppt.core.config import AIConfig
-
-        cfg = AIConfig(minimax_api_key=None)
-        providers = cfg.get_available_providers()
-        assert "minimax" not in providers
-
-
-# ---------------------------------------------------------------------------
-# Unit tests – temperature clamping
-# ---------------------------------------------------------------------------
-
-
-class TestMiniMaxTemperatureClamping:
-    """MiniMax API requires temperature <= 1.0."""
-
-    def test_temperature_clamped_to_1(self):
-        from landppt.core.config import AIConfig
-
-        cfg = AIConfig(minimax_api_key="test-key", temperature=1.5)
-        config = cfg.get_provider_config("minimax")
-        assert config["temperature"] <= 1.0
-
-    def test_temperature_not_altered_when_valid(self):
-        from landppt.core.config import AIConfig
-
-        cfg = AIConfig(minimax_api_key="test-key", temperature=0.7)
-        config = cfg.get_provider_config("minimax")
-        assert config["temperature"] == 0.7
-
-    def test_temperature_zero_allowed(self):
-        from landppt.core.config import AIConfig
-
-        cfg = AIConfig(minimax_api_key="test-key", temperature=0.0)
-        config = cfg.get_provider_config("minimax")
-        assert config["temperature"] == 0.0
-
-    def test_openai_temperature_not_clamped(self):
-        """Other providers should not be affected by MiniMax clamping."""
-        from landppt.core.config import AIConfig
-
-        cfg = AIConfig(openai_api_key="test-key", temperature=1.5)
-        config = cfg.get_provider_config("openai")
-        assert config["temperature"] == 1.5
-
-
-# ---------------------------------------------------------------------------
-# Unit tests – get_provider_config contents
-# ---------------------------------------------------------------------------
-
-
-class TestMiniMaxProviderConfig:
-    """Verify the dictionary returned by get_provider_config('minimax')."""
-
-    def test_config_keys(self):
-        from landppt.core.config import AIConfig
-
-        cfg = AIConfig(minimax_api_key="test-key")
-        config = cfg.get_provider_config("minimax")
-        assert "api_key" in config
-        assert "base_url" in config
-        assert "model" in config
-        assert "max_tokens" in config
-        assert "temperature" in config
-
-    def test_config_values(self):
-        from landppt.core.config import AIConfig
-
-        cfg = AIConfig(minimax_api_key="test-key")
-        config = cfg.get_provider_config("minimax")
-        assert config["api_key"] == "test-key"
-        assert config["base_url"] == "https://api.minimax.io/v1"
-        assert config["model"] == "MiniMax-M2.7"
-
-
-# ---------------------------------------------------------------------------
-# Unit tests – model role resolution
-# ---------------------------------------------------------------------------
-
-
-class TestMiniMaxRoleResolution:
-    """Role-based model config should resolve MiniMax correctly."""
-
-    def test_default_role_with_minimax_provider(self):
-        from landppt.core.config import AIConfig
-
-        cfg = AIConfig(
-            minimax_api_key="test-key",
-            default_ai_provider="minimax",
+def test_legacy_name_is_not_advertised_or_silently_resolved(compatible_settings):
+    assert "minimax" not in AIProviderFactory.get_available_providers()
+    with pytest.raises(ValueError, match="Unknown provider: minimax"):
+        AIProviderFactory.create_provider(
+            "minimax", compatible_settings.get_provider_config("openai")
         )
-        role_cfg = cfg.get_model_config_for_role("default")
-        assert role_cfg["provider"] == "minimax"
-        assert role_cfg["model"] == "MiniMax-M2.7"
-
-    def test_role_override_to_minimax(self):
-        from landppt.core.config import AIConfig
-
-        cfg = AIConfig(
-            minimax_api_key="test-key",
-            default_ai_provider="openai",
-        )
-        role_cfg = cfg.get_model_config_for_role("default", provider_override="minimax")
-        assert role_cfg["provider"] == "minimax"
-        assert role_cfg["model"] == "MiniMax-M2.7"
 
 
-# ---------------------------------------------------------------------------
-# Unit tests – reload_ai_config
-# ---------------------------------------------------------------------------
+def test_compatible_config_keeps_explicit_endpoint_model_and_key(compatible_settings):
+    config = compatible_settings.get_provider_config("openai")
+    assert config["api_key"] == "test-key"
+    assert config["base_url"] == BASE_URL
+    assert config["model"] == MODEL
+    assert config["max_tokens"] == 16384
 
 
-class TestMiniMaxReloadConfig:
-    """reload_ai_config() should pick up MiniMax env var changes."""
-
-    def test_reload_updates_minimax_model(self, monkeypatch):
-        from landppt.core.config import ai_config, reload_ai_config
-
-        monkeypatch.setenv("MINIMAX_MODEL", "MiniMax-M2.5")
-        reload_ai_config()
-        assert ai_config.minimax_model == "MiniMax-M2.5"
-
-    def test_reload_updates_minimax_base_url(self, monkeypatch):
-        from landppt.core.config import ai_config, reload_ai_config
-
-        monkeypatch.setenv("MINIMAX_BASE_URL", "https://proxy.example/v1")
-        reload_ai_config()
-        assert ai_config.minimax_base_url == "https://proxy.example/v1"
-
-    def test_reload_updates_minimax_api_key(self, monkeypatch):
-        from landppt.core.config import ai_config, reload_ai_config
-
-        monkeypatch.setenv("MINIMAX_API_KEY", "new-test-key")
-        reload_ai_config()
-        assert ai_config.minimax_api_key == "new-test-key"
+@pytest.mark.parametrize(
+    "field,value",
+    [
+        ("api_key", "other-test-key"),
+        ("base_url", "https://proxy.example.test/v1"),
+        ("model", "user-selected-minimax-model"),
+    ],
+)
+def test_compatible_environment_overrides(
+    compatible_settings, monkeypatch, field, value
+):
+    monkeypatch.setenv("OPENAI_" + field.upper(), value)
+    assert config_module.AIConfig().get_provider_config("openai")[field] == value
 
 
-# ---------------------------------------------------------------------------
-# Unit tests – factory registration
-# ---------------------------------------------------------------------------
+@pytest.mark.parametrize(
+    "key,available", [(None, False), ("", False), ("test-key", True)]
+)
+def test_compatible_availability_requires_a_key(compatible_settings, key, available):
+    compatible_settings.openai_api_key = key
+    assert compatible_settings.is_provider_available("openai") is available
+    assert ("openai" in compatible_settings.get_available_providers()) is available
 
 
-class TestMiniMaxFactoryRegistration:
-    """MiniMax must be registered in the AIProviderFactory."""
+@pytest.mark.parametrize("temperature", [0.0, 0.7, 1.0])
+def test_compatible_temperature_is_explicit(compatible_settings, temperature):
+    compatible_settings.temperature = temperature
+    assert (
+        compatible_settings.get_provider_config("openai")["temperature"] == temperature
+    )
 
-    def test_minimax_in_factory_providers(self):
-        from landppt.ai.providers import AIProviderFactory
 
-        available = AIProviderFactory.get_available_providers()
-        assert "minimax" in available
+@pytest.mark.parametrize(
+    "field,value",
+    [
+        ("api_key", "new-test-key"),
+        ("base_url", "https://proxy.example.test/v1"),
+        ("model", "user-selected-minimax-model"),
+    ],
+)
+def test_reload_updates_compatible_settings_without_changing_identity(
+    compatible_settings, monkeypatch, field, value
+):
+    monkeypatch.setenv("OPENAI_" + field.upper(), value)
+    config_module.reload_ai_config()
+    assert config_module.ai_config is compatible_settings
+    assert getattr(compatible_settings, "openai_" + field) == value
 
-    def test_factory_creates_openai_provider(self):
-        from landppt.ai.providers import AIProviderFactory, OpenAIProvider
 
-        config = {
-            "api_key": "test-key",
-            "base_url": "https://api.minimax.io/v1",
-            "model": "MiniMax-M2.7",
-            "max_tokens": 16384,
-            "temperature": 0.7,
-            "top_p": 1.0,
-        }
-        provider = AIProviderFactory.create_provider("minimax", config)
+def test_roles_preserve_managed_identity_until_user_resolution(compatible_settings):
+    default = compatible_settings.get_model_config_for_role("default")
+    assert default["provider"] == "openai" and default["model"] == MODEL
+    managed = compatible_settings.get_model_config_for_role(
+        "default", provider_override="custom:minimax"
+    )
+    assert managed["provider"] == "custom:minimax" and managed["model"] is None
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("name", ["openai", "custom:minimax"])
+async def test_factory_uses_compatible_adapter_and_copies_config(
+    compatible_settings, name
+):
+    config = compatible_settings.get_provider_config("openai")
+    provider = AIProviderFactory.create_provider(name, config, use_cache=False)
+    try:
         assert isinstance(provider, OpenAIProvider)
+        assert provider.model == MODEL and provider.config["base_url"] == BASE_URL
+        assert "managed_provider" not in config
+        if name.startswith("custom:"):
+            assert provider.config["managed_provider"] is True
+    finally:
+        await provider.client.close()
 
 
-# ---------------------------------------------------------------------------
-# Integration tests – MiniMax API calls (requires MINIMAX_API_KEY)
-# ---------------------------------------------------------------------------
+@pytest.mark.asyncio
+@pytest.mark.parametrize("name", ["openai", "custom:minimax"])
+@pytest.mark.parametrize("stream", [False, True])
+async def test_requests_preserve_destination_parameters_and_streaming(
+    compatible_settings, name, stream
+):
+    config = compatible_settings.get_provider_config("openai")
+    provider = AIProviderFactory.create_provider(name, config, use_cache=False)
+    await provider.client.close()
+    calls = []
+
+    def respond(request):
+        body = json.loads(request.content)
+        calls.append(body)
+        assert str(request.url) == BASE_URL + "/chat/completions"
+        assert request.headers["Authorization"] == "Bearer test-key"
+        assert body["model"] == MODEL and body["temperature"] == 0.7
+        if stream:
+            chunk = {
+                "id": "test",
+                "model": MODEL,
+                "choices": [
+                    {"index": 0, "delta": {"content": "hello"}, "finish_reason": None}
+                ],
+            }
+            return httpx.Response(
+                200,
+                text="data: " + json.dumps(chunk) + "\n\ndata: [DONE]\n\n",
+                headers={"Content-Type": "text/event-stream"},
+            )
+        return httpx.Response(
+            200,
+            json={
+                "id": "test",
+                "model": MODEL,
+                "choices": [
+                    {
+                        "message": {"role": "assistant", "content": "hello"},
+                        "finish_reason": "stop",
+                    }
+                ],
+                "usage": {
+                    "prompt_tokens": 1,
+                    "completion_tokens": 1,
+                    "total_tokens": 2,
+                },
+            },
+        )
+
+    provider.client = openai.AsyncOpenAI(
+        api_key="test-key",
+        base_url=BASE_URL,
+        http_client=httpx.AsyncClient(transport=httpx.MockTransport(respond)),
+    )
+    try:
+        messages = [AIMessage(role=MessageRole.USER, content="Hi")]
+        if stream:
+            result = "".join(
+                [part async for part in provider.stream_chat_completion(messages)]
+            )
+            assert calls[0]["stream"] is True
+        else:
+            result = (await provider.chat_completion(messages)).content
+        assert result == "hello" and len(calls) == 1
+    finally:
+        await provider.client.close()
 
 
 @pytest.mark.skipif(
     not os.environ.get("MINIMAX_API_KEY"),
-    reason="MINIMAX_API_KEY not set – skipping live API tests",
+    reason="MINIMAX_API_KEY not set; optional live API checks",
 )
-class TestMiniMaxIntegration:
-    """Live integration tests against the MiniMax API."""
-
-    @pytest.mark.asyncio
-    async def test_chat_completion(self):
-        from landppt.ai.providers import AIProviderFactory
-
-        config = {
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "stream,temperature", [(False, 0.7), (True, 0.7), (False, 0.0)]
+)
+async def test_live_minimax_through_compatible_adapter(stream, temperature):
+    provider = AIProviderFactory.create_provider(
+        "openai",
+        {
             "api_key": os.environ["MINIMAX_API_KEY"],
-            "base_url": "https://api.minimax.io/v1",
-            "model": "MiniMax-M2.7",
+            "base_url": BASE_URL,
+            "model": MODEL,
             "max_tokens": 64,
-            "temperature": 0.7,
-            "top_p": 1.0,
-        }
-        provider = AIProviderFactory.create_provider("minimax", config)
-
-        from landppt.ai.base import AIMessage, MessageRole
-
-        messages = [AIMessage(role=MessageRole.USER, content="Say hello in one word.")]
-        response = await provider.chat_completion(messages)
-        assert response.content
-        assert len(response.content) > 0
-
-    @pytest.mark.asyncio
-    async def test_stream_chat_completion(self):
-        from landppt.ai.providers import AIProviderFactory
-
-        config = {
-            "api_key": os.environ["MINIMAX_API_KEY"],
-            "base_url": "https://api.minimax.io/v1",
-            "model": "MiniMax-M2.7",
-            "max_tokens": 64,
-            "temperature": 0.7,
-            "top_p": 1.0,
-        }
-        provider = AIProviderFactory.create_provider("minimax", config)
-
-        from landppt.ai.base import AIMessage, MessageRole
-
-        messages = [AIMessage(role=MessageRole.USER, content="Say hello in one word.")]
-        chunks = []
-        async for chunk in provider.stream_chat_completion(messages):
-            chunks.append(chunk)
-        full = "".join(chunks)
-        assert len(full) > 0
-
-    @pytest.mark.asyncio
-    async def test_temperature_zero(self):
-        """MiniMax should accept temperature=0."""
-        from landppt.ai.providers import AIProviderFactory
-
-        config = {
-            "api_key": os.environ["MINIMAX_API_KEY"],
-            "base_url": "https://api.minimax.io/v1",
-            "model": "MiniMax-M2.7",
-            "max_tokens": 32,
-            "temperature": 0.0,
-            "top_p": 1.0,
-        }
-        provider = AIProviderFactory.create_provider("minimax", config)
-
-        from landppt.ai.base import AIMessage, MessageRole
-
+            "temperature": temperature,
+        },
+        use_cache=False,
+    )
+    try:
         messages = [AIMessage(role=MessageRole.USER, content="Reply OK.")]
-        response = await provider.chat_completion(messages)
-        assert response.content
+        if stream:
+            assert "".join(
+                [part async for part in provider.stream_chat_completion(messages)]
+            )
+        else:
+            assert (await provider.chat_completion(messages)).content
+    finally:
+        await provider.client.close()

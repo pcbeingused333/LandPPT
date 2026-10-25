@@ -119,14 +119,12 @@ def test_init_default_admin_skips_when_users_exist(monkeypatch):
         db.close()
 
 
-def test_init_db_can_skip_admin_bootstrap(monkeypatch):
+def test_init_db_can_skip_admin_bootstrap(monkeypatch, load_isolated_module):
     import asyncio
-    import importlib
-    import sys
+    from landppt.core.config import app_config
 
-    monkeypatch.setenv("DATABASE_URL", "sqlite+aiosqlite:///:memory:")
-    sys.modules.pop("landppt.database.database", None)
-    database_module = importlib.import_module("landppt.database.database")
+    monkeypatch.setattr(app_config, "database_url", "sqlite:///:memory:")
+    database_module = load_isolated_module("landppt.database.database")
 
     calls = []
 

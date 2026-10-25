@@ -454,7 +454,7 @@ async def test_template_selection_service_updates_project_metadata_and_returns_c
 
 
 @pytest.mark.asyncio
-async def test_template_selection_service_uses_prebuilt_free_template_prompt_once():
+async def test_template_selection_keeps_generation_explicit_and_builds_one_prompt():
     project = SimpleNamespace(
         project_metadata={"template_mode": "free"},
         outline={"slides": [{"title": "封面", "content_points": ["目标", "进展"]}]},
@@ -477,14 +477,13 @@ async def test_template_selection_service_uses_prebuilt_free_template_prompt_onc
 
     selected = await service.get_selected_global_template("proj-2")
 
-    assert selected["template_name"].startswith("自由模板-")
-    assert global_template_service.generated_kwargs
-    kwargs = global_template_service.generated_kwargs[-1]
-    assert kwargs["prompt_is_ready"] is True
-    assert kwargs["generation_mode"] == "text_only"
-    assert kwargs["prompt"].count("**创意要求**") == 1
-    assert kwargs["prompt"].count("**技术要求**") == 1
-    assert kwargs["prompt"].count("直接输出完整 HTML 模板") == 1
+    assert selected is None
+    assert not global_template_service.generated_kwargs
+    assert not owner.project_manager.updated
+    prompt = service._build_free_template_prompt(project, project.outline, project.confirmed_requirements)
+    assert prompt.count("**创意愿景——单页母版**") == 1
+    assert prompt.count("**技术要求**") == 1
+    assert prompt.count("直接输出完整的单页母版 HTML") == 1
 
 
 def test_creative_design_service_clears_owner_caches_and_files(tmp_path):

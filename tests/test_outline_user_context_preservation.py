@@ -1,17 +1,18 @@
 import sys
 import types
+import importlib.util
 from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
 
-if "bs4" not in sys.modules:
+if "bs4" not in sys.modules and importlib.util.find_spec("bs4") is None:
     sys.modules["bs4"] = types.SimpleNamespace(BeautifulSoup=object, Comment=object)
 
-if "tavily" not in sys.modules:
+if "tavily" not in sys.modules and importlib.util.find_spec("tavily") is None:
     sys.modules["tavily"] = types.SimpleNamespace(TavilyClient=object)
 
-if "langchain_core.documents" not in sys.modules:
+if "langchain_core.documents" not in sys.modules and importlib.util.find_spec("langchain_core") is None:
     langchain_core_module = sys.modules.setdefault(
         "langchain_core",
         types.ModuleType("langchain_core"),

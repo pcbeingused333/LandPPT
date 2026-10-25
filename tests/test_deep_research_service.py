@@ -1,6 +1,7 @@
 import os
 import sys
 import types
+import importlib.util
 import json
 
 import pytest
@@ -9,7 +10,7 @@ import pytest
 os.environ["DEBUG"] = "false"
 
 
-if "tavily" not in sys.modules:
+if "tavily" not in sys.modules and importlib.util.find_spec("tavily") is None:
     fake_tavily = types.ModuleType("tavily")
 
     class _BootstrapTavilyClient:

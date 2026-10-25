@@ -1,18 +1,19 @@
 import sys
 import types
+import importlib.util
 from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
 
 # 这些模块是研究链路的可选依赖，本测试只验证大纲与运行时逻辑，缺失时用最小桩避免导入失败。
-if "bs4" not in sys.modules:
+if "bs4" not in sys.modules and importlib.util.find_spec("bs4") is None:
     sys.modules["bs4"] = types.SimpleNamespace(BeautifulSoup=object, Comment=object)
 
-if "tavily" not in sys.modules:
+if "tavily" not in sys.modules and importlib.util.find_spec("tavily") is None:
     sys.modules["tavily"] = types.SimpleNamespace(TavilyClient=object)
 
-if "langchain_core.documents" not in sys.modules:
+if "langchain_core.documents" not in sys.modules and importlib.util.find_spec("langchain_core") is None:
     langchain_core_module = sys.modules.setdefault("langchain_core", types.ModuleType("langchain_core"))
     documents_module = types.ModuleType("langchain_core.documents")
     documents_module.Document = object
@@ -25,6 +26,7 @@ from landppt.services.outline.project_outline_streaming_service import ProjectOu
 from landppt.services.runtime import runtime_research_service as runtime_research_module
 from landppt.services.runtime.runtime_provider_service import RuntimeProviderService
 from landppt.services.runtime.runtime_research_service import RuntimeResearchService
+from landppt.services.prompts.system_prompts import SystemPrompts
 
 
 class _FakeProvider:
@@ -163,7 +165,7 @@ async def test_runtime_provider_service_passes_system_prompt_to_chat_completion(
     assert len(provider.chat_calls) == 1
     messages, kwargs = provider.chat_calls[0]
     assert [message.role for message in messages] == [MessageRole.SYSTEM, MessageRole.USER]
-    assert messages[0].content == "只输出 JSON"
+    assert messages[0].content == SystemPrompts.with_cache_prefix("只输出 JSON")
     assert messages[1].content == "请生成大纲"
     assert kwargs["model"] == "fake-model"
 
@@ -195,7 +197,7 @@ async def test_runtime_provider_service_streaming_passes_system_prompt_to_chat_c
     assert len(provider.stream_chat_calls) == 1
     messages, kwargs = provider.stream_chat_calls[0]
     assert [message.role for message in messages] == [MessageRole.SYSTEM, MessageRole.USER]
-    assert messages[0].content == "只输出 JSON"
+    assert messages[0].content == SystemPrompts.with_cache_prefix("只输出 JSON")
     assert messages[1].content == "请生成大纲"
     assert kwargs["model"] == "fake-model"
 

@@ -512,6 +512,8 @@ def test_a_terminal_run_is_reported_even_on_the_first_poll():
 
     for page in ("todo_board.html", "todo_board_with_editor.html"):
         source = (SRC / "web" / "templates" / "pages" / "project" / page).read_text(encoding="utf-8")
+        if "components/project/workspace_planning_data.html" in source:
+            source += (SRC / "web/templates/components/project/workspace_planning_data.html").read_text(encoding="utf-8")
         assert "unattendedActive" in source or "unattended_active" in source, f"{page} must tell the monitor if a run was live"
 
 
@@ -1319,7 +1321,8 @@ def test_migration_018_is_registered_once():
 
     versions = [migration["version"] for migration in DatabaseMigration().migrations]
     assert versions.count("018") == 1
-    assert versions[-1] == "020"
+    assert versions.count("021") == 1
+    assert versions[-1] == "021"
     assert sorted(versions) == versions, "migrations must stay in ascending order"
 
 
@@ -1588,8 +1591,9 @@ class TestMonitorSurfaces:
     def test_monitor_containers_exist(self):
         component = (REPO / "frontend/src/pages/todo.tsx").read_text(encoding="utf-8")
         editor = (REPO / "frontend/src/pages/generator-chrome.tsx").read_text(encoding="utf-8")
-        assert component.count('id="unattendedMonitor"') == 1
-        assert 'id="unattendedMonitor"' in editor
+        for source in (component, editor):
+            assert source.count('id={active ? "unattendedMonitor" : undefined}') == 1
+            assert "active && <UnattendedPanel" in source
 
     def test_notification_bell_is_in_the_logged_in_nav_only(self):
         base = (SRC / "web" / "templates" / "base.html").read_text(encoding="utf-8")

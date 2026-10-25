@@ -1,4 +1,4 @@
-"""Tests for header/footer extraction and locked zones context."""
+"""Templates retain anchors in full context without repeating extracted fragments."""
 from landppt.services.prompts.design_prompts import DesignPrompts
 
 
@@ -36,47 +36,34 @@ NO_SEMANTIC_TEMPLATE = """<!DOCTYPE html>
 </html>"""
 
 
-def test_extract_header_footer_from_default_template():
-    """Should extract slide-header and slide-footer from standard template."""
-    result = DesignPrompts._extract_header_footer_html(DEFAULT_TEMPLATE)
-
-    assert "slide-header" in result["header_html"]
-    assert "slide-title" in result["header_html"]
-    assert "slide-footer" in result["footer_html"]
-    assert result["header_css"], "Header CSS should be extracted"
-    assert result["footer_css"], "Footer CSS should be extracted"
+def test_template_context_retains_header_footer_and_styles():
+    context = DesignPrompts._build_template_html_context(DEFAULT_TEMPLATE)
+    assert context == DEFAULT_TEMPLATE
+    for anchor in ("slide-header", "slide-title", "slide-footer", "current_page_number"):
+        assert anchor in context
 
 
-def test_extract_header_footer_from_template_without_semantic_classes():
-    """Should fallback to position-based heuristics when no semantic classes."""
-    result = DesignPrompts._extract_header_footer_html(NO_SEMANTIC_TEMPLATE)
-
-    # Header may not be found without semantic classes - that's OK
-    # Footer should be found via absolute-positioned element with page number placeholder
-    assert "current_page_number" in result["footer_html"] or result["footer_html"] == ""
+def test_template_context_retains_anchors_without_semantic_classes():
+    context = DesignPrompts._build_template_html_context(NO_SEMANTIC_TEMPLATE)
+    assert "current_page_number" in context
+    assert "top-bar" in context
+    assert "position: absolute" in context
 
 
-def test_extract_returns_empty_for_empty_template():
-    """Should return empty dict values for empty/None template."""
-    result = DesignPrompts._extract_header_footer_html("")
-    assert result["header_html"] == ""
-    assert result["footer_html"] == ""
-
-    result2 = DesignPrompts._extract_header_footer_html(None)
-    assert result2["header_html"] == ""
-    assert result2["footer_html"] == ""
+def test_template_context_handles_empty_template():
+    assert DesignPrompts._build_template_html_context("") == ""
+    assert DesignPrompts._build_template_html_context(None) == ""
 
 
 def test_locked_zones_context_for_content_page():
-    """Content pages (not first/last/catalog) should get locked zone context."""
+    """Content pages receive concise anchor guidance and the original template once."""
     context = DesignPrompts._build_locked_zones_context(
         DEFAULT_TEMPLATE, page_number=3, total_pages=10, slide_type="content")
 
-    assert "母板锁定区" in context
-    assert "Header 锁定结构" in context
-    assert "Footer 锁定结构" in context
-    assert "slide-header" in context
-    assert "slide-footer" in context
+    assert "稳定区域理解方向" in context
+    assert "标题区、页码区" in context
+    assert "主内容区重新组织信息" in context
+    assert "<style>" not in context and "<div" not in context
 
 
 def test_locked_zones_context_empty_for_first_page():
@@ -107,10 +94,10 @@ def test_locked_zones_context_empty_for_catalog_page():
 
 
 def test_locked_zones_fallback_for_unextractable_template():
-    """When header/footer can't be extracted, should return fallback hint."""
+    """Minimal templates still receive anchor guidance without extraction warnings."""
     minimal_template = "<html><body><div>hello</div></body></html>"
     context = DesignPrompts._build_locked_zones_context(
         minimal_template, page_number=3, total_pages=10, slide_type="content")
 
-    assert "母板锁定区提示" in context
-    assert "未能从模板中精确提取" in context
+    assert "稳定区域理解方向" in context
+    assert "模板 HTML 原文" in context

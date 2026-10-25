@@ -7,6 +7,8 @@ import re
 import logging
 from urllib.parse import urlparse
 from sqlalchemy import create_engine, text
+from sqlalchemy.engine import make_url
+from sqlalchemy.pool import StaticPool
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
@@ -124,13 +126,20 @@ def _create_sync_engine(sync_database_url: str, sync_connect_args: dict, pool_si
     pool_size = _env_int("DB_POOL_SIZE", pool_size, minimum=1)
     max_overflow = _env_int("DB_MAX_OVERFLOW", max_overflow, minimum=0)
     pool_recycle = _env_int("DB_POOL_RECYCLE", 1800, minimum=1)
+    url = make_url(sync_database_url)
+    in_memory = url.get_backend_name() == "sqlite" and (
+        url.database in (None, "", ":memory:") or url.query.get("mode") == "memory"
+    )
+    pool_options = (
+        {"poolclass": StaticPool} if in_memory
+        else {"pool_size": pool_size, "max_overflow": max_overflow}
+    )
     return create_engine(
         sync_database_url,
         connect_args=sync_connect_args,
         echo=False,  # Disable SQL logging to reduce noise
         pool_pre_ping=True,  # Verify connections before using
-        pool_size=pool_size,
-        max_overflow=max_overflow,
+        **pool_options,
         pool_recycle=pool_recycle,
     )
 
