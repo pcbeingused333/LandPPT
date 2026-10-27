@@ -154,6 +154,11 @@ def test_keyboard_selects_chapter_and_saved_page_type_updates_grouping(ui_page):
     expect(active).to_contain_text("背景与目标")
     page.keyboard.press("ArrowLeft")
     expect(region.get_by_text("行业资料", exact=True)).to_have_count(0)
+    # Tree removes child DOM before committing its transition-unlocked state.
+    # Cross the next render boundary before sending the inverse expansion key.
+    tree.evaluate(
+        "() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))"
+    )
     page.keyboard.press("ArrowRight")
     expect(region.get_by_text("行业资料", exact=True)).to_be_visible()
     page.keyboard.press("ArrowDown")

@@ -34,6 +34,9 @@ Its browser dependencies are pinned in `tests/requirements-browser.txt`.
 Four shards run the complete browser suite without retries or skipped failures;
 each uploads its JUnit report and available workspace screenshots. UI checks wait
 for committed selection/focus, stream reconnection and final transition colors.
+Tree keyboard checks also cross a render boundary after collapsed children leave
+the DOM, before sending the inverse expansion key; removal alone does not mean
+the component's transition guard has cleared.
 The template workspace also checks wider input fonts at 320px so intrinsic form
 widths cannot expand the preview column and push AI controls out of view.
 
