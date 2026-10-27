@@ -119,7 +119,7 @@ export const Shell = memo(function Shell({ data, children }: { data: ShellData; 
     </aside>}
     <div className="app-body"><header className="app-header">
       {!authPage && <Button ref={menuTrigger} className="mobile-menu" type="text" aria-label="菜单" aria-expanded={menuOpen} icon={<MenuOutlined aria-hidden />} onClick={() => setMenuOpen(true)} />}
-      <a className="app-brand mobile-brand" href="/home">LandPPT</a><span className="app-location">{({ dashboard: '首页', projects: '项目库', templates: '模板库', 'image-gallery': '素材库', 'slides-editor': '创作工作区', 'project-detail': '创作工作区', todo: '创作工作区', 'generator-workspace': '创作工作区' } as Record<string, string>)[data.page] || 'LandPPT'}</span>
+      <a className="app-brand mobile-brand" href="/home">LandPPT</a>
       {authPage ? <Space size={8} className="app-account"><AppearanceToggle /><Button href="/home">返回首页</Button></Space> : <Space size={8} className="app-account"><AppearanceToggle className="app-appearance" />
         <Tooltip title="系统配置" trigger={['hover', 'focus']}><Button className="app-settings" type="text" href="/ai-config" aria-label="系统配置" icon={<SettingOutlined aria-hidden />} /></Tooltip>
         {data.user ? <><Button type="text" id="navNotificationBell" aria-label="通知" icon={<BellOutlined aria-hidden />}><span id="navNotificationBadge" hidden>0</span></Button>

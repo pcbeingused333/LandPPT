@@ -44,7 +44,7 @@ def test_first_preview_keeps_its_width_as_more_pages_arrive(ui_page, width, heig
     assert abs(card.bounding_box()["width"] - first_width) < 1.5
     send(page, type="complete", total=2, succeeded=2, message="全部完成")
     expect(page.locator(".generator-skeleton-card")).to_have_count(0)
-    expect(page.get_by_role("heading", name="演示文稿已生成")).to_be_visible()
+    expect(page.get_by_role("heading", name="页面预览")).to_be_visible()
     assert abs(card.bounding_box()["width"] - first_width) < 1.5
     assert page.evaluate("document.documentElement.scrollWidth") <= width
     for frame in page.locator(".slide-preview iframe").all():
@@ -103,7 +103,7 @@ def test_pause_reconnect_resume_and_restart_restore_only_pending_placeholders(ui
     # A closed source cannot reopen. The controller owns a new source and
     # rejects callbacks from the stale one while reconnecting.
     page.wait_for_function("testStreams.length === 3 && testStreams.at(-1).readyState === 1")
-    expect(page.get_by_role("heading", name="演示文稿正在成形")).to_be_visible()
+    expect(page.get_by_role("heading", name="页面预览")).to_be_visible()
     send(page, type="error", message="服务暂时不可用")
     expect(page.locator(".generator-skeleton-card")).to_have_count(0)
     page.get_by_role("button", name="重新开始", exact=True).click()
@@ -147,7 +147,6 @@ def test_idle_outline_is_static_and_reduced_motion_disables_running_shimmer(ui_p
     start(page)
     expect(page.locator(".generator-skeleton-card .ant-skeleton-active").first).to_be_visible()
     assert page.locator(".generator-skeleton-canvas h3").first.evaluate("e => getComputedStyle(e).animationName") == "none"
-    assert page.locator(".generator-preview-eyebrow .anticon").evaluate("e => getComputedStyle(e).animationName") == "none"
 
 
 def test_large_total_bounds_placeholder_dom_and_complete_single_page_width(ui_page):

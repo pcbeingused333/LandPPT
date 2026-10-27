@@ -70,7 +70,7 @@ export default function ImageGeneration() {
     finally { locked.current = false; setPending(false); }
   }
   return <div className="image-generation-page settings-stack">
-    <div className="page-heading"><div><h1>AI 图片生成</h1><p>测试图片提供者，预览并复用生成结果。</p></div><Button href="/image-gallery">返回图库</Button></div>
+    <div className="page-heading"><h1>AI 图片生成</h1><Button href="/image-gallery">返回图库</Button></div>
     <Card size="small" title="提供者状态" extra={<Button aria-label="刷新提供者状态" icon={<ReloadOutlined />} loading={statusLoading} onClick={() => setRefresh(value => value + 1)} />}>
       {statusError && <Alert type="error" title="状态加载失败" description={statusError} action={<Button onClick={() => setRefresh(value => value + 1)}>重试</Button>} />}
       {statusLoading && <p role="status"><Spin size="small" /> 正在加载状态…</p>}

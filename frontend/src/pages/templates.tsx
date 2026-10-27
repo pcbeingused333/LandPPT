@@ -61,14 +61,14 @@ export default function Templates({ data }: { data: ApiData }) {
     } catch (reason) { setError((reason as Error).message); locked.current = false; setBusy(false); }
   }
   return <div className="templates-page">
-    <div className="page-heading"><div><h1>{selecting ? '选择 PPT 模板' : '模板管理'}</h1><p>{selecting ? data.projectTopic || '为演示文稿选择生成方式与模板' : '管理逐页设计的母版与快速生成的模板包'}</p></div><Button href={selecting ? `/projects/${encodeURIComponent(data.projectId || '')}` : 'https://landppt-template.52yyds.top/'} target={selecting ? undefined : '_blank'} rel={selecting ? undefined : 'noopener noreferrer'}>{selecting ? '返回项目' : '模板广场'}</Button></div>
+    <div className="page-heading"><div><h1>{selecting ? '选择 PPT 模板' : '模板管理'}</h1>{selecting && data.projectTopic && <p>{data.projectTopic}</p>}</div><Button href={selecting ? `/projects/${encodeURIComponent(data.projectId || '')}` : 'https://landppt-template.52yyds.top/'} target={selecting ? undefined : '_blank'} rel={selecting ? undefined : 'noopener noreferrer'}>{selecting ? '返回项目' : '模板广场'}</Button></div>
     {data.packageNotice && <Alert type="warning" title={data.packageNotice} className="page-error" />}
     {error && <Alert type="error" title={error} className="page-error" />}
     <Tabs activeKey={tab} onChange={changeTab} size="small" items={[
       { key: 'regular', label: selecting ? '自由设计' : '普通模板', disabled: busy, children: <RegularTemplates selecting={selecting} isAdmin={!!data.user?.is_admin} busy={busy} selected={selected} onSelect={setSelected} onStart={start} /> },
       { key: 'packages', label: selecting ? '快速模式 · 模板包' : '模板包', disabled: busy, children: <Suspense fallback={<p role="status"><Spin size="small" /> 正在加载模板包…</p>}><TemplatePackages selecting={selecting} preferred={Number(data.packagePreference?.version_id || 0)} busy={busy} onSelect={(pkg, options) => start(undefined, pkg, options)} /></Suspense> },
     ]} />
-    {selecting && tab === 'regular' && <div className="template-selection-bar"><div aria-live="polite"><strong>{selected ? selected.template_name : '尚未选择模板'}</strong><span className="subtle">{selected ? '确认后开始生成' : '选择母版，或使用当前默认模板'}</span></div><Space wrap><Button disabled={busy} onClick={() => start()}>使用默认模板</Button><Button type="primary" aria-label="开始生成 PPT" loading={busy} disabled={!selected} onClick={() => start(selected)}>开始生成</Button></Space></div>}
+    {selecting && tab === 'regular' && <div className="template-selection-bar"><strong aria-live="polite">{selected ? selected.template_name : '尚未选择模板'}</strong><Space wrap><Button disabled={busy} onClick={() => start()}>使用默认模板</Button><Button type="primary" aria-label="开始生成 PPT" loading={busy} disabled={!selected} onClick={() => start(selected)}>开始生成</Button></Space></div>}
   </div>;
 }
 

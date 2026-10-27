@@ -298,7 +298,7 @@ export default function Settings({ data }: { data: ApiData }) {
   // Keep pane elements stable when only the selected tab or feedback changes.
   const tabItems = useMemo(() => panels.map(panel => ({ key: panel.key, label: panel.label, icon: tabIcons[panel.key], children: renderPanel(panel.key) })), [panels, drafts, fieldErrors, models, pending, loading, defaultProvider, imageStatus, initial, data, change, fetchModels, run, message, managed.providers, managed.error, managed.loading]);
   return <div className="settings-page configuration-page">
-    <div className="page-heading config-heading"><div><span className="config-heading-icon"><SettingOutlined aria-hidden /></span><div><h1>系统配置管理</h1><p>管理 AI、生成参数与应用服务</p></div></div></div>
+    <div className="page-heading config-heading"><div><span className="config-heading-icon"><SettingOutlined aria-hidden /></span><h1>系统配置管理</h1></div></div>
     {error && <Alert className="page-error" role="alert" type="error" showIcon title={error} closable onClose={() => setError('')} />}
     <Tabs aria-label="系统配置分类" animated={false} activeKey={active} onChange={setActive} items={tabItems} />
     <Modal title={testResult?.title} modalRender={modalFocus} open={!!testResult} onCancel={() => setTestResult(null)} afterClose={() => testTrigger.current?.focus()} footer={<Button onClick={() => setTestResult(null)}>关闭测试结果</Button>}>

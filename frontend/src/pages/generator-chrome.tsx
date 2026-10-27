@@ -113,7 +113,7 @@ export default function GeneratorChrome({ data, active = true }: { data: ApiData
     <section className="main-container generator-workspace generator-ant-workspace" aria-label="幻灯片生成工作区">
     <header className="generator-ant-chrome">
     <ProjectWorkspaceHeader back={{ href: base, label: '返回项目详情' }} title={data.title}
-      meta={<><Tag>{packageMode ? '快速模式 · 模板包' : '自由设计'}</Tag><span className="subtle">{packageMode ? '编写内容，自动匹配模板版式' : '逐页设计内容与风格'}</span></>}
+      meta={<Tag>{packageMode ? '快速模式 · 模板包' : '自由设计'}</Tag>}
       actions={<Space wrap size={8}><Space wrap className="generator-ant-actions" role="group" aria-label="幻灯片生成与查看">{visibleControls.map(control => <Button key={control.id} id={`ui-${control.id}`} aria-label={control.label} type={control.id === 'startBtn' || control.id === 'editorBtn' ? 'primary' : 'default'} danger={control.id === 'stopBtn'} disabled={control.disabled} loading={['startBtn', 'resumeBtn'].includes(control.id) && control.disabled} icon={control.icon} onClick={() => action(control.id)}>{control.label}</Button>)}</Space><Dropdown trigger={['click']} onOpenChange={open => { if (!open) queueMicrotask(() => settingsButton.current?.focus()); }} menu={{ items: [
         { key: 'template', label: <a href={`${base}/template-selection?mode=${packageMode ? 'package' : 'freeform'}`}>{packageMode ? '快速模式设置' : '选择模板'}</a> },
         { key: 'mode', label: <a href={`${base}/template-selection?mode=${packageMode ? 'freeform' : 'package'}`}>{packageMode ? '切换到自由设计' : '切换到快速模式'}</a> },

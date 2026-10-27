@@ -35,7 +35,7 @@ def test_cached_restore_reads_saved_results_without_new_stream_or_writes(
     assert len(held) == 1
     held[0].fulfill(json=dict(status="completed", slides_data=[slide(1), slide(2)]))
     expect(
-        page.get_by_role("heading", name="演示文稿已生成", exact=True)
+        page.get_by_role("heading", name="页面预览", exact=True)
     ).to_be_visible()
     assert page.evaluate("testStreams.length") == 1
     assert (

@@ -25,7 +25,6 @@
 .sidebar-bottom .sidebar-credits > span:first-child { color: var(--lp-accent); }
 .sidebar-bottom > a[aria-current=page] { background: var(--lp-elevated); color: var(--lp-text); }
 .app-header { min-height: 52px; padding: 8px 20px; gap: 12px; background: var(--lp-bg); border: 0; }
-.app-location { color: var(--lp-muted); font-size: 12px; }
 .app-header .app-account { margin-left: auto; }
 /* The sidebar footer already links 系统配置 on desktop; the header icon only serves the collapsed mobile layout. */
 @media (min-width: 1024px) { .app-header .app-settings { display: none; } }
@@ -150,9 +149,7 @@ body.landppt-editor { padding: 0; background: var(--lp-bg); }
 .generator-ant-status .ant-progress { line-height: 1; }
 .generator-ant-status .ant-progress-line { margin-block: 2px 0; }
 .generator-preview-summary { gap: 10px; padding: 8px 12px; }
-.generator-preview-summary .generator-preview-emblem { width: 30px; height: 30px; font-size: 14px; border-radius: 9px; }
 .generator-preview-copy h2 { margin: 0; font-size: 14px; }
-.generator-preview-copy p { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .generator-preview-count { min-width: 64px; }
 .generator-preview-count strong { font-size: 18px; }
 .generator-ant-workspace #slidesContainer { padding: 12px; gap: 10px; }
@@ -167,9 +164,7 @@ body.landppt-editor { padding: 0; background: var(--lp-bg); }
 .workspace-route-body .project-detail-hero h1 { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 .workspace-route-body .project-detail-hero p { flex-wrap: nowrap; gap: 8px; min-width: 0; margin: 0; font-size: 12px; color: var(--lp-muted); }
 .workspace-route-body .project-detail-hero p > span { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.workspace-route-body .project-detail-hero code { color: var(--lp-muted); background: none; padding: 0; }
 .workspace-route-body .detail-project-actions { gap: 6px !important; }
-.workspace-route-body .detail-navigation { display: none; }
 .workspace-route-body .detail-overview { gap: 10px; }
 .workspace-route-body .detail-overview .ant-card-head { min-height: 36px; padding-inline: 12px; font-size: 13px; }
 .workspace-route-body .detail-overview .ant-card-body { padding: 8px 12px 10px; }
@@ -208,7 +203,7 @@ body.landppt-editor { padding: 0; background: var(--lp-bg); }
   .workspace-route-body .detail-project-actions { width: 100%; }
 }
 .workspace-route-body[hidden] { display: none; }
-.workspace-route-body .project-stages, .workspace-route-body .detail-breadcrumb { display: none; }
+.workspace-route-body .project-stages { display: none; }
 .workspace-route-body .todo-ant-form-grid { grid-template-columns: minmax(0, 1fr); }
 .workspace-route-body .project-workspace-top { align-items: flex-start; }
 .workspace-route-body .project-workspace-title { min-width: 120px; }
@@ -232,7 +227,6 @@ body.landppt-generator:has(.app-shell) { padding: 0; height: 100dvh; }
   .app-sidebar { display: none; }
   .app-body { width: 100%; margin-left: 0; }
   .app-header .mobile-menu, .app-header .mobile-brand { display: inline-flex; }
-  .app-location { display: none; }
   .app-header { padding-inline: 12px; }
   .app-main { padding: 8px 12px 24px; }
   .landppt-editor .editor-ant-header { flex-wrap: wrap; gap: 8px; padding: 10px; }

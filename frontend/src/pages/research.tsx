@@ -54,7 +54,7 @@ export default function Research() {
   const removeButton = (row: ApiData) => <Button danger type="text" icon={<DeleteOutlined />} disabled={actions.pending || reports.loading} aria-label={`删除报告 ${row.filename}`} onClick={() => remove(row)}>删除</Button>;
   const report = result?.report;
   return <div className="research-page">
-    <div className="page-heading"><div><h1>深度研究</h1><p>检查服务配置，运行研究并管理已保存的报告。</p></div><Button href="/scenarios">创建 PPT</Button></div>
+    <div className="page-heading"><h1>深度研究</h1><Button href="/scenarios">创建 PPT</Button></div>
     <div className="research-top-grid">
       <Card size="small" title="服务状态" extra={<Button icon={<ReloadOutlined aria-hidden />} loading={status.loading} onClick={status.refresh}>刷新状态</Button>}>
         {status.error && <Alert type="error" title={status.error} action={<Button onClick={status.refresh}>重试</Button>} className="page-error" />}

@@ -121,7 +121,7 @@ export default function Todo({ data, active = true }: { data: ApiData; active?: 
   const select = (name: string, label: string, choices: { value: string; label: string }[], required = false) => <Form.Item name={name} label={label} rules={required ? [{ required: true, message: `请选择${label}` }] : []}><Select aria-label={label} options={choices} virtual={false} /></Form.Item>;
   return <div className="todo-ant-page">
     <ProjectWorkspaceHeader back={{ href: base, label: '返回项目详情' }} title={data.title}
-      meta={<><Tag>{data.generationMode === 'package' ? '快速模式 · 模板包' : '自由设计'}</Tag>{!readOnly && !data.hasOutput && <span className="subtle project-workspace-hint">{data.hasOutline ? '确认大纲后进入视觉设计。' : '先确认需求，再生成并修改大纲。'}</span>}<a href="/ai-config#jev-config">决策模型配置</a></>}
+      meta={<><Tag>{data.generationMode === 'package' ? '快速模式 · 模板包' : '自由设计'}</Tag><a href="/ai-config#jev-config">决策模型配置</a></>}
       actions={(data.hasOutline || data.hasOutput) && <Space wrap>{data.hasOutline && <Button href={`${base}/template-selection?mode=package`}>快速模式设置</Button>}{data.hasOutput && <Button href={`${base}/preview`} target="_blank" rel="noopener" icon={<EyeOutlined aria-hidden />}>预览 PPT</Button>}</Space>}
       stages={<ProjectStages projectId={data.projectId} state={data.workspace} current="planning" />} />
     {(readOnly || data.hasOutput) && <Alert showIcon type="info" className="page-error" title={readOnly ? '生成任务进行中，可查看大纲，完成后再编辑。' : '大纲修改不会自动更新已生成页面，请在编辑器中调整页面。'} />}

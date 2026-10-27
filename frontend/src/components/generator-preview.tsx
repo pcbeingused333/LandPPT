@@ -1,5 +1,4 @@
 import { Card, Skeleton, Tag, Typography } from 'antd';
-import { CheckOutlined, FileImageOutlined, PauseOutlined, SyncOutlined } from '@ant-design/icons';
 import type { ApiData } from '../api';
 import type { GeneratorSlide } from '../controllers/generator-controller';
 import { GeneratorDocuments } from './generator-documents';
@@ -34,21 +33,19 @@ export function GeneratorPreview({ data, state, unattendedStatus }: { data: ApiD
       for (let index = 1; index <= 3; index++) pending.push(last + index);
     }
   }
-  const heading = phase === 'complete' ? '演示文稿已生成' : phase === 'paused' ? '生成已暂停'
+  const heading = phase === 'paused' ? '生成已暂停'
     : phase === 'reconnecting' ? '正在恢复连接' : phase === 'stopped' ? '生成暂未完成'
-    : phase === 'idle' ? titles.length ? '大纲已就绪，准备生成' : '准备生成演示文稿' : ready ? '演示文稿正在成形' : '正在设计你的演示文稿';
-  const hint = phase === 'complete' ? '打开编辑器继续调整，或开始幻灯片放映。'
-    : phase === 'paused' ? '已生成的页面会保留，点击上方“继续”恢复生成。'
+    : phase === 'idle' ? titles.length ? '大纲已就绪，准备生成' : '准备生成演示文稿' : '页面预览';
+  const hint = phase === 'paused' ? '已生成的页面会保留，点击上方“继续”恢复生成。'
     : phase === 'reconnecting' ? '已生成的页面会保留，连接恢复后将继续更新。'
     : phase === 'stopped' ? '已生成的页面会保留，你可以重试未完成的页面。'
     : phase === 'idle' ? '点击上方“开始生成”，页面将按大纲依次呈现。'
-    : data.unattendedActive ? '生成的页面会显示在这里，可在上方查看进度与阶段详情。' : '生成的页面会实时显示，可先预览已完成的页面。';
+    : '';
 
   return <>
     <div id="generatorPreviewUI"><section className={`generator-preview-summary is-${phase}`} aria-label="幻灯片预览概览">
-      <div className="generator-preview-emblem" aria-hidden>{phase === 'complete' ? <CheckOutlined /> : phase === 'paused' ? <PauseOutlined /> : <FileImageOutlined />}</div>
-      <div className="generator-preview-copy"><span className="generator-preview-eyebrow">实时预览 {animate && <SyncOutlined spin aria-hidden />}</span><h2>{heading}</h2><p>{hint}</p></div>
-      <div className="generator-preview-count" aria-label={total ? `已生成 ${completed} / ${total} 页` : `已生成 ${completed} 页`}><strong>{completed}<span>{total ? ` / ${total}` : ' 页'}</span></strong><span>{phase === 'complete' ? '全部就绪' : total ? '页已生成' : '逐页更新'}</span></div>
+      <div className="generator-preview-copy"><h2>{heading}</h2>{hint && <p>{hint}</p>}</div>
+      <div className="generator-preview-count" aria-label={total ? `已生成 ${completed} / ${total} 页` : `已生成 ${completed} 页`}><strong>{completed}<span>{total ? ` / ${total}` : ' 页'}</span></strong></div>
     </section></div>
     <div id="slidesContainer" className="slides-container">
     <GeneratorDocuments slides={state.slides} />

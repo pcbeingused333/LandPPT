@@ -99,7 +99,7 @@ export default function Profile({ data }: { data: ApiData }) {
     </Form> },
     { key: 'apikeys', label: 'API Key', children: <ApiKeys /> },
   ];
-  return <div className="account-page profile-shell"><div className="page-heading"><div><h1>个人资料</h1><p>管理账户信息、安全和访问凭证</p></div>{user.admin && <Button href="/admin">管理后台</Button>}</div>
+  return <div className="account-page profile-shell"><div className="page-heading"><h1>个人资料</h1>{user.admin && <Button href="/admin">管理后台</Button>}</div>
     <Card size="small"><Tabs className="profile-tabs" activeKey={active} onChange={key => { setActive(key); history.replaceState(null, '', `#${key}`); }} items={items} /></Card>
   </div>;
 }

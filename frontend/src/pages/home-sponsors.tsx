@@ -1,12 +1,12 @@
 import { Avatar } from 'antd';
-import { ArrowRightOutlined, ArrowUpOutlined, HeartOutlined } from '@ant-design/icons';
+import { ArrowRightOutlined, ArrowUpOutlined } from '@ant-design/icons';
 import type { ApiData } from '../api';
 import { safeWebURL } from '../forms';
 
 export default function HomeSponsors({ sponsors }: { sponsors: ApiData[] }) {
   if (!sponsors.length) return null;
   return <section className="home-sponsors home-wrap" aria-labelledby="homeSponsorsTitle">
-    <div className="home-sponsors-intro"><span className="home-section-index"><HeartOutlined aria-hidden /> WITH THANKS</span><h2 id="homeSponsorsTitle">感谢每一份支持</h2><p>和支持 LandPPT 的朋友们，<br />一起让好想法走得更远。</p><a className="home-text-link" href="/sponsors">查看全部赞助 <ArrowRightOutlined aria-hidden /></a></div>
+    <div className="home-sponsors-intro"><h2 id="homeSponsorsTitle">感谢每一份支持</h2><p>和支持 LandPPT 的朋友们，<br />一起让好想法走得更远。</p><a className="home-text-link" href="/sponsors">查看全部赞助 <ArrowRightOutlined aria-hidden /></a></div>
     <ul className="home-sponsor-list" aria-label="首页赞助名单">{sponsors.slice(0, 6).map((sponsor, index) => {
       const nickname = String(sponsor.nickname || '支持者');
       const link = safeWebURL(sponsor.link_url);

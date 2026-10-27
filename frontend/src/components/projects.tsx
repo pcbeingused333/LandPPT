@@ -115,6 +115,13 @@ export function useProjectActions(onRename: (id: string, title: string) => void,
   return { actions, organize, renameDialog };
 }
 
+function ProjectContext({ project }: { project: Project }) {
+  const topic = project.topic?.trim();
+  const showTopic = topic && project.title.trim() !== topic && project.title.trim() !== `${topic} - ${project.scenario}`;
+  const showScenario = project.scenario && !['general', '通用', '通用场景'].includes(project.scenario);
+  return <>{showTopic && <span className="project-topic subtle" title={topic}>{topic}</span>}{showScenario && <span className="subtle">场景：{project.scenario}</span>}</>;
+}
+
 export function ProjectCollection({ projects, actions, organize, empty }: { projects: Project[]; actions: (project: Project) => ReactNode; organize: (project: Project) => ReactNode; empty?: ReactNode }) {
   const [view, setView] = useState<'cards' | 'list'>('cards');
   const placeholder = empty || <Empty description="暂无项目"><Button href="/scenarios">创建项目</Button></Empty>;
@@ -122,12 +129,12 @@ export function ProjectCollection({ projects, actions, organize, empty }: { proj
     <div className="project-view-switch" role="group" aria-label="项目显示方式"><Button aria-pressed={view === 'cards'} type={view === 'cards' ? 'primary' : 'default'} onClick={() => setView('cards')}>封面</Button><Button aria-pressed={view === 'list'} type={view === 'list' ? 'primary' : 'default'} onClick={() => setView('list')}>列表</Button></div>
     <div className={`project-collection project-collection--${view}`}>
     <div className="desktop-projects"><Table<Project> size="small" rowKey="project_id" dataSource={projects} pagination={false} locale={{ emptyText: placeholder }} columns={[
-      { title: '项目', render: (_, project) => <div className="project-info"><ProjectLibraryTitle project={project} organize={organize} />{project.topic && <span className="project-topic subtle" title={project.topic}>{project.topic}</span>}<span className="subtle">场景：{project.scenario}</span></div> },
+      { title: '项目', render: (_, project) => <div className="project-info"><ProjectLibraryTitle project={project} organize={organize} /><ProjectContext project={project} /></div> },
       { title: '状态', width: 140, render: (_, project) => <ProjectStatus project={project} /> },
       { title: '更新', dataIndex: 'updated', width: 130 },
       { title: '操作', width: 210, render: (_, project) => actions(project) },
     ]} /></div>
-    <div className="mobile-projects">{projects.length ? projects.map(project => <Card className="project-library-card" size="small" key={project.project_id} cover={<a className="project-cover-link" href={projectPath(project)} aria-label={`打开项目 ${project.title}`}><ProjectCover project={project} /></a>}><ProjectLibraryTitle project={project} organize={organize} />{project.topic && <p className="project-topic subtle">{project.topic}</p>}<div className="mobile-project-meta"><ProjectStatus project={project} /><span className="subtle">{project.updated}</span></div><span className="subtle">场景：{project.scenario}</span>{actions(project)}</Card>) : placeholder}</div>
+    <div className="mobile-projects">{projects.length ? projects.map(project => <Card className="project-library-card" size="small" key={project.project_id} cover={<a className="project-cover-link" href={projectPath(project)} aria-label={`打开项目 ${project.title}`}><ProjectCover project={project} /></a>}><ProjectLibraryTitle project={project} organize={organize} /><ProjectContext project={project} /><div className="mobile-project-meta"><ProjectStatus project={project} /><span className="subtle">{project.updated}</span></div>{actions(project)}</Card>) : placeholder}</div>
     </div>
   </>;
 }

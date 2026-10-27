@@ -37,6 +37,19 @@ for committed selection/focus, stream reconnection and final transition colors.
 The template workspace also checks wider input fonts at 320px so intrinsic form
 widths cannot expand the preview column and push AI controls out of view.
 
+## Information hierarchy
+
+Use titles, spacing, native Ant groups and action placement to explain the page.
+Avoid overlines, generic page descriptions and repeated navigation labels. Show
+project identity and settings once in their relevant group; keep the creation
+settings summary and real task status visible. Compact outline cards emphasize
+page numbers, titles and content; their detailed view retains type and point counts.
+Form labels remain accessible even when a self-explanatory filter hides its label
+visually. Empty states, errors, recovery steps and consequential-action warnings
+keep the guidance needed to continue safely. The generator shows explanatory
+preview text while waiting or interrupted, with a single-row summary during
+normal generation and completion. Presentation HTML and project content stay intact.
+
 ## Page boundaries
 
 `antd_base.html` loads the new shell without legacy page CSS. Its JSON payload

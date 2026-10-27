@@ -104,7 +104,7 @@ def test_home_creation_actions_open_dashboard_with_one_shell(
     state = navigation_app(page)
     page.goto("http://ui.test/home", wait_until="networkidle")
     page.evaluate("window.homeHeader=document.querySelector('.app-header')")
-    page.get_by_role("link", name="进入首页", exact=True).click()
+    page.get_by_role("link", name="开始创建 PPT", exact=True).click()
     expect(page.get_by_role("heading", name="首页", exact=True)).to_be_visible()
     assert page.locator(".home-showcase").count() == 0
     assert page.locator(".home-main").count() == 0

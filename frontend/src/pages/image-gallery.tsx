@@ -62,7 +62,7 @@ function ImageGallery() {
       event.preventDefault(); if (!loading) setSelected(values => Array.from(new Set([...values, ...images.map(image => image.image_id)])));
     } else if (event.key === 'Delete' && selected.length) { event.preventDefault(); deleteImages(selected); }
   }}>
-    <div className="page-heading"><div><h1>本地图床</h1><p>管理可重复使用的图片素材。</p></div><Space wrap>
+    <div className="page-heading"><h1>本地图床</h1><Space wrap>
       <Button href="/image-generation-test" icon={<PictureOutlined aria-hidden />}>AI 生成</Button><Button aria-pressed={batch} disabled={busy} onClick={() => { setBatch(!batch); setSelected([]); }}>批量选择</Button>
       <Button id="upload-trigger" type="primary" icon={<UploadOutlined aria-hidden />} onClick={() => setUpload(true)}>上传图片</Button>
     </Space></div>

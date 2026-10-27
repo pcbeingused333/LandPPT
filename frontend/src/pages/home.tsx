@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Button } from 'antd';
-import { ArrowRightOutlined, ArrowUpOutlined, CheckOutlined, FileTextOutlined, PlayCircleOutlined, AppstoreOutlined, EditOutlined, SoundOutlined, DownloadOutlined } from '@ant-design/icons';
+import { ArrowRightOutlined, ArrowUpOutlined, FileTextOutlined, PlayCircleOutlined, AppstoreOutlined, EditOutlined, SoundOutlined, DownloadOutlined } from '@ant-design/icons';
 import type { ApiData } from '../api';
 import HomeSponsors from './home-sponsors';
 import './home.css';
@@ -12,16 +12,16 @@ const examples = [
 ];
 
 const workflow = [
-  { number: '01', title: '带来你的想法', description: '输入主题与需求，或添加文档、网页资料。让散落的信息成为创作的起点。', icon: <FileTextOutlined aria-hidden />, note: '主题 · 文件 · 网页' },
-  { number: '02', title: '找到表达的方式', description: '确认内容大纲，选择自由设计或模板包。把逻辑与视觉放在同一条创作路径上。', icon: <AppstoreOutlined aria-hidden />, note: '大纲 · 设计 · 配图' },
-  { number: '03', title: '打磨，然后登场', description: '逐页编辑，补充讲稿与配音，预览并导出。把最后一处细节也掌握在自己手里。', icon: <PlayCircleOutlined aria-hidden />, note: '编辑 · 讲解 · 导出' },
+  { number: '01', title: '带来你的想法', description: '输入主题与需求，或添加文档、网页资料。让散落的信息成为创作的起点。', icon: <FileTextOutlined aria-hidden /> },
+  { number: '02', title: '找到表达的方式', description: '确认内容大纲，选择自由设计或模板包。把逻辑与视觉放在同一条创作路径上。', icon: <AppstoreOutlined aria-hidden /> },
+  { number: '03', title: '打磨，然后登场', description: '逐页编辑，补充讲稿与配音，预览并导出。把最后一处细节也掌握在自己手里。', icon: <PlayCircleOutlined aria-hidden /> },
 ];
 
 const capabilities = [
-  { icon: <EditOutlined aria-hidden />, title: '好内容，可以继续打磨', description: '编辑大纲、讲稿与幻灯片，用 AI 调整内容与布局，让表达更贴近你的意图。', detail: '逐页编辑 / AI 多轮调整' },
-  { icon: <AppstoreOutlined aria-hidden />, title: '好设计，有自己的风格', description: '自由设计探索不同表达；模板包保持整套演示的一致，也能从 PPTX 创建自己的模板包。', detail: '自由设计 / 可复用模板' },
-  { icon: <SoundOutlined aria-hidden />, title: '好演示，也能被听见', description: '生成逐页讲稿与语音讲解，进一步制作讲解视频，让演示离开会议室也能被理解。', detail: '讲稿 / 配音 / 讲解视频' },
-  { icon: <DownloadOutlined aria-hidden />, title: '带着作品，去任何地方', description: '按分享场景选择 PPTX、PDF、HTML 或图片；讲稿也可以导出为 DOCX 与 Markdown。', detail: '多格式导出 / 链接分享' },
+  { icon: <EditOutlined aria-hidden />, title: '好内容，可以继续打磨', description: '编辑大纲、讲稿与幻灯片，用 AI 调整内容与布局，让表达更贴近你的意图。' },
+  { icon: <AppstoreOutlined aria-hidden />, title: '好设计，有自己的风格', description: '自由设计探索不同表达；模板包保持整套演示的一致，也能从 PPTX 创建自己的模板包。' },
+  { icon: <SoundOutlined aria-hidden />, title: '好演示，也能被听见', description: '生成逐页讲稿与语音讲解，进一步制作讲解视频，让演示离开会议室也能被理解。' },
+  { icon: <DownloadOutlined aria-hidden />, title: '带着作品，去任何地方', description: '按分享场景选择 PPTX、PDF、HTML 或图片；讲稿也可以导出为 DOCX 与 Markdown。' },
 ];
 
 function SlideArt({ theme }: { theme: string }) {
@@ -45,14 +45,11 @@ export default function Home({ data }: { data: ApiData }) {
   return <div className="home-showcase">
     <section className="home-hero home-wrap" aria-labelledby="homeTitle">
       <div className="home-hero-copy">
-        <div className="home-kicker"><span className="home-kicker-dot" aria-hidden /> YOUR IDEAS, WELL PRESENTED</div>
         <h1 id="homeTitle">让想法，<br /><span>成为好演示。</span></h1>
         <p className="home-lead">从第一句灵感，到最后一页呈现。<br />用 AI 整理内容、设计页面，<br className="home-mobile-break" />也为你留下每一步的创作空间。</p>
-        <div className="home-hero-actions"><Button type="primary" href="/dashboard" icon={<ArrowRightOutlined aria-hidden />} iconPlacement="end">开始创建 PPT</Button><a className="home-workspace-link" href="/dashboard">进入首页 <ArrowRightOutlined aria-hidden /></a></div>
-        <p className="home-hero-note"><CheckOutlined aria-hidden /> 内容可编辑 <span aria-hidden>·</span> 风格可选择 <span aria-hidden>·</span> 多格式导出</p>
+        <div className="home-hero-actions"><Button type="primary" href="/dashboard" icon={<ArrowRightOutlined aria-hidden />} iconPlacement="end">开始创建 PPT</Button></div>
       </div>
       <figure className="home-showreel" aria-label="演示设计示例">
-        <div className="home-showreel-top"><span><i aria-hidden /> DESIGN IN FOCUS</span><span>设计示例</span></div>
         <div className={`home-deck home-deck-${example.theme}`}>
           <div className="home-deck-inner" key={example.theme}>
             <div className="home-slide-top"><span>LANDPPT / STUDIO</span><span>{String(selected + 1).padStart(2, '0')}</span></div>
@@ -66,20 +63,18 @@ export default function Home({ data }: { data: ApiData }) {
       </figure>
     </section>
 
-    <div className="home-format-strip home-wrap" aria-label="创作能力"><span>一个想法，多种可能。</span><div><span>自由设计</span><span>模板创作</span><span>AI 编辑</span><span>语音讲解</span><span>PPTX / PDF / HTML</span></div></div>
-
     <HomeSponsors sponsors={data.sponsors || []} />
 
     <section className="home-workflow home-wrap" aria-labelledby="homeWorkflowTitle">
-      <div className="home-section-heading"><div><span className="home-section-index">01 / THE PROCESS</span><h2 id="homeWorkflowTitle">从想法出发，<br />一路走到呈现。</h2></div><p>写作、设计与讲述，不必来回切换。<br />在同一个创作流程里，让内容慢慢成形。</p></div>
-      <ol className="home-workflow-list" aria-label="创建流程">{workflow.map(step => <li key={step.number}><div className="home-workflow-top"><span>{step.number}</span>{step.icon}</div><h3>{step.title}</h3><p>{step.description}</p><span className="home-workflow-note">{step.note}</span></li>)}</ol>
+      <div className="home-section-heading"><h2 id="homeWorkflowTitle">从想法出发，<br />一路走到呈现。</h2></div>
+      <ol className="home-workflow-list" aria-label="创建流程">{workflow.map(step => <li key={step.number}><div className="home-workflow-top"><span>{step.number}</span>{step.icon}</div><h3>{step.title}</h3><p>{step.description}</p></li>)}</ol>
     </section>
 
     <section className="home-capabilities" aria-labelledby="homeCapabilitiesTitle"><div className="home-capabilities-inner home-wrap">
-      <div className="home-capabilities-intro"><span className="home-section-index">02 / MADE FOR YOUR IDEAS</span><h2 id="homeCapabilitiesTitle">好演示，<br />不止好看。</h2><p>AI 帮你起步，<br />创作的主动权始终在你手里。</p><a className="home-text-link" href="/global-master-templates">探索模板库 <ArrowRightOutlined aria-hidden /></a><div className="home-paper-stack" aria-hidden><div /><div /><div><span>YOUR<br /><em>next</em><br />BIG IDEA.</span><span>从这里开始 ↗</span></div></div></div>
-      <div className="home-capability-list">{capabilities.map(item => <article key={item.title}><span className="home-capability-icon">{item.icon}</span><div><h3>{item.title}</h3><p>{item.description}</p><span>{item.detail}</span></div></article>)}</div>
+      <div className="home-capabilities-intro"><h2 id="homeCapabilitiesTitle">好演示，<br />不止好看。</h2><p>AI 帮你起步，<br />创作的主动权始终在你手里。</p><a className="home-text-link" href="/global-master-templates">探索模板库 <ArrowRightOutlined aria-hidden /></a><div className="home-paper-stack" aria-hidden><div /><div /><div><span>YOUR<br /><em>next</em><br />BIG IDEA.</span><span>从这里开始 ↗</span></div></div></div>
+      <div className="home-capability-list">{capabilities.map(item => <article key={item.title}><span className="home-capability-icon">{item.icon}</span><div><h3>{item.title}</h3><p>{item.description}</p></div></article>)}</div>
     </div></section>
 
-    <section className="home-finale home-wrap" aria-labelledby="homeFinaleTitle"><div><span>THE STAGE IS YOURS</span><h2 id="homeFinaleTitle">下一场精彩，<br />从你的想法开始。</h2><p>把想讲的内容，变成值得分享的作品。</p></div><Button href="/dashboard" icon={<ArrowRightOutlined aria-hidden />} iconPlacement="end">创建我的演示文稿</Button></section>
+    <section className="home-finale home-wrap" aria-labelledby="homeFinaleTitle"><h2 id="homeFinaleTitle">下一场精彩，<br />从你的想法开始。</h2><Button href="/dashboard" icon={<ArrowRightOutlined aria-hidden />} iconPlacement="end">创建我的演示文稿</Button></section>
   </div>;
 }
