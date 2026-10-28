@@ -145,6 +145,15 @@ def strip_think_content(content: str) -> str:
     return cleaned.strip()
 
 
+# OpenAI reasoning models (gpt-5.x, o1/o3/o4) answer 400 to a non-default
+# temperature/top_p, so those fields have to be left out of the request.
+_OPENAI_REASONING_MODEL_RE = re.compile(r"(?:^|/)(?:gpt-5(?!-chat)|o[134](?![0-9a-z]))", re.IGNORECASE)
+
+
+def _openai_rejects_sampling(model: Any) -> bool:
+    return isinstance(model, str) and _OPENAI_REASONING_MODEL_RE.search(model) is not None
+
+
 class OpenAIProvider(AIProvider):
     """OpenAI API provider"""
 
@@ -304,9 +313,10 @@ class OpenAIProvider(AIProvider):
         request_kwargs: Dict[str, Any] = {
             "model": config.get("model", self.model),
             "messages": openai_messages,
-            "temperature": config.get("temperature", 0.7),
-            "top_p": config.get("top_p", 1.0),
         }
+        if not _openai_rejects_sampling(request_kwargs["model"]):
+            request_kwargs["temperature"] = config.get("temperature", 0.7)
+            request_kwargs["top_p"] = config.get("top_p", 1.0)
         if stream:
             request_kwargs["stream"] = True
         if tools:
@@ -353,9 +363,10 @@ class OpenAIProvider(AIProvider):
         request_kwargs: Dict[str, Any] = {
             "model": config.get("model", self.model),
             "input": responses_input,
-            "temperature": config.get("temperature", 0.7),
-            "top_p": config.get("top_p", 1.0),
         }
+        if not _openai_rejects_sampling(request_kwargs["model"]):
+            request_kwargs["temperature"] = config.get("temperature", 0.7)
+            request_kwargs["top_p"] = config.get("top_p", 1.0)
 
         self._apply_reasoning_config(request_kwargs, config, responses_api=True)
 
