@@ -383,35 +383,8 @@ class ConfigService:
         try:
             from ..services.image.config.image_config import image_config
 
-            # 重新加载环境变量配置
+            # 重新加载环境变量配置 (also reads the Gemini/OpenAI image settings from the config service)
             image_config._load_env_config()
-
-
-            # 更新Gemini图片生成配置
-            gemini_updates = {}
-            if 'gemini_image_api_key' in current_config and current_config['gemini_image_api_key']:
-                gemini_updates['api_key'] = current_config['gemini_image_api_key']
-            if 'gemini_image_api_base' in current_config and current_config['gemini_image_api_base']:
-                gemini_updates['api_base'] = current_config['gemini_image_api_base']
-            if 'gemini_image_model' in current_config and current_config['gemini_image_model']:
-                gemini_updates['model'] = current_config['gemini_image_model']
-
-            if gemini_updates:
-                image_config.update_config({'gemini': gemini_updates})
-
-            # 更新OpenAI图片生成配置
-            openai_image_updates = {}
-            if 'openai_image_api_key' in current_config and current_config['openai_image_api_key']:
-                openai_image_updates['api_key'] = current_config['openai_image_api_key']
-            if 'openai_image_api_base' in current_config and current_config['openai_image_api_base']:
-                openai_image_updates['api_base'] = current_config['openai_image_api_base']
-            if 'openai_image_model' in current_config and current_config['openai_image_model']:
-                openai_image_updates['model'] = current_config['openai_image_model']
-            if 'openai_image_quality' in current_config and current_config['openai_image_quality']:
-                openai_image_updates['default_quality'] = current_config['openai_image_quality']
-
-            if openai_image_updates:
-                image_config.update_config({'openai_image': openai_image_updates})
 
             logger.info("Image service configuration reloaded")
         except Exception as e:
