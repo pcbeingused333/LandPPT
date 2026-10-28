@@ -657,6 +657,20 @@ class AzureOpenAIProvider(OpenAIProvider):
             self.client = None
 
 
+# Claude 4.7 and later (Opus 4.7+, the 5.x families, Mythos Preview) answer 400 to
+# a non-default temperature/top_p/top_k, so the field has to be left out.
+_CLAUDE_FIXED_SAMPLING_RE = re.compile(
+    r"claude-(?:opus-4-(?:[7-9]|[1-9]\d)(?!\d)"
+    r"|(?:opus|sonnet|haiku|fable|mythos)-(?:[5-9]|[1-9]\d)(?!\d)"
+    r"|mythos-preview)",
+    re.IGNORECASE,
+)
+
+
+def _claude_rejects_temperature(model: Any) -> bool:
+    return isinstance(model, str) and _CLAUDE_FIXED_SAMPLING_RE.search(model) is not None
+
+
 class AnthropicProvider(AIProvider):
     """Anthropic Claude API provider"""
 
@@ -863,10 +877,11 @@ class AnthropicProvider(AIProvider):
             request_kwargs: Dict[str, Any] = {
                 "model": config.get("model", self.model),
                 "messages": claude_messages,
-                "temperature": config.get("temperature", 0.7),
                 "max_tokens": int(config.get("anthropic_max_tokens") or config.get("max_completion_tokens") or 4096),
                 "tools": self._convert_tools_to_anthropic(tools),
             }
+            if not _claude_rejects_temperature(request_kwargs["model"]):
+                request_kwargs["temperature"] = config.get("temperature", 0.7)
             if system_message:
                 request_kwargs["system"] = system_message
             if tool_choice and isinstance(tool_choice, dict):
@@ -964,7 +979,6 @@ class AnthropicProvider(AIProvider):
             body = {
                 "model": model,
                 "messages": claude_messages,
-                "temperature": temperature,
                 "max_tokens": int(
                     config.get("anthropic_max_tokens")
                     or config.get("max_completion_tokens")
@@ -972,6 +986,8 @@ class AnthropicProvider(AIProvider):
                 ),
                 "stream": True
             }
+            if not _claude_rejects_temperature(model):
+                body["temperature"] = temperature
             if system_message:
                 body["system"] = system_message
             self._apply_reasoning_config(body, config)
