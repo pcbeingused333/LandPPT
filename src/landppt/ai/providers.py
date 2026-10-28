@@ -145,9 +145,11 @@ def strip_think_content(content: str) -> str:
     return cleaned.strip()
 
 
-# OpenAI reasoning models (gpt-5.x, o1/o3/o4) answer 400 to a non-default
+# OpenAI reasoning models (gpt-5.x and later, o1/o3/o4) answer 400 to a non-default
 # temperature/top_p, so those fields have to be left out of the request.
-_OPENAI_REASONING_MODEL_RE = re.compile(r"(?:^|/)(?:gpt-5(?!-chat)|o[134](?![0-9a-z]))", re.IGNORECASE)
+_OPENAI_REASONING_MODEL_RE = re.compile(
+    r"(?:^|/)(?:gpt-(?:[5-9]|\d{2,})(?!-chat)|o[134](?![0-9a-z]))", re.IGNORECASE
+)
 
 
 def _openai_rejects_sampling(model: Any) -> bool:
