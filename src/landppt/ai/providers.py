@@ -1623,14 +1623,25 @@ class OllamaProvider(AIProvider):
             content = response_message.get("content", "") or ""
             tool_calls = response_message.get("tool_calls") or []
             
+            prompt_tokens = response.get("prompt_eval_count")
+            completion_tokens = response.get("eval_count")
+            if prompt_tokens is not None and completion_tokens is not None:
+                usage = {
+                    "prompt_tokens": prompt_tokens,
+                    "completion_tokens": completion_tokens,
+                    "total_tokens": prompt_tokens + completion_tokens,
+                }
+            else:
+                usage = self._calculate_usage(
+                    " ".join([msg.content for msg in messages if isinstance(msg.content, str)]),
+                    content
+                )
+
             return AIResponse(
                 content=content,
                 model=config.get("model", self.model),
-                usage=self._calculate_usage(
-                    " ".join([msg.content for msg in messages if isinstance(msg.content, str)]),
-                    content
-                ),
-                finish_reason="stop",
+                usage=usage,
+                finish_reason=response.get("done_reason") or "stop",
                 tool_calls=tool_calls,
                 metadata={"provider": "ollama"}
             )
