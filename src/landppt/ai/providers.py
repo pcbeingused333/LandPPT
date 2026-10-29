@@ -145,6 +145,32 @@ def strip_think_content(content: str) -> str:
     return cleaned.strip()
 
 
+# OpenAI reasoning models (gpt-5.x and later, o1/o3/o4) answer 400 to a non-default
+# temperature/top_p, so those fields have to be left out of the request.
+_OPENAI_REASONING_MODEL_RE = re.compile(
+    r"(?:^|/)(?:gpt-(?:[5-9]|\d{2,})(?!-chat)|o[134](?![0-9a-z]))", re.IGNORECASE
+)
+# gpt-5.1 and later accept temperature/top_p again when the request sets reasoning
+# effort to ``none``. Not every model has that effort: gpt-5, gpt-5-mini and the
+# o-series, the codex/pro variants, gpt-6-astra and gpt-6.1-sol always reject them.
+_OPENAI_NONE_EFFORT_MODEL_RE = re.compile(
+    r"(?:^|/)gpt-(?:5\.[1-9]\d*|[6-9]|\d{2,})(?![0-9])(?!-(?:chat|codex|pro|astra)|\.\d+-sol)",
+    re.IGNORECASE,
+)
+# gpt-5.1 defaults to ``none`` when no effort is sent; the other models default to medium.
+_OPENAI_DEFAULT_NONE_MODEL_RE = re.compile(r"(?:^|/)gpt-5\.1(?:-\d{4}-\d{2}-\d{2})?$", re.IGNORECASE)
+
+
+def _openai_rejects_sampling(model: Any, reasoning_effort: Optional[str] = None) -> bool:
+    if not isinstance(model, str) or _OPENAI_REASONING_MODEL_RE.search(model) is None:
+        return False
+    if reasoning_effort is None and _OPENAI_DEFAULT_NONE_MODEL_RE.search(model) is not None:
+        reasoning_effort = "none"
+    if reasoning_effort == "none" and _OPENAI_NONE_EFFORT_MODEL_RE.search(model) is not None:
+        return False
+    return True
+
+
 class OpenAIProvider(AIProvider):
     """OpenAI API provider"""
 
@@ -209,6 +235,12 @@ class OpenAIProvider(AIProvider):
             or self.reasoning_effort
             or "medium"
         )
+
+    def _effective_reasoning_effort(self, config: Dict[str, Any]) -> Optional[str]:
+        """The effort the request will carry, or None when no reasoning is sent."""
+        if not self._should_enable_reasoning(config):
+            return None
+        return self._get_reasoning_effort(config)
 
     def _apply_reasoning_config(
         self,
@@ -304,9 +336,12 @@ class OpenAIProvider(AIProvider):
         request_kwargs: Dict[str, Any] = {
             "model": config.get("model", self.model),
             "messages": openai_messages,
-            "temperature": config.get("temperature", 0.7),
-            "top_p": config.get("top_p", 1.0),
         }
+        if not _openai_rejects_sampling(
+            request_kwargs["model"], self._effective_reasoning_effort(config)
+        ):
+            request_kwargs["temperature"] = config.get("temperature", 0.7)
+            request_kwargs["top_p"] = config.get("top_p", 1.0)
         if stream:
             request_kwargs["stream"] = True
         if tools:
@@ -353,9 +388,12 @@ class OpenAIProvider(AIProvider):
         request_kwargs: Dict[str, Any] = {
             "model": config.get("model", self.model),
             "input": responses_input,
-            "temperature": config.get("temperature", 0.7),
-            "top_p": config.get("top_p", 1.0),
         }
+        if not _openai_rejects_sampling(
+            request_kwargs["model"], self._effective_reasoning_effort(config)
+        ):
+            request_kwargs["temperature"] = config.get("temperature", 0.7)
+            request_kwargs["top_p"] = config.get("top_p", 1.0)
 
         self._apply_reasoning_config(request_kwargs, config, responses_api=True)
 
