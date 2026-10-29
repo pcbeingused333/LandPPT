@@ -1209,6 +1209,7 @@ class GoogleProvider(AIProvider):
         prompt: str,
         generation_config: Dict[str, Any],
         timeout_seconds: float,
+        tools: Optional[List[Dict[str, Any]]] = None,
     ) -> Dict[str, Any]:
         import aiohttp
 
@@ -1227,6 +1228,11 @@ class GoogleProvider(AIProvider):
             "generationConfig": generation_config,
             "safetySettings": safety_settings,
         }
+        gemini_tools = self._convert_tools_to_gemini(tools)
+        if gemini_tools:
+            payload["tools"] = [
+                {"functionDeclarations": group["function_declarations"]} for group in gemini_tools
+            ]
 
         timeout = _build_aiohttp_timeout(
             {"llm_timeout_seconds": timeout_seconds},
@@ -1278,6 +1284,27 @@ class GoogleProvider(AIProvider):
             "total_tokens": int(usage_meta.get("totalTokenCount") or 0),
         }
         return content, str(finish_reason), usage
+
+    def _extract_rest_tool_calls(self, data: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """Extract function calls from a REST response, in the shape the SDK path returns."""
+        tool_calls: List[Dict[str, Any]] = []
+        candidates = data.get("candidates") or []
+        parts = ((candidates[0] or {}).get("content") or {}).get("parts") or [] if candidates else []
+        for part in parts:
+            function_call = part.get("functionCall") or part.get("function_call") if isinstance(part, dict) else None
+            if not function_call:
+                continue
+            tool_calls.append(
+                {
+                    "id": f"gemini-tool-call-{len(tool_calls) + 1}",
+                    "type": "function",
+                    "function": {
+                        "name": function_call.get("name") or "",
+                        "arguments": json.dumps(function_call.get("args") or {}, ensure_ascii=False),
+                    },
+                }
+            )
+        return tool_calls
 
     def _convert_tools_to_gemini(self, tools: Optional[List[Dict[str, Any]]]) -> Optional[List[Dict[str, Any]]]:
         if not tools:
@@ -1458,6 +1485,7 @@ class GoogleProvider(AIProvider):
                 prompt=prompt_text,
                 generation_config=generation_config,
                 timeout_seconds=_get_llm_timeout_seconds(config),
+                tools=tools,
             )
             content, finish_reason, usage = self._extract_rest_text(data)
             return AIResponse(
@@ -1465,6 +1493,7 @@ class GoogleProvider(AIProvider):
                 model=model,
                 usage=usage,
                 finish_reason=finish_reason,
+                tool_calls=self._extract_rest_tool_calls(data),
                 metadata={"provider": "google", "transport": "rest"},
             )
 

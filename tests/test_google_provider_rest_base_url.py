@@ -68,3 +68,82 @@ async def test_google_provider_uses_configured_base_url_for_rest(monkeypatch):
     assert calls[0]["params"] == {"key": "test-key"}
     assert "maxOutputTokens" not in calls[0]["json"]["generationConfig"]
 
+
+
+@pytest.mark.asyncio
+async def test_google_provider_rest_sends_tools_and_returns_function_calls(monkeypatch):
+    from landppt.ai.providers import GoogleProvider
+
+    calls = []
+
+    class FakeResponse:
+        status = 200
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, exc_type, exc, tb):
+            return False
+
+        async def json(self):
+            return {
+                "candidates": [
+                    {
+                        "content": {"parts": [{"functionCall": {"name": "get_time", "args": {"tz": "UTC"}}}]},
+                        "finishReason": "STOP",
+                    }
+                ]
+            }
+
+    class FakeSession:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, exc_type, exc, tb):
+            return False
+
+        def post(self, url, *, params=None, json=None, headers=None):
+            calls.append(json)
+            return FakeResponse()
+
+    import aiohttp
+
+    monkeypatch.setattr(aiohttp, "ClientSession", FakeSession)
+
+    provider = GoogleProvider(
+        {"api_key": "test-key", "base_url": "https://mirror.example.com/prefix", "model": "gemini-1.5-flash"}
+    )
+    tools = [
+        {
+            "type": "function",
+            "function": {
+                "name": "get_time",
+                "description": "Get the time",
+                "parameters": {"type": "object", "properties": {"tz": {"type": "string"}}},
+            },
+        }
+    ]
+
+    resp = await provider.text_completion("what time is it", tools=tools)
+
+    assert calls[0]["tools"] == [
+        {
+            "functionDeclarations": [
+                {
+                    "name": "get_time",
+                    "description": "Get the time",
+                    "parameters": {"type": "object", "properties": {"tz": {"type": "string"}}},
+                }
+            ]
+        }
+    ]
+    assert resp.tool_calls == [
+        {
+            "id": "gemini-tool-call-1",
+            "type": "function",
+            "function": {"name": "get_time", "arguments": '{"tz": "UTC"}'},
+        }
+    ]
