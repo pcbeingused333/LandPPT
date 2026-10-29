@@ -1106,6 +1106,10 @@ class AnthropicProvider(AIProvider):
             logger.error(f"Anthropic streaming API error: {e}")
             raise
 
+# Placeholder ids for function calls Gemini returned without one; never sent back to the API.
+_GEMINI_SYNTHETIC_CALL_ID = "gemini-tool-call-"
+
+
 class GoogleProvider(AIProvider):
     """Google Gemini API provider"""
 
@@ -1180,25 +1184,26 @@ class GoogleProvider(AIProvider):
                 break
         return base_url.rstrip("/")
 
+    def _content_to_text(self, content: Any) -> str:
+        """Text of a message body; images degrade to placeholders."""
+        if isinstance(content, str):
+            return content
+        if isinstance(content, list):
+            msg_parts: List[str] = []
+            for part in content:
+                if isinstance(part, TextContent):
+                    msg_parts.append(part.text)
+                elif isinstance(part, ImageContent):
+                    url = part.image_url.get("url", "")
+                    msg_parts.append(f"[Image: {url}]" if url else "[Image]")
+            return " ".join(p for p in msg_parts if p)
+        return str(content)
+
     def _messages_to_plaintext_prompt(self, messages: List[AIMessage]) -> str:
         """Best-effort conversion for REST API (keeps text, degrades images to placeholders)."""
-        parts: List[str] = []
-        for msg in messages:
-            role_prefix = f"[{msg.role.value.upper()}]: "
-            if isinstance(msg.content, str):
-                parts.append(role_prefix + msg.content)
-            elif isinstance(msg.content, list):
-                msg_parts: List[str] = []
-                for part in msg.content:
-                    if isinstance(part, TextContent):
-                        msg_parts.append(part.text)
-                    elif isinstance(part, ImageContent):
-                        url = part.image_url.get("url", "")
-                        msg_parts.append(f"[Image: {url}]" if url else "[Image]")
-                parts.append(role_prefix + " ".join(p for p in msg_parts if p))
-            else:
-                parts.append(role_prefix + str(msg.content))
-        return "\n\n".join(parts)
+        return "\n\n".join(
+            f"[{msg.role.value.upper()}]: " + self._content_to_text(msg.content) for msg in messages
+        )
 
     async def _rest_generate_content(
         self,
@@ -1210,6 +1215,7 @@ class GoogleProvider(AIProvider):
         generation_config: Dict[str, Any],
         timeout_seconds: float,
         tools: Optional[List[Dict[str, Any]]] = None,
+        contents: Optional[List[Dict[str, Any]]] = None,
     ) -> Dict[str, Any]:
         import aiohttp
 
@@ -1224,14 +1230,26 @@ class GoogleProvider(AIProvider):
         ]
 
         payload: Dict[str, Any] = {
-            "contents": [{"parts": [{"text": prompt}]}],
+            "contents": contents or [{"parts": [{"text": prompt}]}],
             "generationConfig": generation_config,
             "safetySettings": safety_settings,
         }
         gemini_tools = self._convert_tools_to_gemini(tools)
         if gemini_tools:
+            # `parameters` is Gemini's restricted Schema type (no additionalProperties etc.);
+            # full JSON schemas such as the editor tools' go in `parametersJsonSchema`.
             payload["tools"] = [
-                {"functionDeclarations": group["function_declarations"]} for group in gemini_tools
+                {
+                    "functionDeclarations": [
+                        {
+                            "name": declaration["name"],
+                            "description": declaration["description"],
+                            "parametersJsonSchema": declaration["parameters"],
+                        }
+                        for declaration in group["function_declarations"]
+                    ]
+                }
+                for group in gemini_tools
             ]
 
         timeout = _build_aiohttp_timeout(
@@ -1294,17 +1312,81 @@ class GoogleProvider(AIProvider):
             function_call = part.get("functionCall") or part.get("function_call") if isinstance(part, dict) else None
             if not function_call:
                 continue
-            tool_calls.append(
-                {
-                    "id": f"gemini-tool-call-{len(tool_calls) + 1}",
-                    "type": "function",
-                    "function": {
-                        "name": function_call.get("name") or "",
-                        "arguments": json.dumps(function_call.get("args") or {}, ensure_ascii=False),
-                    },
-                }
-            )
+            tool_call: Dict[str, Any] = {
+                # Gemini 3 returns an id that the functionResponse must echo back.
+                "id": function_call.get("id") or f"{_GEMINI_SYNTHETIC_CALL_ID}{len(tool_calls) + 1}",
+                "type": "function",
+                "function": {
+                    "name": function_call.get("name") or "",
+                    "arguments": json.dumps(function_call.get("args") or {}, ensure_ascii=False),
+                },
+            }
+            signature = part.get("thoughtSignature") or part.get("thought_signature")
+            if signature:
+                tool_call["thought_signature"] = signature
+            tool_calls.append(tool_call)
         return tool_calls
+
+    def _messages_to_rest_contents(self, messages: List[AIMessage]) -> Optional[List[Dict[str, Any]]]:
+        """Structured `contents` for a tool round trip; None when no message carries tool state.
+
+        Replays assistant functionCall parts (with their original id and thoughtSignature)
+        and tool results as functionResponse parts, instead of flattening them to text.
+        """
+        if not any(msg.tool_calls or msg.role == MessageRole.TOOL for msg in messages):
+            return None
+
+        call_names: Dict[str, str] = {}
+        contents: List[Dict[str, Any]] = []
+
+        def add(role: str, parts: List[Dict[str, Any]]) -> None:
+            if not parts:
+                return
+            if contents and contents[-1]["role"] == role:
+                contents[-1]["parts"].extend(parts)
+            else:
+                contents.append({"role": role, "parts": parts})
+
+        for msg in messages:
+            if msg.role == MessageRole.TOOL:
+                try:
+                    response = json.loads(msg.content) if isinstance(msg.content, str) else msg.content
+                except json.JSONDecodeError:
+                    response = msg.content
+                if not isinstance(response, dict):
+                    response = {"result": response}
+                function_response: Dict[str, Any] = {
+                    "name": call_names.get(msg.tool_call_id or "") or msg.name or "",
+                    "response": response,
+                }
+                if msg.tool_call_id and not msg.tool_call_id.startswith(_GEMINI_SYNTHETIC_CALL_ID):
+                    function_response["id"] = msg.tool_call_id
+                add("user", [{"functionResponse": function_response}])
+            elif msg.role == MessageRole.ASSISTANT:
+                parts: List[Dict[str, Any]] = []
+                body = self._content_to_text(msg.content)
+                if body:
+                    parts.append({"text": body})
+                for call in msg.tool_calls or []:
+                    function = call.get("function") or {}
+                    try:
+                        args = json.loads(function.get("arguments") or "{}")
+                    except json.JSONDecodeError:
+                        args = {}
+                    call_id = call.get("id") or ""
+                    call_names[call_id] = function.get("name") or ""
+                    function_call: Dict[str, Any] = {"name": function.get("name") or "", "args": args}
+                    if call_id and not call_id.startswith(_GEMINI_SYNTHETIC_CALL_ID):
+                        function_call["id"] = call_id
+                    part: Dict[str, Any] = {"functionCall": function_call}
+                    if call.get("thought_signature"):
+                        part["thoughtSignature"] = call["thought_signature"]
+                    parts.append(part)
+                add("model", parts)
+            else:
+                text = self._messages_to_plaintext_prompt([msg])
+                add("user", [{"text": text}])
+        return contents
 
     def _convert_tools_to_gemini(self, tools: Optional[List[Dict[str, Any]]]) -> Optional[List[Dict[str, Any]]]:
         if not tools:
@@ -1486,6 +1568,7 @@ class GoogleProvider(AIProvider):
                 generation_config=generation_config,
                 timeout_seconds=_get_llm_timeout_seconds(config),
                 tools=tools,
+                contents=self._messages_to_rest_contents(messages),
             )
             content, finish_reason, usage = self._extract_rest_text(data)
             return AIResponse(
