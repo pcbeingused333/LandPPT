@@ -21,6 +21,16 @@ logger = logging.getLogger(__name__)
 
 DEFAULT_MODEL = 'gpt-image-2.5-sunburst'
 GPT_IMAGE_QUALITIES = {'low', 'medium', 'high', 'auto'}
+# gpt-image-2.5-sunburst (and its dated snapshots) also accept xhigh and max.
+GPT_IMAGE_EXTENDED_QUALITY_MODELS = ('gpt-image-2.5-sunburst',)
+GPT_IMAGE_EXTENDED_QUALITIES = {'xhigh', 'max'}
+
+
+def _gpt_image_qualities(model: str) -> set:
+    """Quality values the given GPT Image model accepts."""
+    if model.startswith(GPT_IMAGE_EXTENDED_QUALITY_MODELS):
+        return GPT_IMAGE_QUALITIES | GPT_IMAGE_EXTENDED_QUALITIES
+    return GPT_IMAGE_QUALITIES
 
 
 class DalleProvider(ImageGenerationProvider):
@@ -130,8 +140,8 @@ class DalleProvider(ImageGenerationProvider):
                 api_request["style"] = request.style or self.default_style
         else:
             # GPT Image models reject response_format and style, return base64
-            # data and only accept low/medium/high/auto for quality.
-            api_request["quality"] = quality if quality in GPT_IMAGE_QUALITIES else "auto"
+            # data and only accept the qualities listed for the model.
+            api_request["quality"] = quality if quality in _gpt_image_qualities(self.model) else "auto"
 
         return api_request
     

@@ -52,6 +52,25 @@ def test_gpt_image_request_omits_response_format_and_style():
     assert api_request["quality"] == "auto"
 
 
+@pytest.mark.parametrize("quality", ["xhigh", "max"])
+@pytest.mark.parametrize("model", ["gpt-image-2.5-sunburst", "gpt-image-2.5-sunburst-2026-10-01"])
+def test_extended_qualities_are_kept_for_models_that_support_them(model, quality):
+    provider = DalleProvider({"api_key": "test-key", "model": model})
+
+    api_request = provider._prepare_api_request(_request(quality=quality))
+
+    assert api_request["quality"] == quality
+
+
+@pytest.mark.parametrize("quality", ["xhigh", "max"])
+def test_extended_qualities_are_not_sent_to_other_gpt_image_models(quality):
+    provider = DalleProvider({"api_key": "test-key", "model": "gpt-image-1.5"})
+
+    api_request = provider._prepare_api_request(_request(quality=quality))
+
+    assert api_request["quality"] == "auto"
+
+
 def test_dall_e_3_request_keeps_url_format_and_style():
     provider = DalleProvider({"api_key": "test-key", "model": "dall-e-3"})
 
